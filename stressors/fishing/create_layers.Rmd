@@ -1,0 +1,208 @@
+---
+title: "Commercial Fishing Stressors"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 1
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+pdf_document:
+  toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = F, warning = F)
+
+source('../../common.R')
+
+options(scipen=999)
+
+#libraries
+
+library(RColorBrewer)
+library(rgdal)
+library(parallel)
+library(foreach)
+library(doParallel)
+
+
+# set color pallete for plotting
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+#ocean raster at 1km
+  ocean = raster(file.path(dir_M, 'model/GL-NCEAS-Halpern2008/tmp/ocean.tif'))
+  
+# File paths
+
+    # Original data from 2008 CHI project
+    saup_pressures = file.path(dir_M,'git-annex/Global/SAUP-FishCatchByGearType_Halpern2008/data')
+
+    # Data used for the commercial fishing pressures layers in OHI 2013. 
+    #These are derivatives and updates to the 2008 data 
+    ohi_2013  = file.path(dir_M,'model/GL-NCEAS-Pressures_CommercialFisheries_v2013a')
+
+    # new SAUP data
+    saup_2015 = file.path(dir_M,'git-annex/globalprep/SAUP_FIS_data/v2015')
+
+    # Directory where the updates to the 2008 data were done for 2013 ohi
+    saup_update = file.path(dir_M, 'model/GL-SAUP-FisheriesCatchData_v2013')
+    
+    dir_git <- file.path(dir_M,'git-annex/chi_rate/stressors/fishing')
+    
+    
+# Spatial information    
+    
+    #bring in old SAUP region raster (at 1km with no land). This will be used to resample and reproject only
+    old_saup_eez = raster(file.path(dir_M,'model/GL-NCEAS-Pressures_CommercialFisheries_v2013a/tmp/saup_fao_mol.tif'))
+    
+    #define mollweide CRS    
+    moll_crs = CRS("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
+    
+#---------------------------------------------------------------------------------
+
+# Get gear catch rasters
+
+    
+  #Long/Lat  
+    dem_d  = raster(file.path(saup_pressures,'catch_dem_d_gcs.tif'))
+    dem_hb = raster(file.path(saup_pressures,'catch_dem_nd_hb_gcs.tif'))
+    dem_lb = raster(file.path(saup_pressures,'catch_dem_nd_lb_gcs.tif'))
+    pel_lb = raster(file.path(saup_pressures,'catch_pel_lb_gcs.tif'))
+    pel_hb = raster(file.path(saup_pressures,'catch_pel_hb_gcs.tif'))
+    
+    
+    # aggregate all catch
+    
+    all_catch_gcs = stack(dem_d,dem_hb,dem_lb,pel_lb,pel_hb)%>%
+      calc(.,fun=function(x){sum(x,na.rm=T)},progress='text')
+    
+    # Create single raster without projection to use to calculate area of fished cells below
+    dem_d_prop = overlay(dem_d,all_catch_gcs,fun=function(x,y){x/y})%>%
+                  projectRaster(crs=moll_crs,over=T)
+    dem_hb_prop = overlay(dem_hb,all_catch_gcs,fun=function(x,y){x/y})%>%
+                  projectRaster(crs=moll_crs,over=T)
+    dem_lb_prop = overlay(dem_lb,all_catch_gcs,fun=function(x,y){x/y})%>%
+                  projectRaster(crs=moll_crs,over=T)
+    pel_lb_prop = overlay(pel_lb,all_catch_gcs,fun=function(x,y){x/y})%>%
+                  projectRaster(crs=moll_crs,over=T)
+    pel_hb_prop = overlay(pel_hb,all_catch_gcs,fun=function(x,y){x/y})%>%
+                  projectRaster(crs=moll_crs,over=T)
+
+
+```
+
+
+# Annual catch rasters
+
+
+```{r annual_catch, eval=F}
+
+catch_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_fish/v2016/yearly_saup_rasters'),full.names = T)[54:61]
+npp         <- list.files(file.path(dir_M,'git-annex/globalprep/prs_fish/v2016/VGPM_primary_productivity/int/annual_npp'),pattern = 'moll_1km_',full.names=T)
+
+# function that takes each annual catch raster, reprojects and resamples, splits it according to high and low bycatch and then standardizes by npp for that year.
+
+fish_fun <- function(file){
+  
+  yr <- substr(file,74,77)
+  
+  r  <- raster(file)
+
+  npp_r <- npp[which(substr(npp,120,123)==yr)]%>%raster()
+  
+  dem_d_r  <- overlay(r,dem_d_prop,fun=function(x,y){x*y},filename = paste0('int/annual_dem_d_catch_gcs_',yr,'.tif',sep=''),overwrite=T)%>%
+               projectRaster(.,crs=moll_crs, over = T)%>%
+                raster::resample(ocean,method = 'ngb', filename=paste0(
+                  file.path(dir_git,'int/dem_d/dem_d_moll_1km_'),yr,'.tif',sep=''),overwrite=T)%>%
+                overlay(.,npp_r,fun=function(x,y){x/y},filename = paste0(file.path(dir_git,'int/dem_d/dem_d_moll_1km_npp'),yr,'.tif',sep=''),overwrite=T)
+  
+  dem_hb_r <- overlay(r,dem_hb_prop,fun=function(x,y){x*y},filename = paste0('int/annual_dem_hb_catch_gcs_',yr,'.tif',sep=''),overwrite=T)%>%
+               projectRaster(.,crs=moll_crs, over = T)%>%
+                raster::resample(ocean,method = 'ngb', filename=paste0(
+                  file.path(dir_git,'int/dem_hb/dem_hb_moll_1km_'),yr,'.tif',sep=''),overwrite=T)%>%
+                overlay(.,npp_r,fun=function(x,y){x/y},filename = paste0(file.path(dir_git,'int/dem_hb/dem_hb_moll_1km_npp'),yr,'.tif',sep=''),overwrite=T)
+  
+  dem_lb_r <- overlay(r,dem_lb_prop,fun=function(x,y){x*y},filename = paste0('int/annual_dem_lb_catch_gcs_',yr,'.tif',sep=''),overwrite=T)%>%
+               projectRaster(.,crs=moll_crs, over = T)%>%
+                raster::resample(ocean,method = 'ngb', filename=paste0(
+                  file.path(dir_git,'int/dem_lb/dem_lb_moll_1km_'),yr,'.tif',sep=''),overwrite=T)%>%
+                overlay(.,npp_r,fun=function(x,y){x/y},filename = paste0(file.path(dir_git,'int/dem_lb/dem_lb_moll_1km_npp'),yr,'.tif',sep=''),overwrite=T)
+  
+  pel_hb_r <- overlay(r,pel_hb_prop,fun=function(x,y){x*y},filename = paste0('int/annual_pel_hb_catch_gcs_',yr,'.tif',sep=''),overwrite=T)%>%
+               projectRaster(.,crs=moll_crs, over = T)%>%
+                raster::resample(ocean,method = 'ngb', filename=paste0(
+                  file.path(dir_git,'int/pel_hb/pel_hb_moll_1km_'),yr,'.tif',sep=''),overwrite=T)%>%
+                overlay(.,npp_r,fun=function(x,y){x/y},filename = paste0(file.path(dir_git,'int/pel_hb/pel_hb_moll_1km_npp'),yr,'.tif',sep=''),overwrite=T)
+  
+  pel_lb_r <- overlay(r,pel_lb_prop,fun=function(x,y){x*y},filename = paste0('int/annual_pel_lb_catch_gcs_',yr,'.tif',sep=''),overwrite=T)%>%
+               projectRaster(.,crs=moll_crs, over = T)%>%
+                raster::resample(ocean,method = 'ngb', filename=paste0(
+                  file.path(dir_git,'/pel_lb/pel_lb_moll_1km_'),yr,'.tif',sep=''),overwrite=T)%>%
+                overlay(.,npp_r,fun=function(x,y){x/y},filename = paste0(file.path(dir_git,'int/pel_lb/pel_lb_moll_1km_npp'),yr,'.tif',sep=''),overwrite=T)
+  
+}
+
+mclapply(catch_files,fish_fun, mc.cores = 8)
+
+```
+
+
+## Rescale
+
+```{r rescale, eval=F}
+
+dem_d_files <- list.files(file.path(dir_git,'int/dem_d'),recursive = T, pattern = 'moll_1km_npp',full.names=T)
+
+hb_files <- list.files(file.path(dir_git,'int'),recursive = T, pattern = "hb_moll_1km_npp",full.names=T)
+lb_files <- list.files(file.path(dir_git,'int'),recursive = T, pattern = "lb_moll_1km_npp",full.names=T)
+
+registerDoParallel(4)
+
+foreach (f = hb_files) %dopar%{
+  
+  yr   <- substr(f,85,88)
+  gear <- strsplit(f,split = '/')[[1]][10]
+  r_log    <- raster(f)%>%
+                calc(fun=function(x){ifelse(x>0,log(x+1),0)})
+
+  
+  ref <- quantile(r_log,prob=0.9999)
+  
+  r_resc <- r_log%>%
+              calc(fun=function(x){ifelse(x>ref,1,x/ref)},filename = paste0(file.path(dir_git),'/out/',gear,'_',yr,'.tif'))
+}
+
+registerDoParallel(4)
+foreach (f = lb_files) %dopar%{
+  
+  yr   <- substr(f,85,88)
+  gear <- strsplit(f,split = '/')[[1]][10]
+  r_log    <- raster(f)%>%
+                calc(fun=function(x){ifelse(x>0,log(x+1),0)})
+
+  
+  ref <- quantile(r_log,prob=0.9999)
+  
+  r_resc <- r_log%>%
+              calc(fun=function(x){ifelse(x>ref,1,x/ref)},filename = paste0(file.path(dir_git),'/out/',gear,'_',yr,'.tif'))
+}
+
+
+```
+
+# Results
+
+```{r results}
+
+l = list.files(file.path(dir_git,'out'),full.names=T)
+plot(l[16])
+```
+
+
+
+
+
