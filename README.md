@@ -1,2 +1,2 @@
-# CHIrate
-Rate of change of Cumulative Human Impacts to the ocean
+# Examining the rate of change in global Cumulative Human Impacts to the oceans
+
