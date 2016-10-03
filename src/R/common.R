@@ -29,14 +29,28 @@ if (Sys.info()[['sysname']] == 'Linux' & (!file.exists(dir_M) & !file.exists(dir
 
 
 # install (if necessary) and load commonly used libraries
-packages <- c("dplyr", "tidyr", "stringr")
+packages <- "tidyverse"
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   cat(sprintf("Installing %s\n", setdiff(packages, rownames(installed.packages()))))
   install.packages(setdiff(packages, rownames(installed.packages())))  
 }
+
+library(RColorBrewer)
+library(rasterVis)
+library(tidyverse)
 library(raster)
 
-library(tidyverse)
-
-
 rm(packages)
+
+#define color scheme for plotting
+cols    = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+mytheme = rasterTheme(region=cols)
+
+#ocean raster at 1km
+ocean = raster(file.path(dir_M, 'model/GL-NCEAS-Halpern2008/tmp/ocean.tif'))
+
+#set mollweide projection CRS
+mollCRS=crs('+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs')
+
+#paths
+dir_anx <- file.path(dir_M,'marine_threats/impact_acceleration')
