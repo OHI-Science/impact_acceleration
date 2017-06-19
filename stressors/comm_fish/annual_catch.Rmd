@@ -1,0 +1,283 @@
+---
+title: "Annual Commercial Fisheries Catch"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 1
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+
+This script combines spatial catch data from [Watson (2017)](https://www.nature.com/articles/sdata201739) with species & gear specific categories defined in [`watson_gear_matching`](https://github.com/OHI-Science/impact_acceleration/blob/master/stressors/comm_fish/watson_gear_matching.Rmd) to create annual catch rasters for each of the five fishing stressor categories:
+
+- demersal destructive  
+- demersal non-destructive high bycatch
+- demersal non-destructive low bycatch
+- pelagic high bycatch
+- pelagic low bycatch
+
+## Overview
+- Raw catch data is combined with `taxa_gear_types.csv` as defined in `watson_gear_matching.Rmd`
+- Data is filtered for every year and catch type, rasterized to half degree cells, and saved as a GeoTIFF
+
+```{r setup, message=F,warning=F}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+source('~/github/ohiprep/src/R/common.R')
+
+library(seaaroundus)
+library(raster)
+library(readr)
+library(dplyr)
+library(data.table)
+library(parallel)
+library(RColorBrewer)
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+```
+
+#Load Data
+
+Load raw catch data and the dataset matching gear and taxon to the five stressor categories.
+
+```{r raw_data_files, eval=F}
+
+watson_data <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/data'),full.names=T)
+
+#dataset created in watson_gear_matching that assigns each species/gear pair a gear type as defined in Halpern et al. (2008)
+gear_taxa <- read_csv('taxa_gear_types.csv')%>%
+            dplyr::select(-X1)%>%
+            rename(Taxonkey = TaxonKey)
+
+```
+
+#Save annual catch data
+
+The raw data comes with 5 years of data in each file. Here we disaggregate the data by year, join it with the `taxa_gear` data, and save the filtered data as a standalone dataset.
+
+```{r annual_catch_data,eval=F}
+
+#annual_csv is a function that reads in a raw RDS file, finds all years in the data, filters the data for each year, joins the gear_taxa data and saves its as an .rds on the server
+
+annual_csv <- function(file){
+  
+data <- readRDS(file)
+
+yrs <- unique(data$Year)
+
+for(i in 1:length(yrs)){
+  print(i)
+  
+yr = yrs[i]
+  
+yr_data <- data%>%
+            filter(Year == yr)%>%
+            left_join(gear_taxa, by = c('Taxonkey','TaxonName','CommonName', 'Gear', 'GearName'))
+
+write_rds(yr_data,path = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/int/catch_data_',yr,'.rds'))
+
+}
+}
+
+mclapply(watson_data,annual_csv,mc.cores = 8) #this was done in parallel to speed up processing time
+
+
+```
+
+#Map annual catch
+
+## List annual catch files
+
+To use the datasets just created we define a list of all annual catch datasets.
+
+```{r}
+
+annual_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/int'),full.names=T)
+
+```
+
+
+## Get base raster
+
+Using the [searoundus R package](https://github.com/ropensci/seaaroundus), we create a raster with cell values set equal to cell IDs in the data, which are defined in the column `Seq`.
+
+```{r}
+
+  #get template raster for SAUP data with cell values equal to CellID
+  
+   saup_cells <- getcells("POLYGON ((-180 90, 180 90, 180 -90, -180 -90, -180 90))")
+
+   saup_rast <- raster(ncol=720, nrow=360)
+   saup_rast[] <- saup_cells
+   
+   plot(saup_rast,col=cols,main = "SAUP Cell IDs")
+```
+
+## Map individual stressor layers
+
+Each annual stressor layer is created by filtering the data for catch records that are consistent with what the stressor is measuring (each of the 5 fishing categories).
+
+### Demersal destructive
+```{r map,eval=F}
+
+dem_dest_fun <- function(file){
+  
+  yr <- substr(file,94,97)
+  
+  data <- readRDS(file)%>%
+      filter(destruction == 'destructive',
+             fish_type == 'demersal')%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))%>%
+    data.frame()#summing up all types of catch rates (remember these are in tonnes/km2 so we don't need to multiply by Ocean Area since we have 1km2 resolution)
+
+  
+  #rasterize catch by swapping cell ids with 
+      raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_dest/dem_dest_',yr,'.tif'),overwrite=T)
+}
+
+mclapply(annual_files,dem_dest_fun,mc.cores = 5)
+
+```
+
+
+### Demersal non destructive high bycatch
+```{r dem_nd_hb, eval=F}
+
+dem_nd_hb_fun <- function(file){
+  
+  yr <- substr(file,94,97)
+  
+  data <- readRDS(file)%>%
+      filter(destruction == 'non-destructive',
+             fish_type == 'demersal',
+             bycatch   == 'high')%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))
+  
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_hb/dem_nondest_hb_',yr,'.tif'),overwrite=T)
+}
+
+mclapply(annual_files,dem_nd_hb_fun,mc.cores = 4)
+```
+
+
+### Demersal non destructive low bycatch
+```{r dem_nd_lb, eval=F}
+
+dem_nd_lb_fun <- function(file){
+  
+  yr <- substr(file,94,97)
+  
+  data <- readRDS(file)%>%
+      filter(destruction == 'non-destructive',
+             fish_type == 'demersal',
+             bycatch   == 'low')%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))
+  
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_lb/dem_nondest_lb_',yr,'.tif'),overwrite=T)
+}
+
+lapply(annual_files,dem_nd_lb_fun)
+
+```
+
+
+### Pelagic low bycatch
+
+```{r pel_lb,eval=F}
+
+pel_lb_fun <- function(file){
+  
+  yr <- substr(file,94,97)
+  
+  data <- readRDS(file)%>%
+      filter(fish_type == 'pelagic',
+             bycatch   == 'low')%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))
+  
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_lb/pel_lb_',yr,'.tif'),overwrite=T)
+}
+
+
+lapply(annual_files,pel_lb_fun)
+
+```
+
+###Pelagic high bycatch
+
+```{r pel_hb, eval=F}
+
+pel_hb_fun <- function(file){
+  
+  yr <- substr(file,94,97)
+  
+  data <- readRDS(file)%>%
+      filter(fish_type == 'pelagic',
+             bycatch   == 'high')%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))
+  
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_hb/pel_hb_',yr,'.tif'),overwrite=T)
+}
+
+lapply(annual_files,pel_hb_fun)
+```
+
+#Check results
+
+If we add up the 5 layers it should equal the total catch for that year.
+
+```{r}
+
+#for 2014
+
+#stack the 5 layers and add
+r <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch'),pattern = '2014',full.names=T,recursive=T)%>%stack()%>%sum(.,na.rm=T)
+
+#all 0 cells set to NA mainly to remove land
+r[r==0]<-NA
+
+plot(r,col=cols)
+
+#create single raster for 2014 from the data
+
+data <- readRDS("/home/shares/ohi/marine_threats/impact_acceleration/v2016/stressors/comm_fish/int/catch_data_2014.rds")%>%
+      rowwise()%>%
+      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+                  group_by(Seq)%>%  #group by cell number
+                  summarise(cell_catch = sum(catch))
+  
+ras_2014 <-raster::subs(saup_rast,data, by = 1, which = 2, subsWithNA=TRUE)
+
+plot(ras_2014,col=cols)
+
+#check the difference
+
+diff = ras_2014 - r
+plot(diff,col=cols)
+
+## very small differences...
+```
+
