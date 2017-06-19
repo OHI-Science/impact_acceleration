@@ -223,7 +223,7 @@ lapply(annual_files,pel_lb_fun)
 
 ```
 
-###Pelagic high bycatch
+### Pelagic high bycatch
 
 ```{r pel_hb, eval=F}
 
@@ -245,7 +245,7 @@ pel_hb_fun <- function(file){
 lapply(annual_files,pel_hb_fun)
 ```
 
-#Check results
+# Check results
 
 If we add up the 5 layers it should equal the total catch for that year.
 
