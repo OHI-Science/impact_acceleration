@@ -22,7 +22,7 @@ This script standardizes the annual catch rasters by net primary production.
 
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, eval=F, warning = FALSE)
 
-source('~/github/ohiprep/src/R/common.R')
+source('~/github/impact_acceleration/src/R/common.R')
 
 library(seaaroundus)
 library(raster)
@@ -30,11 +30,9 @@ library(readr)
 library(dplyr)
 library(data.table)
 library(parallel)
-library(RColorBrewer)
+library(foreach)
+library(doParallel)
 
-mollCRS <- CRS('+proj=moll') #set mollweide CRS
-
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
 ```
 
 
@@ -42,8 +40,8 @@ cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color sc
 
 Load NPP data
 
-```{r}
-npp_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/VGPM_primary_productivity/int/annual_npp'),full.names=T)[1:12]
+```{r,eval=F}
+npp_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/VGPM_primary_productivity/int/annual_npp'),full.names=T)[1:12]
 
 ```
 
@@ -66,7 +64,7 @@ catch_npp_fun <- function(file,layer){
         resample(npp,method = 'ngb')%>%
         overlay(.,npp,fun=function(x,y){x/y})
   
-  writeRaster(c,filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch_npp/',layer,'/',layer,'_',yr,'.tif'))  
+  writeRaster(c,filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp/',layer,'/',layer,'_',yr,'.tif'))  
   
 }
 
@@ -75,11 +73,11 @@ catch_npp_fun <- function(file,layer){
 ## Apply the function
 ```{r, eval=F}
 
-dem_d_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_dest'),full.names=T)[54:65]
-dem_nd_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_hb'),full.names=T)[54:65]
-dem_nd_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_lb'),full.names=T)[54:65]
-pel_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_hb'),full.names=T)[54:65]
-pel_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_lb'),full.names=T)[54:65]
+dem_d_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_dest'),full.names=T)[54:65]
+dem_nd_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_hb'),full.names=T)[54:65]
+dem_nd_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_lb'),full.names=T)[54:65]
+pel_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_hb'),full.names=T)[54:65]
+pel_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_lb'),full.names=T)[54:65]
 
 
 lapply(dem_d_files,catch_npp_fun,layer = 'dem_dest')
@@ -90,5 +88,50 @@ lapply(pel_lb,catch_npp_fun,layer = 'pel_lb')
 ```
 
 
+# Rescale
 
+Melanie's suggestion:
 
+> For the reference point, it would be nice to link the fishing pressure to biological/ecological outcomes, but I don't know if these data are available. This fits in well with the nonlinearities project, and it might be worth discussing/researching this topic (I will add this as an issue for the nonlinearity project). But in the meantime, I think we should probably go with our standard approach of using the 99.99th max value, even though it is not ideal. I propose the following method (we should discuss this):
+
+> - average 5 earliest years of data (2003-2007)  
+> - from the 5 years average data: determine the value corresponding to the 99.99th quantile  
+> - use this value as the reference point across all years  
+
+```{r,eval=F}
+
+#list of lists
+all <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp'),full.names=T,recursive = T)
+
+layers <- c("dem_dest","dem_nondest_hb","dem_nondest_lb","pel_hb","pel_lb")
+
+registerDoParallel(5)
+
+foreach(layer = layers) %dopar% {    
+  
+  files = all[which(str_detect(all,as.character(layer)))]
+
+  #average first five years
+  first_5 <- files[1:5]%>%
+            stack()%>%
+            calc(.,fun=function(x){mean(x,na.rm=T)})
+  
+  #get 99.99th quantile
+  quant <- getValues(files[1:5]%>%
+            stack())%>%
+          quantile(.,prob = 0.9999,na.rm=T)
+  
+  #rescale each year according to this reference point and save output
+  for (i in 1:12){
+    
+    yr = substr(files[i],nchar(files[i])-7,nchar(files[i])-4)
+    
+          files[i]%>%
+          raster()%>%
+          calc(fun=function(x){ifelse(x<0,0,
+                                      ifelse(x>quant,1,x/quant))})%>%
+          resample(ocean,method = 'ngb')%>%
+                     writeRaster(filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp_rescale/', layer,'/',layer,'_',yr,'.tif'),format="GTiff", overwrite=TRUE)
+  }
+}
+```
