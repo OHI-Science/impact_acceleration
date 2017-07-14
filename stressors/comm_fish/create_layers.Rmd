@@ -27,6 +27,7 @@ source('~/github/impact_acceleration/src/R/common.R')
 library(seaaroundus)
 library(raster)
 library(readr)
+library(stringr)
 library(dplyr)
 library(data.table)
 library(parallel)
@@ -90,14 +91,6 @@ lapply(pel_lb,catch_npp_fun,layer = 'pel_lb')
 
 # Rescale
 
-Melanie's suggestion:
-
-> For the reference point, it would be nice to link the fishing pressure to biological/ecological outcomes, but I don't know if these data are available. This fits in well with the nonlinearities project, and it might be worth discussing/researching this topic (I will add this as an issue for the nonlinearity project). But in the meantime, I think we should probably go with our standard approach of using the 99.99th max value, even though it is not ideal. I propose the following method (we should discuss this):
-
-> - average 5 earliest years of data (2003-2007)  
-> - from the 5 years average data: determine the value corresponding to the 99.99th quantile  
-> - use this value as the reference point across all years  
-
 ```{r,eval=F}
 
 #list of lists
@@ -110,16 +103,11 @@ registerDoParallel(5)
 foreach(layer = layers) %dopar% {    
   
   files = all[which(str_detect(all,as.character(layer)))]
-
-  #average first five years
-  first_5 <- files[1:5]%>%
-            stack()%>%
-            calc(.,fun=function(x){mean(x,na.rm=T)})
   
-  #get 99.99th quantile
-  quant <- getValues(files[1:5]%>%
-            stack())%>%
-          quantile(.,prob = 0.9999,na.rm=T)
+  quant = files%>%
+          stack()%>%
+          getValues()%>%
+          quantile(.,prob=0.9999,na.rm=T)
   
   #rescale each year according to this reference point and save output
   for (i in 1:12){

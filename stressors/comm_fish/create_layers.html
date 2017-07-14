@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Wed Jun 28 14:43:51 2017 by afflerbach" />
+<meta name="author" content="Compiled on Fri Jul 14 11:09:33 2017 by afflerbach" />
 
 
 <title>Creating fishing pressure layers</title>
@@ -261,7 +261,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Creating fishing pressure layers</h1>
-<h4 class="author"><em><em>Compiled on Wed Jun 28 14:43:51 2017 by afflerbach</em></em></h4>
+<h4 class="author"><em><em>Compiled on Fri Jul 14 11:09:33 2017 by afflerbach</em></em></h4>
 
 </div>
 
@@ -274,6 +274,7 @@ div.tocify {
 <span class="kw">library</span>(seaaroundus)
 <span class="kw">library</span>(raster)
 <span class="kw">library</span>(readr)
+<span class="kw">library</span>(stringr)
 <span class="kw">library</span>(dplyr)
 <span class="kw">library</span>(data.table)
 <span class="kw">library</span>(parallel)
@@ -321,19 +322,6 @@ pel_lb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</sp
 </div>
 <div id="rescale" class="section level1">
 <h1>Rescale</h1>
-<p>Melanie’s suggestion:</p>
-<blockquote>
-<p>For the reference point, it would be nice to link the fishing pressure to biological/ecological outcomes, but I don’t know if these data are available. This fits in well with the nonlinearities project, and it might be worth discussing/researching this topic (I will add this as an issue for the nonlinearity project). But in the meantime, I think we should probably go with our standard approach of using the 99.99th max value, even though it is not ideal. I propose the following method (we should discuss this):</p>
-</blockquote>
-<blockquote>
-<ul>
-<li>average 5 earliest years of data (2003-2007)<br />
-</li>
-<li>from the 5 years average data: determine the value corresponding to the 99.99th quantile<br />
-</li>
-<li>use this value as the reference point across all years</li>
-</ul>
-</blockquote>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#list of lists</span>
 all &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp'</span>),<span class="dt">full.names=</span>T,<span class="dt">recursive =</span> T)
 
@@ -344,16 +332,11 @@ layers &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">
 <span class="kw">foreach</span>(<span class="dt">layer =</span> layers) %dopar%<span class="st"> </span>{    
   
   files =<span class="st"> </span>all[<span class="kw">which</span>(<span class="kw">str_detect</span>(all,<span class="kw">as.character</span>(layer)))]
-
-  <span class="co">#average first five years</span>
-  first_5 &lt;-<span class="st"> </span>files[<span class="dv">1</span>:<span class="dv">5</span>]%&gt;%
-<span class="st">            </span><span class="kw">stack</span>()%&gt;%
-<span class="st">            </span><span class="kw">calc</span>(.,<span class="dt">fun=</span>function(x){<span class="kw">mean</span>(x,<span class="dt">na.rm=</span>T)})
   
-  <span class="co">#get 99.99th quantile</span>
-  quant &lt;-<span class="st"> </span><span class="kw">getValues</span>(files[<span class="dv">1</span>:<span class="dv">5</span>]%&gt;%
-<span class="st">            </span><span class="kw">stack</span>())%&gt;%
-<span class="st">          </span><span class="kw">quantile</span>(.,<span class="dt">prob =</span> <span class="fl">0.9999</span>,<span class="dt">na.rm=</span>T)
+  quant =<span class="st"> </span>files%&gt;%
+<span class="st">          </span><span class="kw">stack</span>()%&gt;%
+<span class="st">          </span><span class="kw">getValues</span>()%&gt;%
+<span class="st">          </span><span class="kw">quantile</span>(.,<span class="dt">prob=</span><span class="fl">0.9999</span>,<span class="dt">na.rm=</span>T)
   
   <span class="co">#rescale each year according to this reference point and save output</span>
   for (i in <span class="dv">1</span>:<span class="dv">12</span>){
