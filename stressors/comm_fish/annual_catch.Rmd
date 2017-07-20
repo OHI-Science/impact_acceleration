@@ -51,7 +51,7 @@ Load raw catch data and the dataset matching gear and taxon to the five stressor
 
 ```{r raw_data_files, eval=F}
 
-watson_data <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/data'),full.names=T)
+watson_data <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/data/catch'), pattern= "CatchPublic", full.names = TRUE)
 
 #dataset created in watson_gear_matching that assigns each species/gear pair a gear type as defined in Halpern et al. (2008)
 gear_taxa <- read_csv('taxa_gear_types.csv')%>%
@@ -83,7 +83,7 @@ yr_data <- data%>%
             filter(Year == yr)%>%
             left_join(gear_taxa, by = c('Taxonkey','TaxonName','CommonName', 'Gear', 'GearName'))
 
-write_rds(yr_data,path = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/int/catch_data_',yr,'.rds'))
+write_rds(yr_data,path = paste0(file.path(dir_M),'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_data/catch_data_',yr,'.rds'))
 
 }
 }
@@ -101,7 +101,7 @@ To use the datasets just created we define a list of all annual catch datasets.
 
 ```{r}
 
-annual_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/int'),full.names=T)
+annual_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_data'),full.names=T)
 
 ```
 
@@ -144,7 +144,7 @@ dem_dest_fun <- function(file){
 
   
   #rasterize catch by swapping cell ids with 
-      raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_dest/dem_dest_',yr,'.tif'),overwrite=T)
+      raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest/dem_dest_%s.tif', yr)), overwrite=TRUE)
 }
 
 mclapply(annual_files,dem_dest_fun,mc.cores = 5)
@@ -164,11 +164,11 @@ dem_nd_hb_fun <- function(file){
              fish_type == 'demersal',
              bycatch   == 'high')%>%
       rowwise()%>%
-      mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
+      mutate(catch = sum(LSF_CR, SSF_CR,IUU_CR, Discards_CR, na.rm = TRUE))%>%
                   group_by(Seq)%>%  #group by cell number
                   summarise(cell_catch = sum(catch))
   
-     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_hb/dem_nondest_hb_',yr,'.tif'),overwrite=T)
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb/dem_nondest_hb_%s.tif', yr)), overwrite = TRUE)
 }
 
 mclapply(annual_files,dem_nd_hb_fun,mc.cores = 4)
@@ -191,7 +191,7 @@ dem_nd_lb_fun <- function(file){
                   group_by(Seq)%>%  #group by cell number
                   summarise(cell_catch = sum(catch))
   
-     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/dem_nondest_lb/dem_nondest_lb_',yr,'.tif'),overwrite=T)
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb/dem_nondest_lb_%s.tif', yr)), overwrite=TRUE)
 }
 
 lapply(annual_files,dem_nd_lb_fun)
@@ -215,7 +215,7 @@ pel_lb_fun <- function(file){
                   group_by(Seq)%>%  #group by cell number
                   summarise(cell_catch = sum(catch))
   
-     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_lb/pel_lb_',yr,'.tif'),overwrite=T)
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb/pel_lb_%s.tif', yr)), overwrite=TRUE)
 }
 
 
@@ -239,7 +239,7 @@ pel_hb_fun <- function(file){
                   group_by(Seq)%>%  #group by cell number
                   summarise(cell_catch = sum(catch))
   
-     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch/pel_hb/pel_hb_',yr,'.tif'),overwrite=T)
+     raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_hb/pel_hb_%s.tif', yr)), overwrite = TRUE)
 }
 
 lapply(annual_files,pel_hb_fun)
@@ -254,22 +254,24 @@ If we add up the 5 layers it should equal the total catch for that year.
 #for 2014
 
 #stack the 5 layers and add
-r <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/output/annual_catch'),pattern = '2014',full.names=T,recursive=T)%>%stack()%>%sum(.,na.rm=T)
+r <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters'), pattern = '2014', full.names = TRUE, recursive = TRUE) %>% 
+  stack() %>% 
+  sum(.,na.rm = TRUE)
 
 #all 0 cells set to NA mainly to remove land
 r[r==0]<-NA
 
-plot(r,col=cols)
+plot(r, col=cols)
 
 #create single raster for 2014 from the data
 
-data <- readRDS("/home/shares/ohi/marine_threats/impact_acceleration/v2016/stressors/comm_fish/int/catch_data_2014.rds")%>%
+data <- readRDS(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_data/catch_data_2014.rds"))%>%
       rowwise()%>%
       mutate(catch = sum(LSF_CR,SSF_CR,IUU_CR,Discards_CR,na.rm=T))%>%
                   group_by(Seq)%>%  #group by cell number
                   summarise(cell_catch = sum(catch))
   
-ras_2014 <-raster::subs(saup_rast,data, by = 1, which = 2, subsWithNA=TRUE)
+ras_2014 <-raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE)
 
 plot(ras_2014,col=cols)
 

@@ -48,7 +48,7 @@ Read in one of the raw data files from Watson (2017) and look at the unique gear
 
 ```{r raw_data_files}
 
-raw <- readRDS(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic1014.rds'))
+raw <- readRDS(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/data/catch/CatchPublic1014.rds'))
 
 #look at all the unique gear types
 

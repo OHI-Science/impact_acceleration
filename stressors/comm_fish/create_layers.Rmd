@@ -34,6 +34,8 @@ library(parallel)
 library(foreach)
 library(doParallel)
 
+years_of_data <- 2003:2014
+
 ```
 
 
@@ -42,7 +44,10 @@ library(doParallel)
 Load NPP data
 
 ```{r,eval=F}
-npp_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/VGPM_primary_productivity/int/annual_npp'),full.names=T)[1:12]
+npp_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE)
+
+npp_files <- npp_files[!(str_detect(npp_files, "1km"))]
+npp_files <- npp_files[grep(paste(years_of_data, collapse="|"), npp_files)]
 
 ```
 
@@ -62,10 +67,10 @@ catch_npp_fun <- function(file,layer){
   
   c <- catch%>%
         projectRaster(crs = mollCRS,over=T)%>%
-        resample(npp,method = 'ngb')%>%
-        overlay(.,npp,fun=function(x,y){x/y})
+        resample(npp, method = 'ngb')%>%
+        overlay(., npp, fun=function(x,y){x/y})
   
-  writeRaster(c,filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp/',layer,'/',layer,'_',yr,'.tif'))  
+  writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr))  
   
 }
 
@@ -74,18 +79,28 @@ catch_npp_fun <- function(file,layer){
 ## Apply the function
 ```{r, eval=F}
 
-dem_d_files <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_dest'),full.names=T)[54:65]
-dem_nd_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_hb'),full.names=T)[54:65]
-dem_nd_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_lb'),full.names=T)[54:65]
-pel_hb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_hb'),full.names=T)[54:65]
-pel_lb    <-list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_lb'),full.names=T)[54:65]
+years_filter <-  paste(years_of_data, collapse="|")
 
+dem_d_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest'), full.names=TRUE)
+dem_d_files <- dem_d_files[grep(years_filter, dem_d_files)]
 
-lapply(dem_d_files,catch_npp_fun,layer = 'dem_dest')
-lapply(dem_nd_hb,catch_npp_fun,layer = 'dem_nondest_hb')
-lapply(dem_nd_lb,catch_npp_fun,layer = 'dem_nondest_lb')
-lapply(pel_hb,catch_npp_fun,layer = 'pel_hb')
-lapply(pel_lb,catch_npp_fun,layer = 'pel_lb')
+dem_nd_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb'),full.names=TRUE)
+dem_nd_hb <- dem_nd_hb[grep(years_filter, dem_nd_hb)]
+
+dem_nd_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb'),full.names=TRUE)
+dem_nd_lb <- dem_nd_lb[grep(years_filter, dem_nd_lb)]
+
+pel_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_hb'), full.names=TRUE)
+pel_hb <- pel_hb[grep(years_filter, pel_hb)]
+
+pel_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb'), full.names=TRUE)
+pel_lb <- pel_lb[grep(years_filter, pel_lb)]
+
+lapply(dem_d_files, catch_npp_fun, layer = 'dem_dest')
+lapply(dem_nd_hb, catch_npp_fun, layer = 'dem_nondest_hb')
+lapply(dem_nd_lb, catch_npp_fun, layer = 'dem_nondest_lb')
+lapply(pel_hb, catch_npp_fun, layer = 'pel_hb')
+lapply(pel_lb, catch_npp_fun, layer = 'pel_lb')
 ```
 
 
@@ -94,32 +109,38 @@ lapply(pel_lb,catch_npp_fun,layer = 'pel_lb')
 ```{r,eval=F}
 
 #list of lists
-all <- list.files(file.path(dir_M,'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp'),full.names=T,recursive = T)
+all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
+
+file_num <- length(all)/5
 
 layers <- c("dem_dest","dem_nondest_hb","dem_nondest_lb","pel_hb","pel_lb")
 
 registerDoParallel(5)
 
-foreach(layer = layers) %dopar% {    
+foreach(layer = layers) %dopar% {   # layer = "dem_dest" 
   
   files = all[which(str_detect(all,as.character(layer)))]
   
-  quant = files%>%
-          stack()%>%
-          getValues()%>%
-          quantile(.,prob=0.9999,na.rm=T)
+  quant = files %>%
+          stack() %>%
+          getValues() %>%
+          quantile(., prob=0.9999, na.rm=TRUE)
   
+  refs <- read.csv("comm_fish_ref_points.csv") %>%
+    mutate(ref_point = ifelse(pressure == layer, quant, ref_point))
+  write.csv(refs, "comm_fish_ref_points.csv", row.names=FALSE)
+ 
   #rescale each year according to this reference point and save output
-  for (i in 1:12){
+  for (i in 1:file_num){ # i=1
     
-    yr = substr(files[i],nchar(files[i])-7,nchar(files[i])-4)
+    yr = substr(files[i], nchar(files[i])-7, nchar(files[i])-4)
     
-          files[i]%>%
-          raster()%>%
-          calc(fun=function(x){ifelse(x<0,0,
-                                      ifelse(x>quant,1,x/quant))})%>%
-          resample(ocean,method = 'ngb')%>%
-                     writeRaster(filename = paste0(file.path(dir_M),'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp_rescale/', layer,'/',layer,'_',yr,'.tif'),format="GTiff", overwrite=TRUE)
+          files[i] %>%
+          raster() %>%
+          calc(fun=function(x){ifelse(x<0, 0,
+                                      ifelse(x>quant, 1, x/quant))}) %>%
+          resample(ocean, method = 'ngb') %>%
+                     writeRaster(filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/final/%s/%s_%s_rescaled_mol.tif', layer, layer, yr)), format="GTiff", overwrite=TRUE)
   }
 }
 ```
