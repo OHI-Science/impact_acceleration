@@ -51,8 +51,6 @@ file.rename(from=tmp$old_name, to=tmp$new_name)
 ## Commercial fisheries.  Calculated locally using github:OHI-Science/impact_acceleration/stressors/comm_fish!
 
 ## Ocean acidification
-## Jul 20 2017: Some of the files did not work...redo when Jamie sends word
-
 oa_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_oa/v2017/output'), pattern = 'oa', 
                        full.names=TRUE)
 years <- 1990:2016
@@ -70,6 +68,31 @@ tmp <- tmp %>%
   mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/oa/final/oa_%s_rescaled_mol.tif", year))
 
 file.rename(from=tmp$old_name, to=tmp$new_name)
+
+### SLR organize
+
+## will probably want to redo this taking 5 year averages of the data due to yearly variation.
+# get up to 2015 data
+slr_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_slr/v2016/output'), pattern = 'slr', 
+                        full.names=TRUE)
+# get 2016 data
+slr_files_2016 <- list.files(file.path(dir_M,'git-annex/globalprep/prs_slr/v2017/output'), pattern = 'slr', 
+                        full.names=TRUE)
+slr_files <- c(slr_files, slr_files_2016)
+
+file.copy(slr_files,to = file.path(targetdir,'slr/final'), overwrite=TRUE)
+
+list.files(file.path(targetdir, "slr/final"), pattern = 'slr', full.names=TRUE)
+slr_files <- list.files(file.path(targetdir, "slr/final"), pattern = 'slr')
+
+tmp <- data.frame(old_name = slr_files, year = NA, new_name = NA)
+tmp <- tmp %>%
+  mutate(year = substring(slr_files, 5, 8)) %>%
+  mutate(old_name = paste0("/home/shares/ohi/git-annex/impact_acceleration/stressors/slr/final/", old_name)) %>%
+  mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/slr/final/slr_%s_rescaled_mol.tif", year))
+
+file.rename(from=tmp$old_name, to=tmp$new_name)
+
 
 
 

@@ -66,7 +66,7 @@ catch_npp_fun <- function(file,layer){
   npp <- npp_files[str_detect(npp_files,yr)]%>%raster()
   
   c <- catch%>%
-        projectRaster(crs = mollCRS,over=T)%>%
+        projectRaster(crs = mollCRS, over=TRUE)%>%
         resample(npp, method = 'ngb')%>%
         overlay(., npp, fun=function(x,y){x/y})
   
