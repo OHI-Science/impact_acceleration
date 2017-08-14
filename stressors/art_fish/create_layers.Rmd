@@ -109,6 +109,6 @@ foreach(file = all_files) %dopar% {
 results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = T)%>%
           stack()
 
-par(mfrow = c(3,4))
 plot(results,col=cols,axes=F)
+
 ```
