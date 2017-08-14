@@ -1,0 +1,103 @@
+---
+title: "Creating artisanal fishing pressure layers"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 1
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+
+This script standardizes the annual catch rasters by net primary production.
+
+```{r setup, message=F,warning=F}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, eval=F, warning = FALSE)
+
+source('~/github/impact_acceleration/src/R/common.R')
+
+library(seaaroundus)
+library(raster)
+library(readr)
+library(stringr)
+library(dplyr)
+library(data.table)
+library(parallel)
+library(foreach)
+library(doParallel)
+
+```
+
+
+# Primary production data
+
+Load NPP data
+
+```{r,eval=F}
+npp_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'),full.names=T)[1:12]
+
+```
+
+# Standardize catch
+
+`catch_npp_fun` is a function that reads in a catch raster, reprojects & resamples it then divides by npp for the same year and saves the output.
+
+```{r}
+
+#grab years 2003 - 2014 
+art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'),full.names=T)[54:65]
+
+registerDoParallel(6) #register parallel cores
+
+foreach(file = art_catch_rasts) %dopar%{
+  
+  catch <- raster(file)
+  
+  yr <- substr(file,nchar(file)-7,nchar(file)-4)
+  
+  npp <- npp_files[str_detect(npp_files,yr)]%>%raster()
+  
+  c <- catch%>%
+        projectRaster(crs = mollCRS,over=T)%>%
+        resample(npp,method = 'ngb')%>%
+        overlay(.,npp,fun=function(x,y){x/y})
+  
+  writeRaster(c,filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters/art_npp_',yr,'.tif'))  
+  
+}
+
+```
+
+
+# Rescale
+
+```{r,eval=F}
+
+#list of lists
+all_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'),full.names=T)
+
+ref = stack(all_files)%>%
+      getValues()%>%
+      quantile(prob=0.9999,na.rm=T)
+
+foreach(file = all_files) %dopar% {    
+  
+    yr = substr(file,nchar(file)-7,nchar(file)-4)
+    
+          file%>%
+          raster()%>%
+          calc(fun=function(x){ifelse(x<0,0,
+                                      ifelse(x>ref,1,x/ref))})%>%
+          resample(ocean,method = 'ngb')%>%
+                     writeRaster(filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/final/art_fish_',yr,'.tif'),format="GTiff", overwrite=TRUE)
+
+}
+```

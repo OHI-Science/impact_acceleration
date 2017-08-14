@@ -1,0 +1,99 @@
+---
+title: "Annual Artisanal Fisheries Catch"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 1
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+
+This script combines spatial catch data from [Watson (2017)](https://www.nature.com/articles/sdata201739) with species & gear specific categories defined in [`watson_gear_matching`](https://github.com/OHI-Science/impact_acceleration/blob/master/stressors/comm_fish/watson_gear_matching.Rmd) to create annual catch rasters for artisanal fishing.
+
+## Overview
+- Raw catch data is combined with `taxa_gear_types.csv` as defined in `watson_gear_matching.Rmd`
+- Data is filtered for every year and catch type, rasterized to half degree cells, and saved as a GeoTIFF
+
+```{r setup, message=F,warning=F}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+source('~/github/ohiprep/src/R/common.R')
+
+library(seaaroundus)
+library(raster)
+library(readr)
+library(dplyr)
+library(data.table)
+library(foreach)
+library(doParallel)
+library(RColorBrewer)
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+```
+
+#Load Data
+
+Load annual catch data
+
+```{r}
+
+annual_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_data'),full.names=T)
+
+```
+
+
+#Map annual catch
+
+## Get base raster
+
+Using the [searoundus R package](https://github.com/ropensci/seaaroundus), we create a raster with cell values set equal to cell IDs in the data, which are defined in the column `Seq`.
+
+```{r}
+
+  #get template raster for SAUP data with cell values equal to CellID
+  
+   saup_cells <- getcells("POLYGON ((-180 90, 180 90, 180 -90, -180 -90, -180 90))")
+
+   saup_rast <- raster(ncol=720, nrow=360)
+   saup_rast[] <- saup_cells
+   
+   plot(saup_rast,col=cols,main = "SAUP Cell IDs")
+```
+
+## Map annual artisanal catch
+
+Each annual stressor layer is created by aggregate all artisanal fishing catch per cell per year. The catch is identified by the column `SSF_CR` (small scale fishing rate)
+
+```{r map,eval=F}
+
+registerDoParallel(10) #register 10 cores
+
+foreach(file = annual_files) %dopar% {
+  
+  yr <- substr(file,101,104)
+  
+  data <- readRDS(file)%>%
+      rowwise()%>%
+      group_by(Seq)%>%  #group by cell number
+      summarise(cell_catch = sum(SSF_CR))%>%
+    data.frame()#summing up all types of catch rates (remember these are in tonnes/km2 so we don't need to multiply by Ocean Area since we have 1km2 resolution)
+
+  
+  #rasterize catch by swapping cell ids with 
+      raster::subs(saup_rast, data, by = 1, which = 2, subsWithNA=TRUE, filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters/art_fishing_',yr,'.tif'),overwrite=T)
+}
+
+```
+
+
+
+
