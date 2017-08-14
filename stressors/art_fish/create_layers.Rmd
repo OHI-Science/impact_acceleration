@@ -20,7 +20,7 @@ This script standardizes the annual catch rasters by net primary production.
 
 ```{r setup, message=F,warning=F}
 
-knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, eval=F, warning = FALSE)
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
 
 source('~/github/impact_acceleration/src/R/common.R')
 
@@ -50,7 +50,7 @@ npp_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors
 
 `catch_npp_fun` is a function that reads in a catch raster, reprojects & resamples it then divides by npp for the same year and saves the output.
 
-```{r}
+```{r,eval=F}
 
 #grab years 2003 - 2014 
 art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'),full.names=T)[54:65]
@@ -100,4 +100,15 @@ foreach(file = all_files) %dopar% {
                      writeRaster(filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/final/art_fish_',yr,'.tif'),format="GTiff", overwrite=TRUE)
 
 }
+```
+
+# Check Results
+
+```{r}
+
+results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = T)%>%
+          stack()
+
+par(mfrow = c(3,4))
+plot(results,col=cols,axes=F)
 ```
