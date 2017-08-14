@@ -57,14 +57,14 @@ cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color sc
 
 #paths
 
-dir_git <- file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/VGPM_primary_productivity')
+dir_git <- file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int')
 ```
 
 ```{r unzip, eval=F}
 #unzip all files (held in git-annex not marine_threats on Mazu)
-tars <- list.files(file.path(dir_M,'git-annex/globalprep/_raw_data/VGPM_primary_productivity/d2016'),full.names=T, pattern = '.tar')
+tars <- list.files(file.path(dir_M,'git-annex/globalprep/_raw_data/VGPM_primary_productivity/d2016'),full.names = TRUE, pattern = '.tar')
 
-lapply(tars,untar, exdir = file.path(dir_M,'git-annex/globalprep/_raw_data/VGPM_primary_productivity/d2016'))
+lapply(tars, untar, exdir = file.path(dir_M, 'git-annex/globalprep/_raw_data/VGPM_primary_productivity/d2016'))
 
 ```
 
@@ -104,18 +104,18 @@ moll_crs = CRS("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs
 
 registerDoParallel(7)
 
-foreach (i = 2004:2015) %dopar%{
+foreach (i = 2004:2015) %dopar%{ #i=2012
   
   print(i)
   
-  l    = list.files(file.path(dir_git,'int/rasterized_rawdata'),pattern=as.character(i),full.names=T)%>%
-          stack()%>%
-          calc(fun=function(x){mean(x,na.rm=T)})%>%
-            projectRaster(.,crs=moll_crs, over = T,filename = paste0(file.path(dir_git,'int/annual_npp/annual_mean_npp_'),i,'.tif',sep=''),overwrite=T)
+  l    = list.files(file.path(dir_git,'npp_rasterized_rawdata'), pattern=as.character(i), full.names=TRUE) %>%
+          stack() %>%
+          calc(fun=function(x){mean(x, na.rm = TRUE)}) %>%
+            projectRaster(., crs=moll_crs, over = TRUE, filename = file.path(dir_git,sprintf('npp_annual/annual_mean_npp_%s.tif', i)), overwrite=TRUE)
   
   
-  out  = raster::resample(l,ocean,method='ngb',
-                 filename=paste0(file.path(dir_git,'int/annual_npp/annual_mean_npp_moll_1km_'),i,'.tif',sep=''),overwrite=T)
+  out  = raster::resample(l, ocean, method='ngb',
+                 filename = file.path(dir_git,sprintf('npp_annual/annual_mean_npp_moll_1km_%s.tif', i)),overwrite=TRUE)
   
 }
 
@@ -125,7 +125,8 @@ foreach (i = 2004:2015) %dopar%{
 
 ```{r output}
 
-raster(file.path(dir_M,'marine_threats/impact_acceleration/v2016/stressors/comm_fish/VGPM_primary_productivity/int/annual_npp/annual_mean_npp_moll_1km_2015.tif'))%>%plot(col=cols,box=F,axes=F,main = 'Mean Net Primary Productivity (mg C/m2/day)')
+raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual/annual_mean_npp_moll_1km_2015.tif')) %>% 
+  plot(col=cols, box=FALSE, axes=FALSE, main = 'Mean Net Primary Productivity (mg C/m2/day)')
 
 ```
 

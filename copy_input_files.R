@@ -1,5 +1,101 @@
 # Script that copies stressor layers from OHI to impact_acceleration folder
 
+# Jamie's original script is below for reference.  I am going through this now (with a bit different
+# organization).  We will delete the information starting after 10/25/16 after I finish 
+# reorganizing
+
+source('~/impact_acceleration/src/R/common.R')
+
+targetdir = file.path(dir_M,'git-annex/impact_acceleration/stressors')
+
+
+### SST organize
+sst_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2016/output'), pattern = 'sst', 
+                        full.names=TRUE)
+
+file.copy(sst_files,to = file.path(targetdir,'sst/final'), overwrite=TRUE)
+
+list.files(file.path(targetdir, "sst/final"), pattern = 'sst', full.names=TRUE)
+sst_files <- list.files(file.path(targetdir, "sst/final"), pattern = 'sst')
+
+tmp <- data.frame(old_name = sst_files, year = NA, new_name = NA)
+tmp <- tmp %>%
+  mutate(year = substring(sst_files, 10,13)) %>%
+  mutate(old_name = paste0("/home/shares/ohi/git-annex/impact_acceleration/stressors/sst/final/", old_name)) %>%
+  mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/sst/final/sst_%s_rescaled_mol.tif", year))
+
+file.rename(from=tmp$old_name, to=tmp$new_name)
+
+
+### UV organize
+# ultimately, we will want to replace these files with the 2017 version.  This will give us an 
+# additional years of data (2010 and 2016) and the data is higher resolution
+
+uv_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_uv/v2016/output'), pattern = 'uv', 
+                        full.names=TRUE)
+
+file.copy(uv_files, to = file.path(targetdir,'uv/final'), overwrite=TRUE)
+
+list.files(file.path(targetdir, "uv/final"), pattern = 'uv', full.names=TRUE)
+uv_files <- list.files(file.path(targetdir, "uv/final"), pattern = 'uv')
+
+tmp <- data.frame(old_name = uv_files, year = NA, new_name = NA)
+tmp <- tmp %>%
+  mutate(year = substring(uv_files, 9,12)) %>%
+  mutate(old_name = paste0("/home/shares/ohi/git-annex/impact_acceleration/stressors/uv/final/", old_name)) %>%
+  mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/uv/final/uv_%s_rescaled_mol.tif", year))
+
+file.rename(from=tmp$old_name, to=tmp$new_name)
+
+
+## Commercial fisheries.  Calculated locally using github:OHI-Science/impact_acceleration/stressors/comm_fish!
+
+## Ocean acidification
+oa_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_oa/v2017/output'), pattern = 'oa', 
+                       full.names=TRUE)
+years <- 1990:2016
+oa_files <- oa_files[grep(paste(years, collapse = "|"), oa_files)]
+
+file.copy(oa_files, to = file.path(targetdir,'oa/final'), overwrite=TRUE)
+
+list.files(file.path(targetdir, "oa/final"), pattern = 'oa', full.names=TRUE)
+oa_files <- list.files(file.path(targetdir, "oa/final"), pattern = 'oa')
+
+tmp <- data.frame(old_name = oa_files, year = NA, new_name = NA)
+tmp <- tmp %>%
+  mutate(year = substring(oa_files, 14, 17)) %>%
+  mutate(old_name = paste0("/home/shares/ohi/git-annex/impact_acceleration/stressors/oa/final/", old_name)) %>%
+  mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/oa/final/oa_%s_rescaled_mol.tif", year))
+
+file.rename(from=tmp$old_name, to=tmp$new_name)
+
+### SLR organize
+
+## will probably want to redo this taking 5 year averages of the data due to yearly variation.
+# get up to 2015 data
+slr_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_slr/v2016/output'), pattern = 'slr', 
+                        full.names=TRUE)
+# get 2016 data
+slr_files_2016 <- list.files(file.path(dir_M,'git-annex/globalprep/prs_slr/v2017/output'), pattern = 'slr', 
+                        full.names=TRUE)
+slr_files <- c(slr_files, slr_files_2016)
+
+file.copy(slr_files,to = file.path(targetdir,'slr/final'), overwrite=TRUE)
+
+list.files(file.path(targetdir, "slr/final"), pattern = 'slr', full.names=TRUE)
+slr_files <- list.files(file.path(targetdir, "slr/final"), pattern = 'slr')
+
+tmp <- data.frame(old_name = slr_files, year = NA, new_name = NA)
+tmp <- tmp %>%
+  mutate(year = substring(slr_files, 5, 8)) %>%
+  mutate(old_name = paste0("/home/shares/ohi/git-annex/impact_acceleration/stressors/slr/final/", old_name)) %>%
+  mutate(new_name = sprintf("/home/shares/ohi/git-annex/impact_acceleration/stressors/slr/final/slr_%s_rescaled_mol.tif", year))
+
+file.rename(from=tmp$old_name, to=tmp$new_name)
+
+
+
+
 # 10/25/16
 
 # Jamie Afflerbach
@@ -25,6 +121,7 @@ file.copy(oa_files, to=file.path(targetdir, 'stressors/oa/input'), overwrite=T)
 sst_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern = 'annual', full.names=T)
 
 file.copy(sst_files,to = file.path(targetdir,'stressors/sst/input'), overwrite=T)
+
 
 ### Sea Level Rise
 

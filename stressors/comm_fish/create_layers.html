@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Fri Jul 14 11:09:33 2017 by afflerbach" />
+<meta name="author" content="Compiled on Mon Aug 14 10:10:43 2017 by afflerbach" />
 
 
 <title>Creating fishing pressure layers</title>
@@ -261,7 +261,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Creating fishing pressure layers</h1>
-<h4 class="author"><em><em>Compiled on Fri Jul 14 11:09:33 2017 by afflerbach</em></em></h4>
+<h4 class="author"><em><em>Compiled on Mon Aug 14 10:10:43 2017 by afflerbach</em></em></h4>
 
 </div>
 
@@ -279,11 +279,16 @@ div.tocify {
 <span class="kw">library</span>(data.table)
 <span class="kw">library</span>(parallel)
 <span class="kw">library</span>(foreach)
-<span class="kw">library</span>(doParallel)</code></pre></div>
+<span class="kw">library</span>(doParallel)
+
+years_of_data &lt;-<span class="st"> </span><span class="dv">2003</span>:<span class="dv">2014</span></code></pre></div>
 <div id="primary-production-data" class="section level1">
 <h1>Primary production data</h1>
 <p>Load NPP data</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">npp_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/VGPM_primary_productivity/int/annual_npp'</span>),<span class="dt">full.names=</span>T)[<span class="dv">1</span>:<span class="dv">12</span>]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">npp_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'</span>), <span class="dt">full.names=</span><span class="ot">TRUE</span>)
+
+npp_files &lt;-<span class="st"> </span>npp_files[!(<span class="kw">str_detect</span>(npp_files, <span class="st">&quot;1km&quot;</span>))]
+npp_files &lt;-<span class="st"> </span>npp_files[<span class="kw">grep</span>(<span class="kw">paste</span>(years_of_data, <span class="dt">collapse=</span><span class="st">&quot;|&quot;</span>), npp_files)]</code></pre></div>
 </div>
 <div id="standardize-catch" class="section level1">
 <h1>Standardize catch</h1>
@@ -297,59 +302,75 @@ div.tocify {
   npp &lt;-<span class="st"> </span>npp_files[<span class="kw">str_detect</span>(npp_files,yr)]%&gt;%<span class="kw">raster</span>()
   
   c &lt;-<span class="st"> </span>catch%&gt;%
-<span class="st">        </span><span class="kw">projectRaster</span>(<span class="dt">crs =</span> mollCRS,<span class="dt">over=</span>T)%&gt;%
-<span class="st">        </span><span class="kw">resample</span>(npp,<span class="dt">method =</span> <span class="st">'ngb'</span>)%&gt;%
-<span class="st">        </span><span class="kw">overlay</span>(.,npp,<span class="dt">fun=</span>function(x,y){x/y})
+<span class="st">        </span><span class="kw">projectRaster</span>(<span class="dt">crs =</span> mollCRS, <span class="dt">over=</span><span class="ot">TRUE</span>)%&gt;%
+<span class="st">        </span><span class="kw">resample</span>(npp, <span class="dt">method =</span> <span class="st">'ngb'</span>)%&gt;%
+<span class="st">        </span><span class="kw">overlay</span>(., npp, <span class="dt">fun=</span>function(x,y){x/y})
   
-  <span class="kw">writeRaster</span>(c,<span class="dt">filename =</span> <span class="kw">paste0</span>(<span class="kw">file.path</span>(dir_M),<span class="st">'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp/'</span>,layer,<span class="st">'/'</span>,layer,<span class="st">'_'</span>,yr,<span class="st">'.tif'</span>))  
-  
+  <span class="kw">writeRaster</span>(c,<span class="dt">filename =</span> <span class="kw">paste0</span>(<span class="kw">file.path</span>(dir_M),<span class="st">'/git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/'</span>,layer,<span class="st">'/'</span>,layer,<span class="st">'_'</span>,yr,<span class="st">'.tif'</span>),<span class="dt">overwrite=</span>T) 
 }</code></pre></div>
 <div id="apply-the-function" class="section level2">
 <h2>Apply the function</h2>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dem_d_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_dest'</span>),<span class="dt">full.names=</span>T)[<span class="dv">54</span>:<span class="dv">65</span>]
-dem_nd_hb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_hb'</span>),<span class="dt">full.names=</span>T)[<span class="dv">54</span>:<span class="dv">65</span>]
-dem_nd_lb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/dem_nondest_lb'</span>),<span class="dt">full.names=</span>T)[<span class="dv">54</span>:<span class="dv">65</span>]
-pel_hb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_hb'</span>),<span class="dt">full.names=</span>T)[<span class="dv">54</span>:<span class="dv">65</span>]
-pel_lb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch/pel_lb'</span>),<span class="dt">full.names=</span>T)[<span class="dv">54</span>:<span class="dv">65</span>]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">years_filter &lt;-<span class="st">  </span><span class="kw">paste</span>(years_of_data, <span class="dt">collapse=</span><span class="st">&quot;|&quot;</span>)
 
+dem_d_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest'</span>), <span class="dt">full.names=</span><span class="ot">TRUE</span>)
+dem_d_files &lt;-<span class="st"> </span>dem_d_files[<span class="kw">grep</span>(years_filter, dem_d_files)]
 
-<span class="kw">lapply</span>(dem_d_files,catch_npp_fun,<span class="dt">layer =</span> <span class="st">'dem_dest'</span>)
-<span class="kw">lapply</span>(dem_nd_hb,catch_npp_fun,<span class="dt">layer =</span> <span class="st">'dem_nondest_hb'</span>)
-<span class="kw">lapply</span>(dem_nd_lb,catch_npp_fun,<span class="dt">layer =</span> <span class="st">'dem_nondest_lb'</span>)
-<span class="kw">lapply</span>(pel_hb,catch_npp_fun,<span class="dt">layer =</span> <span class="st">'pel_hb'</span>)
-<span class="kw">lapply</span>(pel_lb,catch_npp_fun,<span class="dt">layer =</span> <span class="st">'pel_lb'</span>)</code></pre></div>
+dem_nd_hb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M, <span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb'</span>),<span class="dt">full.names=</span><span class="ot">TRUE</span>)
+dem_nd_hb &lt;-<span class="st"> </span>dem_nd_hb[<span class="kw">grep</span>(years_filter, dem_nd_hb)]
+
+dem_nd_lb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M, <span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb'</span>),<span class="dt">full.names=</span><span class="ot">TRUE</span>)
+dem_nd_lb &lt;-<span class="st"> </span>dem_nd_lb[<span class="kw">grep</span>(years_filter, dem_nd_lb)]
+
+pel_hb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M, <span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_hb'</span>), <span class="dt">full.names=</span><span class="ot">TRUE</span>)
+pel_hb &lt;-<span class="st"> </span>pel_hb[<span class="kw">grep</span>(years_filter, pel_hb)]
+
+pel_lb    &lt;-<span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M, <span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb'</span>), <span class="dt">full.names=</span><span class="ot">TRUE</span>)
+pel_lb &lt;-<span class="st"> </span>pel_lb[<span class="kw">grep</span>(years_filter, pel_lb)]
+
+<span class="kw">lapply</span>(dem_d_files, catch_npp_fun, <span class="dt">layer =</span> <span class="st">'dem_dest'</span>)
+<span class="kw">lapply</span>(dem_nd_hb, catch_npp_fun, <span class="dt">layer =</span> <span class="st">'dem_nondest_hb'</span>)
+<span class="kw">lapply</span>(dem_nd_lb, catch_npp_fun, <span class="dt">layer =</span> <span class="st">'dem_nondest_lb'</span>)
+<span class="kw">lapply</span>(pel_hb, catch_npp_fun, <span class="dt">layer =</span> <span class="st">'pel_hb'</span>)
+<span class="kw">lapply</span>(pel_lb, catch_npp_fun, <span class="dt">layer =</span> <span class="st">'pel_lb'</span>)</code></pre></div>
 </div>
 </div>
 <div id="rescale" class="section level1">
 <h1>Rescale</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#list of lists</span>
-all &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp'</span>),<span class="dt">full.names=</span>T,<span class="dt">recursive =</span> T)
+
+all &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="kw">file.path</span>(dir_M,<span class="st">'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'</span>), <span class="dt">full.names =</span> <span class="ot">TRUE</span>, <span class="dt">recursive =</span> <span class="ot">TRUE</span>)
+
+file_num &lt;-<span class="st"> </span><span class="kw">length</span>(all)/<span class="dv">5</span>
 
 layers &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;dem_dest&quot;</span>,<span class="st">&quot;dem_nondest_hb&quot;</span>,<span class="st">&quot;dem_nondest_lb&quot;</span>,<span class="st">&quot;pel_hb&quot;</span>,<span class="st">&quot;pel_lb&quot;</span>)
 
 <span class="kw">registerDoParallel</span>(<span class="dv">5</span>)
 
-<span class="kw">foreach</span>(<span class="dt">layer =</span> layers) %dopar%<span class="st"> </span>{    
+<span class="kw">foreach</span>(<span class="dt">layer =</span> layers) %dopar%<span class="st"> </span>{   <span class="co"># layer = &quot;dem_dest&quot; </span>
   
   files =<span class="st"> </span>all[<span class="kw">which</span>(<span class="kw">str_detect</span>(all,<span class="kw">as.character</span>(layer)))]
   
-  quant =<span class="st"> </span>files%&gt;%
-<span class="st">          </span><span class="kw">stack</span>()%&gt;%
-<span class="st">          </span><span class="kw">getValues</span>()%&gt;%
-<span class="st">          </span><span class="kw">quantile</span>(.,<span class="dt">prob=</span><span class="fl">0.9999</span>,<span class="dt">na.rm=</span>T)
+  quant =<span class="st"> </span>files %&gt;%
+<span class="st">          </span><span class="kw">stack</span>() %&gt;%
+<span class="st">          </span><span class="kw">getValues</span>() %&gt;%
+<span class="st">          </span><span class="kw">quantile</span>(., <span class="dt">prob=</span><span class="fl">0.9999</span>, <span class="dt">na.rm=</span><span class="ot">TRUE</span>)
   
+  refs &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;comm_fish_ref_points.csv&quot;</span>) %&gt;%
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">ref_point =</span> <span class="kw">ifelse</span>(pressure ==<span class="st"> </span>layer, quant, ref_point))
+  <span class="kw">write.csv</span>(refs, <span class="st">&quot;comm_fish_ref_points.csv&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>)
+ 
   <span class="co">#rescale each year according to this reference point and save output</span>
-  for (i in <span class="dv">1</span>:<span class="dv">12</span>){
+  for (i in <span class="dv">1</span>:file_num){ <span class="co"># i=1</span>
     
-    yr =<span class="st"> </span><span class="kw">substr</span>(files[i],<span class="kw">nchar</span>(files[i])-<span class="dv">7</span>,<span class="kw">nchar</span>(files[i])-<span class="dv">4</span>)
-    
+    yr =<span class="st"> </span><span class="kw">substr</span>(files[i], <span class="kw">nchar</span>(files[i])-<span class="dv">7</span>, <span class="kw">nchar</span>(files[i])-<span class="dv">4</span>)
+
           files[i]%&gt;%
 <span class="st">          </span><span class="kw">raster</span>()%&gt;%
 <span class="st">          </span><span class="kw">calc</span>(<span class="dt">fun=</span>function(x){<span class="kw">ifelse</span>(x&lt;<span class="dv">0</span>,<span class="dv">0</span>,
                                       <span class="kw">ifelse</span>(x&gt;quant,<span class="dv">1</span>,x/quant))})%&gt;%
 <span class="st">          </span><span class="kw">resample</span>(ocean,<span class="dt">method =</span> <span class="st">'ngb'</span>)%&gt;%
-<span class="st">                     </span><span class="kw">writeRaster</span>(<span class="dt">filename =</span> <span class="kw">paste0</span>(<span class="kw">file.path</span>(dir_M),<span class="st">'/marine_threats/impact_acceleration/stressors/comm_fish/output/annual_catch_npp_rescale/'</span>, layer,<span class="st">'/'</span>,layer,<span class="st">'_'</span>,yr,<span class="st">'.tif'</span>),<span class="dt">format=</span><span class="st">&quot;GTiff&quot;</span>, <span class="dt">overwrite=</span><span class="ot">TRUE</span>)
-  }
+<span class="st">                     </span><span class="kw">writeRaster</span>(<span class="dt">filename =</span> <span class="kw">paste0</span>(<span class="kw">file.path</span>(dir_M),<span class="st">'/git-annex/impact_acceleration/stressors/comm_fish/final/'</span>, layer,<span class="st">'/'</span>,layer,<span class="st">'_'</span>,yr,<span class="st">'.tif'</span>),<span class="dt">format=</span><span class="st">&quot;GTiff&quot;</span>, <span class="dt">overwrite=</span><span class="ot">TRUE</span>)
+}
 }</code></pre></div>
 </div>
 

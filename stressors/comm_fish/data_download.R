@@ -7,61 +7,22 @@
 # V2.0 of the data, downloaded 4/20/2017
 # issue: #776
 
+# Note 7/19/2017: server appears to have changed
+# http://data.imas.utas.edu.au/attachments/c1fefb3d-7e37-4171-b9ce-4ce4721bbc78/CatchPublic5054.csv
 source("../ohiprep/src/R/common.R")
 
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic1014.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic1014.rds"))
+web_years <- c("0004", "0509", "1014", "5054", 
+               "5559", "6064", "6569", "7074",
+               "7579", "8084", "8589", "9094", "9599")
 
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic0509.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic0509.rds"))
+for(web_year in web_years){ #web_year <- "0004"
 
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic0004.csv")
+data <- read.csv(sprintf("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic%s.csv", web_year))
 saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic0004.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic9599.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic9599.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic9094.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic9094.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic8589.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic8589.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic8084.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic8084.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic7579.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic7579.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic7074.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic7074.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic6569.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic6569.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic6064.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic6064.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic5559.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic5559.rds"))
-
-data <- read.csv("http://data1.tpac.org.au/thredds/fileServer/CatchPublic/CatchPublic5054.csv")
-saveRDS(data, 
-        file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic5054.rds"))
+        file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/comm_fish/data/catch/CatchPublic%s.rds", web_year)))
+}
 
 
 ##### exploring data
-data <- readRDS(file.path(dir_M, "marine_threats/impact_acceleration/v2016/stressors/comm_fish/data/CatchPublic1014.rds"))
+data <- readRDS(file.path(dir_M, "marine_threats/impact_acceleration/stressors/comm_fish/data/catch/CatchPublic1014.rds"))
 head(data)
