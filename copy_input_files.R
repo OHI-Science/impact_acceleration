@@ -29,7 +29,8 @@ file.rename(from=tmp$old_name, to=tmp$new_name)
 
 ### UV organize
 # ultimately, we will want to replace these files with the 2017 version.  This will give us an 
-# additional years of data (2010 and 2016) and the data is higher resolution
+# additional years of data (2010 and 2016) and the data is higher resolution.  New plan (as of 8/15/2017): Use 2016 data
+# because it is higher quality in regard to data checks.  However, we will include a larger span of years.
 
 uv_files <- list.files(file.path(dir_M,'git-annex/globalprep/prs_uv/v2016/output'), pattern = 'uv', 
                         full.names=TRUE)
