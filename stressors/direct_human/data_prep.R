@@ -1,189 +1,160 @@
-#### Direct human impact
+########################################
+## Preparing population data for 
+## rate of change project
+## MRF Jan 24 2018
+#########################################
 
-source('../ohiprep/src/R/common.R')
+## From 2015 paper:
+# "..we modeled direct human impact on the coast as the
+# sum of the coastal human population, defined as the number of people within a moving
+# circular window around each coastal cell of radius 10 km.
+# We then cropped the data to include only cells 1km from the coast since this
+# driver primarily affects intertidal and very nearshore ecosystems.
+
+# NOTE: 2008 paper used 25 km radius
 
 library(raster)
-library(rgdal)
-
 library(dplyr)
+library(RColorBrewer)
+library(sp)
+library(rgdal)
 library(stringr)
 
-library(parallel)
-library(foreach)
-library(doParallel)
+cols <- rev(colorRampPalette(brewer.pal(9, 'Spectral'))(255))
 
-### sample raster for projecting
-ocean = raster(file.path(dir_M,'git-annex/globalprep/spatial/ocean.tif'))
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
 
-### reproject and resample density data
-raw <- list.files(file.path(dir_M, "git-annex/globalprep/_raw_data/CIESEandCIAT_population/d2017"), 
-                  full.names = TRUE, pattern = "\\.tif$",
-                  recursive = TRUE)
-raw <- raw[grep("density", raw)]
+land      <- regions %>%
+  subset(rgn_type %in% c('land','land-disputed','land-noeez'))
+land2 <- as(land, "Spatial")
 
+##############################################
+## 10km radius: 
+## https://gis.stackexchange.com/questions/151962/calculating-shannons-diversity-using-moving-window-in-r
+##############################################
 
-for(rast in raw){ #rast = raw[1]
+pop_files <- list.files(file.path(dir_M, "git-annex/globalprep/mar_prs_population/v2017/int"),
+                        pattern = "count", full=TRUE)
+
+fw<-focalWeight(rast, 10000, "circle") # creates circular filter with a radius of 10km
+
+for(pop_file in pop_files){ # pop_file = pop_files[1]
   
-  yr <- as.numeric(as.character(str_sub(rast, -8, -5)))
+  rast <- raster(pop_file)
+  rast_year <- str_sub(pop_file, -12, -9)
   
-  raster(rast)%>%
-    projectRaster(crs = crs(ocean), over=TRUE) %>%
-    resample(ocean, method = 'ngb',
-    filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol.tif", yr)),
-    overwrite = TRUE)
-
-  }
-
-# check 
-tmp <- raster(file.path(dir_M, 
-              "git-annex/impact_acceleration/stressors/direct_human/int/human_density_2000_mol.tif"))
-tmp2 <- raster(file.path(dir_M, 
-                        "git-annex/impact_acceleration/stressors/direct_human/int/human_density_2000_mol.tif"))
-
-#interpolate missing years
-
-## function to calculate yearly change
-files <- list.files(file.path(dir_M, 
-                              "git-annex/impact_acceleration/stressors/direct_human/int/"), pattern = "_mol.tif", full = TRUE)
-
-yearly_diff <- function(year_min, year_max, density_files = files){
-  rast_diff <- stack(density_files[grep(year_max, density_files)], density_files[grep(year_min, density_files)]) %>%
-  overlay(fun = function(x, y){(x - y)/5},
-  filename = file.path(dir_M,
-            sprintf('git-annex/impact_acceleration/stressors/direct_human/int/yearly_change_%s_to_%s.tif', year_min, year_max)), 
-            overwrite = TRUE)
+  #system.time({
+  rast_10<-focal(rast,
+                 w=fw, 
+                 fun=function(x,...){sum(x, na.rm=TRUE) })   
+  #})
+  
+  #plot(test_rast, col = cols)
+  #zoom(test_rast)
+  writeRaster(rast_10, file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/pop_count_10km_%s.tif", rast_year)),
+              overwrite=TRUE)
 }
 
-yearly_diff(year_min = 2000, year_max = 2005)
-#check
-tmp <- raster(file.path(dir_M,
-              'git-annex/impact_acceleration/stressors/direct_human/int/yearly_change_2000_to_2005.tif'))
+#############################
+### Take ln + 1
+#############################
 
-yearly_diff(year_min = 2005, year_max = 2010)
-yearly_diff(year_min = 2010, year_max = 2015)
-yearly_diff(year_min = 2015, year_max = 2020)
+count_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int"), 
+                          pattern = "10km", full = TRUE)
 
-##########################################
-## apply yearly change to inbetween years
-##########################################
-
-# function to interpolate between years
-
-yearly_interpolate <- function(year, start_raster, yearly_change){
+for(file in count_files){ # file = count_files[1]
   
-stack(start_raster, yearly_change) %>%
-  overlay(fun = function(x, y){(x + y)},
-          filename = file.path(dir_M,
-                               sprintf('git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol.tif', 
-                                       (year + 1))), 
-          overwrite = TRUE)
-
-stack(start_raster, yearly_change) %>%
-  overlay(fun = function(x, y){(x + 2*y)},
-          filename = file.path(dir_M,
-                               sprintf('git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol.tif', 
-                                       (year + 2))), 
-          overwrite = TRUE)
-
-stack(start_raster, yearly_change) %>%
-  overlay(fun = function(x, y){(x + 3*y)},
-          filename = file.path(dir_M,
-                               sprintf('git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol.tif', 
-                                       (year + 3))), 
-          overwrite = TRUE)
-
-stack(start_raster, yearly_change) %>%
-  overlay(fun = function(x, y){(x + 4*y)},
-          filename = file.path(dir_M,
-                               sprintf('git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol.tif', 
-                                       (year + 4))), 
-          overwrite = TRUE)
-}
-
-# apply function to interpolate between years
-files <- list.files(file.path(dir_M, 
-                              "git-annex/impact_acceleration/stressors/direct_human/int/"), pattern = ".tif", full = TRUE)
-
-yearly_interpolate(2000, start_raster = files[grep("2000_mol", files)], yearly_change = files[grep("2000_to_2005", files)])
-yearly_interpolate(2005, start_raster = files[grep("2005_mol", files)], yearly_change = files[grep("2005_to_2010", files)])
-yearly_interpolate(2010, start_raster = files[grep("2010_mol", files)], yearly_change = files[grep("2010_to_2015", files)])
-yearly_interpolate(2015, start_raster = files[grep("2015_mol", files)], yearly_change = files[grep("2015_to_2020", files)])
-
-
-## log version of data (I think we will want to use the logged version)
-# take the log of the raster files
-
-dens_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int"), 
-                         pattern = "mol.tif", full = TRUE)
-
-for(file in dens_files){ # file = dens_files[1]
-  
-  yr <- as.numeric(as.character(str_sub(file, -12, -9)))
+  yr <- as.numeric(as.character(str_sub(file, -8, -5)))
   
   raster(file) %>%
     calc(fun = function(x){log(x + 1)}, 
-         filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol_log.tif", yr)))
+         filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/pop_count_10km_%s_log.tif", yr)),
+         overwrite =TRUE)
   
 }
 
 
-################################################################################
-#### Get 99.99th quantile from the 5 years of actual (i.e., noninterpolated) data
-#################################################################################
+#################################
+### Mask to 1km offshore
+#################################
+## first make a raster that is limited to 1km offshore
+plot(ocean)
 
-# non-logged data
-quant_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/direct_human/int'), 
-                     pattern = "2000_mol|2005_mol|2010_mol|2015_mol|2020_mol", full=TRUE)
-quant_files <- quant_files[!(grepl("log", quant_files))]
+subs(ocean, data.frame(id=c(NA,1), v=c(1,NA)),
+     filename = file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/ocean_inverse.tif"),
+     overwrite =TRUE)
 
-#get data across all years
-vals <- c()
+ocean_inverse <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/ocean_inverse.tif"))
 
-for(quant in quant_files){ # quant = quant_files[1]
-  print(quant)
-  m <- raster(quant) %>%
-    getValues() %>%
-    na.omit()
-  vals <- c(vals,m)
-}
+land_boundary <- boundaries(ocean_inverse, type="outer", asNA=TRUE, progress="text") 
+land_boundary[land_boundary == 0] <- NA
 
-ref <- quantile(vals, prob = 0.9999) # 16318.9 
+writeRaster(land_boundary, file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/land_boundary.tif"),
+     overwrite =TRUE)
 
-## logged data
-quant_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/direct_human/int'), 
-                          pattern = "2000_mol|2005_mol|2010_mol|2015_mol|2020_mol", full=TRUE)
-quant_files <- quant_files[grepl("log", quant_files)]
+mask_1km <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/land_boundary.tif"))
 
-#get data across all years
-vals <- c()
+## Also need to make a mask that gets rid of the boundary
+block <- projectRaster(ocean, crs=CRS("+init=epsg:4326"))
+block[is.na(block)] <- 1
+mol_solid <- projectRaster(block, ocean, over=TRUE)
+boundary_mask <- boundaries(mol_solid, type="inner", asNA=TRUE, progress="text") 
+boundary_mask <- subs(boundary_mask, data.frame(id=c(0,1), v=c(1,NA)))
+writeRaster(boundary_mask, file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/boundary_mask.tif"))
+boundary_mask <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/boundary_mask.tif"))
 
-for(quant in quant_files){ # quant = quant_files[1]
-  print(quant)
-  m <- raster(quant) %>%
-    getValues() %>%
-    na.omit()
-  vals <- c(vals,m)
-}
-
-ref <- quantile(vals, prob = 0.9999) # 9.70014 
-
-##############################################################################
-## rescale data 
-## (only doing the log data because I think that is what we'll want to use)
-##############################################################################
-
+## mask the files and save
 log_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int"),
-                        pattern = "log", full = TRUE)
+           full=TRUE, pattern = "log.tif")
+# subset to current data (not future data)
+log_files <- grep(paste(2000:2016, collapse="|"), log_files, value=TRUE)
 
-for(file in log_files){ # file = log_files[2]
+quant_data <- c()
+
+for(file in log_files){ # file = log_files[1]
   
-  yr <- as.numeric(as.character(str_sub(file, -16, -13)))
+  yr <- as.numeric(as.character(str_sub(file, -12, -9)))
   
-  raster(file)%>%
-    calc(fun=function(x){ifelse(x>ref, 1, x/ref)}, 
-         filename = file.path(dir_M, 
-        sprintf("git-annex/impact_acceleration/stressors/direct_human/int/human_density_%s_mol_log_rescale.tif", yr)), 
-        overwrite=TRUE) %>%
-    
+  tmp <- raster(file) %>%
+    mask(mask_1km) %>%  # mask to get 1km offshore, unfortunately includes raster boundary
+    mask(boundary_mask) # mask to get rid of boundary
+  
+  ## get values, only want values within 1 km to calcuate 99.99th quantile
+  tmp <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/pop_count_10km_%s_log_mask.tif", yr)))
+  vals <- getValues(tmp)
+  vals <- na.omit(vals)
+  quant_data <- c(quant_data, vals)
+  
+  ## convert NA's to zero
+  tmp[is.na(tmp)] <- 0 
+  
+  ## mask using the ocean raster
+  mask(tmp, ocean, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/direct_human/int/pop_count_10km_%s_log_mask.tif", yr)),
+         overwrite =TRUE)
   
 }
+
+ref_point <- quantile(quant_data, 0.9999)
+ref_point_df <- data.frame(ref_point)
+
+write.csv(ref_point, file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int/ref_point.csv"))
+
+
+### Find 99.99th quantile across raster cells/years
+rasts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int"), full = TRUE, 
+           pattern = "mask.tif")
+
+## rescale data
+for(rast in rasts){ # rast = rasts[2]
+  year <- as.numeric(as.character(str_sub(rast, -17, -14)))
+  
+  raster(rast) %>%
+    calc(fun=function(x){ifelse(x<0,0,
+                                ifelse(x>ref_point, 1, x/ref_point))})%>%
+    writeRaster(filename = file.path(dir_M, 
+                                     sprintf("git-annex/impact_acceleration/stressors/direct_human/final/direct_human_%s_rescaled_mol.tif", year)),
+                overwrite=TRUE)
+}
+
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/final/direct_human_2001_rescaled_mol.tif"))
+plot(tmp)

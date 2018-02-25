@@ -13,23 +13,32 @@ library(parallel)
 library(foreach)
 library(doParallel)
 
-# masking file
-ocean = raster(file.path(dir_M,'git-annex/globalprep/spatial/ocean.tif'))
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
 
+cols  = rev(colorRampPalette(brewer.pal(9, 'Spectral'))(255)) # rainbow color scheme
 
 # location of raw data
 rast_locs <- file.path(dir_M, 
           "marine_threats/impact_layers_2013_redo/impact_layers/work/land_based/before_2007/raw_global_results")
 
+list.files(rast_locs)
+
 ## peak at raster to see what is up:
 check <- raster(file.path(rast_locs, 'global_plumes_fert_2012_raw.tif'))
+
+
+
+
 ## darn: different extents and such...need to make these the same
+## But no NA values...which is good
 plot(check)
+check
 
 
-
+##########################
 ## mask ocean and extend raster to make consistent with standard OHI global region file
 ## considered the 'raw' data
+
 registerDoParallel(10)
 
 files <- list.files(rast_locs, full.names = TRUE, pattern = "tif")
@@ -40,6 +49,7 @@ foreach(file = files)%dopar% { #file = files[1]
   
   raster(file) %>%
     raster::extend(ocean) %>%
+    calc(fun=function(x){ifelse(is.na(x), 0, x)}) %>%  # gapfilling area near Antarctica with zero
     mask(ocean, 
          filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/land_based/int/%s', basename(file))),
          overwrite = TRUE, progress = "text")
@@ -49,9 +59,8 @@ foreach(file = files)%dopar% { #file = files[1]
 
 ## Some exploration to determine whether we should log the data
 ## Given the skew in the data, I think we should
-
-tmp <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/nutrient_2002.tif'))
-plot(tmp) # making sure land is gone
+tmp <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/global_plumes_fert_2002_raw.tif'))
+plot(tmp) # making sure land is gone and data filled in to antarctica region
 quantile(tmp, .9999) # value = 373.1765
 
 calc(tmp, fun=function(x){ifelse(x>0, x, NA)},
@@ -85,7 +94,8 @@ histogram(tmp4)
 files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int'), 
                     full.names = TRUE, pattern = "raw.tif")
 
-foreach(file = files) %dopar% { #file = files[9]
+for(file in files){
+#foreach(file = files) %dopar% { #file = files[9]
   name <- basename(file)
   name <- sub('\\.tif$', '', name)
   name <- gsub("_raw", "", name)
@@ -109,6 +119,8 @@ for(file in files) { #file = files[9]
   quantiles$quantile_9999_ln[quantiles$plumeData == basename(file)] <- quantile(tmp, .9999)
   
 }
+
+quantiles
 
 write.csv(quantiles, 
           file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/extras/quantiles.csv'),
