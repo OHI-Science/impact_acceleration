@@ -22,8 +22,6 @@ This script standardizes the annual catch rasters by net primary production.
 
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
 
-source('~/github/impact_acceleration/src/R/common.R')
-
 library(seaaroundus)
 library(raster)
 library(readr)
@@ -34,6 +32,12 @@ library(parallel)
 library(foreach)
 library(doParallel)
 
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+years_of_data <- 2003:2014
+
+# setwd("stressors/art_fish")
+
 ```
 
 
@@ -42,36 +46,43 @@ library(doParallel)
 Load NPP data
 
 ```{r,eval=F}
-npp_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'),full.names=T)[1:12]
 
+npp_files_mol <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE, pattern = "gf")
+
+npp_files_mol <- npp_files_mol[!(str_detect(npp_files_mol, "npp_gf"))]
+
+npp_files_mol <- npp_files_mol[grep(paste(years_of_data, collapse="|"), npp_files_mol)]
 ```
 
 # Standardize catch
 
 `catch_npp_fun` is a function that reads in a catch raster, reprojects & resamples it then divides by npp for the same year and saves the output.
 
-```{r,eval=F}
+```{r, eval=F}
 
-#grab years 2003 - 2014 
-art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'),full.names=T)[54:65]
+#grab years 2003 - 2014
+years_filter <-  paste(years_of_data, collapse="|")
+
+art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'), full.names=TRUE, pattern = "gf")
+art_catch_rasts <- art_catch_rasts[grep(years_filter, art_catch_rasts)]
 
 registerDoParallel(6) #register parallel cores
 
-foreach(file = art_catch_rasts) %dopar%{
+foreach(file = art_catch_rasts) %dopar%{ # file = art_catch_rasts[1]
   
   catch <- raster(file)
   
-  yr <- substr(file,nchar(file)-7,nchar(file)-4)
+  yr <- substr(file, nchar(file)-10, nchar(file)-7)
   
-  npp <- npp_files[str_detect(npp_files,yr)]%>%raster()
+  npp <- npp_files_mol[str_detect(npp_files_mol, yr)] %>% 
+    raster()
   
-  c <- catch%>%
-        projectRaster(crs = mollCRS,over=T)%>%
-        resample(npp,method = 'ngb')%>%
-        overlay(.,npp,fun=function(x,y){x/y})
-  
-  writeRaster(c,filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters/art_npp_',yr,'.tif'))  
-  
+  c <- catch %>%
+        resample(npp, method = 'ngb') %>%
+       overlay(., npp, fun=function(x,y){x/y})
+
+writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters/art_fish_%s.tif', yr)), overwrite=TRUE) 
+   
 }
 
 ```
@@ -79,36 +90,62 @@ foreach(file = art_catch_rasts) %dopar%{
 
 # Rescale
 
+Create an ocean raster with same scale as the fishery/npp rasters to cut land values.
+```{r, eval=FALSE}
+
+catch_npp <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'), full.names = TRUE)
+catch_npp <- raster(catch_npp[1])
+
+ocean_low_res <- ocean %>%
+  resample(catch_npp, method="ngb")
+
+```
+
+
 ```{r,eval=F}
 
 #list of lists
-all_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'),full.names=T)
+all_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'), full.names=TRUE)
 
-ref = stack(all_files)%>%
-      getValues()%>%
-      quantile(prob=0.9999,na.rm=T)
+values = stack(all_files) %>%
+      mask(ocean_low_res)
+      getValues()
 
-foreach(file = all_files) %dopar% {    
+values_vector <- as.vector(as.matrix(values))
+values_vector <- na.omit(values_vector)
+
+quant <-  quantile(values_vector, prob=0.9999, na.rm=TRUE)
+
+tmp <- data.frame(cat="art_fishing", quant_9999=quant)
+write.csv(tmp, file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/quantile_9999.csv'))
+
+
+foreach(file = all_files) %dopar% {    # file = all_files[1]
   
-    yr = substr(file,nchar(file)-7,nchar(file)-4)
+    yr = substr(file, nchar(file)-7, nchar(file)-4)
     
-          file%>%
-          raster()%>%
-          calc(fun=function(x){ifelse(x<0,0,
-                                      ifelse(x>ref,1,x/ref))})%>%
-          resample(ocean,method = 'ngb')%>%
-                     writeRaster(filename = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/art_fish/final/art_fish_',yr,'.tif'),format="GTiff", overwrite=TRUE)
+    
+     raster(file) %>%
+         calc(fun=function(x){ifelse(x<0, 0,
+                                   ifelse(x>quant, 1, x/quant))}) %>%
+          resample(ocean, method = 'ngb') %>%
+            mask(ocean,
+            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/final/art_fish_%s_rescaled_mol.tif', yr)),                       overwrite=TRUE)  
 
+# check:
+# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/art_fish/final/art_fish_2003_rescaled_mol.tif"))
+# plot(tmp)
 }
+
 ```
 
 # Check Results
 
 ```{r}
 
-results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = T)%>%
+results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = TRUE) %>%
           stack()
 
-plot(results,col=cols,axes=F)
+plot(results, col=cols, axes=FALSE)
 
 ```
