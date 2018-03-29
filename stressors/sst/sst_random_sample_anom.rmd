@@ -1,0 +1,45 @@
+---
+title: "SST: potential for estimating 2013 data?"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+# Steps
+# 1. stack the raw layers
+# 2. randomly sample 100 points
+# 3. look at relationship among points
+# 4. if it looks fairly linear, we will estimate slope and intercept to calculate remaining years
+
+library(ggplot2)
+library(raster)
+library(tidyverse)
+library(rgdal)
+library(sf)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+### Generate plots of each site over time
+
+```{r plot, fig.width=4, fig.height=4}
+
+
+samp_n <- 100
+
+rand_samp_data <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rand_sample_anom.csv"))
+
+
+
+for(i in 1:samp_n){ # i = 2
+ 
+plot_sst <- ggplot(dplyr::filter(rand_samp_data, sample_id==i), aes(y = sst_anom, x = year)) +
+    geom_point(size = 2) +
+   geom_line() + 
+   stat_smooth(method=lm, se=FALSE, color="red")
+  
+plot(plot_sst)  
+}
+
+
+```

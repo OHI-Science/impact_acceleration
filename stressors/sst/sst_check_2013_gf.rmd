@@ -1,0 +1,30 @@
+---
+title: "2013 sst gapfilling check"
+output: html_document
+---
+
+The purpose of this is to visually run through each year of SST to make sure that the 2013 estimation appears reasonable. 
+
+```{r setup, warning=FALSE, error=FALSE, echo=FALSE, message=FALSE}
+
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(gstat)
+library(stringr)
+
+# load spatial files (ocean raster and regions shapefile)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+for(year in 1990:2013){ # year = 1990
+  tmp <- raster(file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/sst/final/sst_%s_rescaled_mol.tif', year)))
+   plot(tmp, col=cols, axes=F, main = sprintf('%s SST pressure', year))
+}
+
+```
