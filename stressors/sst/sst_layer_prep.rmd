@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '../../../src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
   pdf_document:
     toc: true
 ---
@@ -47,7 +47,7 @@ Cortadv5_weeklySST.nc =  SST, weekly data for all years, degrees Kelvin
 4. Rescale "Change in extreme events" data to values between 0 and 1 by dividing by the 99.99th quantile among all years of data.
 
 ## Setup
-```{r setup, message=FALSE, warning=FALSE}
+```{r setup, message=FALSE, warning=FALSE, error=FALSE}
 
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
 
@@ -81,7 +81,7 @@ registerDoParallel(cl)
 ### Calculate reference value
 
 Reference values are the 99.99th quantile of the total positive anomolies across five years subtracted from the total positive anomolies for a five year reference period (1985-1989).  
-```{r ref point}
+```{r ref point, eval=FALSE}
 
 l   <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern='annual_pos_anomalies', full.names=TRUE)
 
@@ -131,7 +131,7 @@ write.csv(ref_value,
 ```
 
 ## Identify gapfilled cells
-```{r, eval=F}
+```{r, eval=FALSE}
 
 # number of positive anomalies
 l   <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern='annual_pos_anomalies', full.names=TRUE)
@@ -208,7 +208,7 @@ raster::writeRaster(r, file.path(dir_M, sprintf("git-annex/impact_acceleration/s
 
 
 ## Create 5 year cumulative sum of extreme events and calculate difference from historical
-```{r, eval=F}
+```{r, eval=FALSE}
 
 l   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_anom', full.names=TRUE)
   
@@ -372,7 +372,7 @@ writeRaster(pred_sst_anom, file.path(dir_M, 'git-annex/impact_acceleration/stres
 
 ## Rescaling
 
-```{r rescale, eval=F}
+```{r rescale, eval=FALSE}
 
 diffs <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int'), pattern = 'sst_diff', full.names=TRUE)
 
@@ -411,16 +411,16 @@ for (diff_rast in diffs){ # diff_rast <- diffs[23]
 ## compare with previous efforts to generate these data.  Methods are only slightly modified so 
 ## these should basically look the same...and they do.
 new <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/final/sst_2012_rescaled_mol.tif'))
-plot(new, col=cols)
+plot(new, col=cols, main = "Sea Surface Temperature Pressure Layer \n modified for impacts")
 
 res <- list.files(file.path(dir_M, 'git-annex/globalprep/prs_sst/v2016/output'), full.names = TRUE)
 
 plot(raster(res[24]), col=cols, axes=F, main = 'Sea Surface Temperature Pressure Layer \n OHI 2016')
 
 
-## now check out the 2013 interpolated data to see if it makes sense
+## now check out the 2013 estimated data to see if it makes sense
 new <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/final/sst_2013_rescaled_mol.tif'))
-plot(new, col=cols)
+plot(new, col=cols, main="2013 estimation")
 
 ```
 
