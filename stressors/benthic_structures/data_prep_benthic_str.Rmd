@@ -1,0 +1,113 @@
+---
+title: 'OHI Benthic Structures data'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+#Summary
+
+This script uses data collected from satellites to quantify oil and gas flaring.  This is used to estimate benthic structure pressures.
+
+
+***  
+
+
+#Data Source
+
+Data comes from [NOAA Earth Observation Group](https://www.ngdc.noaa.gov/eog/viirs/download_global_flare.html)
+Downloaded: March 2, 2018
+
+**Native Data Resolution**: decimal degrees lat/long   
+**Description**: Global upstream oil/gas flares from VIIRS satellite data.
+**Time Range**: 2012-2016  
+**Format**: xlsx  
+
+**Reference:**
+Elvidge, C.D.; Zhizhin, M.; Baugh, K.; Hsu, F.-C.; Ghosh, T.	Methods for Global Survey of Natural Gas Flaring from Visible Infrared Imaging Radiometer Suite Data. Energies 2016, 9, 14. [http://www.mdpi.com/1996-1073/9/1/14]
+
+***  
+
+## Setup
+```{r setup, message=F,warning=F}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+# setwd("impact_acceleration/stressors")
+
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(gstat)
+
+# load spatial files (ocean raster and regions shapefile)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+```
+
+***
+## Create stressor raster
+Creates and saves the stressor raster.  A ~1km cell with one or more oil/gas rigs is given a value of one.  All other ocean cells have a value of 0.
+```{r data, eval = FALSE}
+
+rigs <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/benthic_structures/raw/VIIRS_Global_flaring_d.7_slope_0.0298_2012-2016_web_upstream.csv"))
+summary(rigs)
+
+rigs <- rigs %>%
+  select(id_key, Latitude, Longitude, Clear_obs_2012, Clear_obs_2013, Clear_obs_2014, Clear_obs_2015, Clear_obs_2016) %>%
+  gather("year", "oil_rig", starts_with("Clear")) %>%
+  mutate(year = gsub("Clear_obs_", "", year)) %>%
+  mutate(year = as.numeric(as.character(year))) %>%
+  filter(oil_rig > 0) %>%
+  mutate(oil_rig=1)
+
+rigs_sp <- st_as_sf(x=rigs,
+                    coords = c("Longitude", "Latitude"),
+                    crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+rigs_sp <- as(rigs_sp, "Spatial")
+plot(rigs_sp, pch=16, col="red")
+rigs_mol <- spTransform(rigs_sp, crs(ocean))
+plot(rigs_mol)
+
+regions_sp <- as(regions, "Spatial")
+
+
+rigs_yr_fun <- function(rig_year){ # rig_year = 2012 
+  tmp <- rigs_mol[rigs_mol$year == rig_year, ]
+  rast <- rasterize(tmp, ocean, field = "oil_rig", background=0)
+    rast <- raster::calc(rast, fun=function(x){ifelse(x>0, 1, x)}) %>%
+    mask(ocean) %>%
+    writeRaster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/benthic_structures/final/benthic_str_%s_rescaled_mol.tif", rig_year)), overwrite = TRUE)
+  #plot(rast)
+  #plot(rigs_mol, pch=16, col="red", add=TRUE, cex=0.2)
+  #click(rast)
+  #zoom(rast)
+}
+
+
+for(yr in unique(rigs$year)){
+  rigs_yr_fun(rig_year = yr)
+}
+
+```
+
+

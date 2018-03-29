@@ -1,0 +1,309 @@
+---
+title: 'OHI Light Pollution data'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+#Summary
+
+This script uses light data collected from DMSP satellites.
+
+
+***  
+
+
+#Data Source
+
+Data comes from [NOAA Earth Observation Group](https://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html)
+Downloaded: March 7, 2018
+For more information: https://ngdc.noaa.gov/eog/gcv4_readme.txt
+
+**Native Data Resolution**: yearly global 30 arc second grids, spanning -180 to 180 degrees longitude and -65 to 75 degrees latitude   
+**Description**: Average Visible, Stable Lights, and Cloud Free Coverages
+**Time Range**: 1992-2013  
+
+**Reference:**
+
+***  
+
+## Setup
+```{r setup, message=F,warning=F}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+# setwd("impact_acceleration/stressors")
+
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(gstat)
+library(curl)
+library(R.utils)
+
+# load spatial files (ocean raster and regions shapefile)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+# paralell processing
+
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+```
+
+***
+## Download and unzip data
+
+Using the web.stable_lights.avg_vis tif file.  
+
+```{r data, eval = FALSE}
+
+data_files <- c("F101992", "F101993", 
+                "F121994", "F121995", "F121996", 
+                "F141997", "F141998", "F141999", "F142000", "F142001", "F142002", "F142003",
+                "F162004", "F162005", "F162006", "F162007", "F162008", "F162009",
+                "F182010", "F182011", "F182012", "F182013",
+                "F121999") # this is the callibration year
+
+for(data_f in data_files){ # data_f = "F121999"
+myURL <- sprintf("https://ngdc.noaa.gov/eog/data/web_data/v4composites/%s.v4.tar", data_f)
+
+download.file(url = myURL,
+              destfile = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw",
+              basename(myURL)))
+
+name_tar <- gsub(".v4.tar", "", basename(myURL))
+untar(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", basename(myURL)),
+      exdir = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar))
+
+if(file.exists(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4b_web.stable_lights.avg_vis.tif.gz")))){
+  
+gunzip(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4b_web.stable_lights.avg_vis.tif.gz")),
+      destname = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/unzipped",
+              sprintf("%s.tif", name_tar)), remove=FALSE)
+  
+} else(file.exists(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4d_web.stable_lights.avg_vis.tif.gz")))){
+  
+  gunzip(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4d_web.stable_lights.avg_vis.tif.gz")),
+      destname = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/unzipped",
+              sprintf("%s.tif", name_tar)), remove=FALSE)
+} 
+
+else(file.exists(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4b_web.stable_lights.avg_vis.tif.gz")))){
+  
+  gunzip(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4b_web.stable_lights.avg_vis.tif.gz")),
+      destname = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/unzipped",
+              sprintf("%s.tif", name_tar)), remove=FALSE)
+}  else{
+  gunzip(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/raw", name_tar, paste0(name_tar, ".v4c_web.stable_lights.avg_vis.tif.gz")),
+      destname = file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/unzipped",
+              sprintf("%s.tif", name_tar)), remove=FALSE)
+  }
+}
+```
+
+
+## Calibrate satellites
+The original layers contained non-calibrated radiance values. We applied a calibration technique developed elsewhere (Elvidge, C. D. et al. A fifteen year record of global natural gas flaring derived from satellite data. Energies 2, 595-622 (2009)). The original raster digital number (DNo) values of 0-63 were calibrated to produce adjusted DN (DNa) values using the following intercalibration formula:
+
+ DNa=C0+C1*DNo+C2*DNo2
+ 
+This formula is based on the assumption that a reference area (Sicily) has not changed much in light output in recent years. Lowest values in DNa (non-lit areas) were replaced with zeros. This technique, while not perfect, does allow for better comparison between different satellites and time periods.
+
+#### Get the data for Sicily
+```{r sicily, eval = FALSE}
+
+# identify Sicily region
+plot(regions[regions$rgn_name=="Italy", 1])
+
+italy <- regions[regions$rgn_name=="Italy", ] 
+italy <- st_cast(italy, "POLYGON")
+italy$area_km2 <- st_area(italy)
+sicily <- italy[italy$rgn_type == "land", ]
+sicily <- arrange(sicily, desc(area_km2))
+sicily <- sicily[2,] # sicily is the 2nd largest land polygon
+sicily <- as(sicily, "Spatial")
+
+# 255881.7 km2, use this as a check later on
+
+### get the light data and create a stack
+light <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/unzipped"), full.names = TRUE)
+
+light_stack <- stack(light)
+
+sicily_tr <- spTransform(sicily, crs(light_stack[[1]]))
+plot(light_stack[[1]])
+#zoom(light_stack[[1]])
+plot(sicily_tr, add=TRUE, border="red", col=NA)
+
+sicily_rast <- rasterize(sicily_tr, light_stack[[1]])
+plot(sicily_rast)
+
+e <- extent(12, 16, 36, 39)
+sicily_rast <- crop(sicily_rast, e)
+plot(sicily_rast)
+
+light_crop <- crop(light_stack, e)
+plot(light_crop[[1]])
+
+sicily_points <- rasterToPoints(sicily_rast, spatial = TRUE)
+plot(light_crop[[1]])
+plot(sicily_points, add=TRUE, pch=16, cex=0.001, col="red")
+
+sicily_data <- raster::extract(light_crop, sicily_points, progress="text")
+write.csv(sicily_data, file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/sicily_correct_data.csv"), row.names= FALSE)
+
+```
+
+#### Get the corretion factors based on Sicily data
+Elvidge et al., 2009:
+
+>In reviewing the data it was found that the data from satellite year F121999 had the highest digital values. Because there is saturation (DN = 63) in the bright cores of urban centers and large gas flares, F121999 was used as the reference and the data from all other satellite years were adjusted to match the F121999 data range.
+
+One thing that I add is that I force the intercept through zero so the zero cells remain zero.
+
+```{r sicily, eval = FALSE}
+
+correct <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/sicily_correct_data.csv"))
+summary(correct) #check for values >63..none
+
+calibrate_csv <- data.frame(file=c(), C0 = c(), C1 = c(), C2 = c(), R2=c(), N=c())
+
+for(file in data_files){ #file = data_files[1]
+  
+  loc <- which(names(correct)==file)
+  mod <- lm(correct[ ,loc] ~ 0 + poly(F121999, 2, raw=TRUE), data=correct)
+  summary(mod)
+  
+  png(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_fit_figs/fig_%s.png", file)))
+  plot(correct$F121999, correct[ ,loc], main=file)
+  points(correct$F121999, predict(mod), col="red")
+  abline(0,1, col="blue")
+  dev.off()
+  
+  tmp <- data.frame(file = file, 
+                    C0 = 0,
+                    C1 = mod$coefficients[[1]],
+                    C2 = mod$coefficients[[2]],
+                    R2 = summary(mod)$r.squared,
+                    N = summary(mod)$df[2]+2)
+  
+  calibrate_csv <- rbind(calibrate_csv, tmp)
+}
+calibrate_csv[calibrate_csv$file == "F121999", "C0"] <- 0
+calibrate_csv[calibrate_csv$file == "F121999", "C2"] <- 0
+
+write.csv(calibrate_csv, file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_coeff.csv"), row.names= FALSE)
+
+```
+
+#### Calibrate each year's data
+
+Using the exponents from above, calibrate each year's raster data.
+
+```{r calibrate raster, eval=FALSE}
+
+cal_data <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_coeff.csv"), stringsAsFactors = FALSE)
+
+cal_data <- cal_data %>%
+  filter(file != "F121999")
+
+rast_list <- as.character(cal_data$file)
+
+foreach(rast = cal_data$file,.packages="dplyr")%dopar%{
+#for (rast in cal_data$file){ # rast = cal_data$file[22]
+  
+  light_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/int/unzipped/%s.tif", rast)))
+
+  c0 <- cal_data[which(cal_data$file==rast), "C0"]
+  c1 <- cal_data[which(cal_data$file==rast), "C1"]
+  c2 <- cal_data[which(cal_data$file==rast), "C2"]
+  
+  light_rast %>%
+  raster::calc(fun = function(x){ifelse(x==255, 0, x)})%>% # possible to have these values, although I checked a couple layers and they weren't present in the ocean regions that we are concerned about
+    raster::calc(fun = function(x){c0 + c1*x + c2*x^2})%>% # correct based on model results
+    raster::projectRaster(ocean, method="ngb", over=TRUE)%>%
+    raster::calc(fun = function(x){ifelse(is.na(x), 0, x)})%>%
+    raster::mask(ocean, filename= file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts/%s_cal_mol_mask.tif", rast)), overwrite = TRUE)
+}
+
+```
+
+
+## Determine reference point
+
+Get non-zero and non-na values for all raster years.
+
+```{r calibrate raster, eval=FALSE}
+
+cal_rasts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts"), full=TRUE)
+
+#get data across all years
+vals <- c()
+
+for(rast in cal_rasts){ #rast = cal_rasts[22]
+  print(basename(rast))
+  
+  m <- raster(rast) %>%
+    getValues() 
+
+  m <- m[!is.na(m)]
+  m <- m[m != 0]
+  
+  vals <- c(vals, m)
+  
+}
+
+#get 99.99th quantile
+
+resc_num  <- quantile(vals, prob=0.9999, na.rm=TRUE) ### 63.86532
+
+ref_value <- data.frame(pressure = "light", quant_9999 = resc_num)
+
+write.csv(ref_value, 
+          file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/rescale_val.csv"),
+          row.names=FALSE)
+
+```
+
+
+## Rescale rasters
+
+Rasters rescaled from 0 to 1 using the 99.99th quantile value.
+
+```{r calibrate raster, eval=FALSE}
+
+light_rasts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts"), full=TRUE)
+
+check <- raster(light_rasts[22])
+
+#foreach(rast in light_rasts,.packages="dplyr")%dopar%{ #rast = light_rasts[22]
+for(rast in light_rasts){ #yr = 2013
+
+  yr <- stringr::str_sub(rast, -21, -18)
+#  print(yr)
+  
+raster::raster(rast) %>%
+        raster::calc(fun=function(x){ifelse(x>0, 
+                                            ifelse(x>resc_num, 1, x/resc_num), 
+                                            0)}, 
+                     filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/final/light_%s_recaled_mol.tif", yr)), overwrite=TRUE)
+}
