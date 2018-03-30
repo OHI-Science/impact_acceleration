@@ -1,0 +1,239 @@
+---
+title: 'Sea level rise stressor layer'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+#Summary
+
+This script creates the Sea Level Rise (SLR) stressor layer for the 2018 Rate of Change project. The methods are similar to those used for the 2017 global Ocean Health Index assessment, but there are some differences.  Based on the degree of yearly variation, we use five years of data running mean of 5 years; we also do not crop SLR values to shoreline, which is the general region influenced by SLR, but the pressure/habtitat matrix will take care of that with better precision. 
+
+See this [script](https://rawgit.com/OHI-Science/ohiprep/master/globalprep/prs_slr/v2017/slr_layer_prep_v2.html) for more details about the source data and methods.
+
+***  
+
+
+## Setup
+```{r setup, message=FALSE, warning=FALSE, error=FALSE}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+# setwd("stressors/slr")
+
+library(raster)
+library(rgdal)
+library(RColorBrewer)
+
+library(gstat)
+
+library(dplyr)
+library(stringr)
+
+library(parallel)
+library(foreach)
+library(doParallel)
+
+### sample raster for projecting
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+
+```
+
+***
+
+### Calculate 5 year mean of data
+Generate raster that takes 5 years of data and averages them.
+
+```{r 5_yr_avg, eval=FALSE}
+
+### get data
+raw <- list.files(file.path(dir_M, "git-annex/globalprep/prs_slr/v2017/int/msla_annual_mean"), full.names = TRUE, 
+                  recursive = TRUE)
+
+# check what this looks like...
+plot(raster(raw[1]))
+
+### 5 year average
+years <- as.numeric(as.character(str_sub(raw, -8, -5)))
+min_year <- min(years) + 4
+
+for(year in (min_year):max(years)){ #year = 2016
+
+  year_span <- year:(year-4)
+  rasts <- raw[grep(paste(year_span, collapse = "|"), basename(raw))]
+  
+  r_stack <- stack(rasts) %>%
+    projectRaster(crs = crs(ocean), over=TRUE, method = "ngb") %>%
+    calc(fun=mean, na.rm=TRUE, 
+         filename = file.path(dir_M, 
+                   sprintf("git-annex/impact_acceleration/stressors/slr/int/slr_5yrmean_mol_%s.tif",
+                    max(year_span))), overwrite=TRUE)
+}
+
+
+```
+
+
+### Determine reference point
+The reference value used to rescale the data so values are between zero and one is the 99.99th quantile across all cells and years.  
+
+```{r reference, eval=FALSE}
+
+### rescaling the data
+annual_means <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int"),
+                                             pattern = '5yrmean', full.names = TRUE)
+#plot(raster(annual_means[1]))
+
+vals <- c()
+for(file in annual_means){ # file <- annual_means[1]
+  print(file)
+  m <- raster(file) %>%
+    getValues()
+  
+  vals <- c(vals, m)
+  
+}
+
+vals <- vals[!is.na(vals)]
+
+ref <- quantile(vals, prob = 0.9999, na.rm=TRUE) # 0.2746886, quite a bit different than using 3nm offshore
+
+tmp <- data.frame(pressure = "slr", ref_9999 = ref)
+write.csv(tmp, file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int/ref_point.csv"), row.names = FALSE)
+
+```
+
+
+### Gapfill missing data along shoreline
+
+These data have less resolution than our final data, and this leaves gaps in coverage along the shoreline.  Here, we gapfill the missing values using an inverse distance weighting technique.
+
+First, determine which cells will be gapfilled.
+
+```{r, eval=FALSE}
+
+l   <-  list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int"),
+                                             pattern = '5yrmean', full.names = TRUE)
+
+file_gf <- raster(l[[1]])
+
+file_gf[is.na(file_gf)] <- 999
+
+file_gf <- projectRaster(file_gf, ocean, method = "ngb", over=TRUE) %>%
+  mask(ocean, filename=file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int/slr_gf.tif"),
+       overwrite = TRUE)
+
+plot(file_gf)
+
+# get count of gapfilled cells
+file_gf_count <- getValues(file_gf)
+gf_count <- sum(file_gf_count==999, na.rm=TRUE)
+gf_count # 6076576
+ocean_vals <- getValues(ocean)
+ocean_size <- sum(ocean_vals == 1, na.rm=TRUE)
+ocean_size
+6076576/416190801 # 1.5% gapfilled
+
+
+```
+
+```{r gf_raster}
+
+file_gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int/slr_gf.tif"))
+
+plot(file_gf)
+```
+
+
+Then perform gapfilling.
+```{r gapgfill, eval=FALSE}
+
+annual_means <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int"),
+                                             pattern = '5yrmean', full.names = TRUE)
+
+foreach(file = annual_means) %dopar%{ # file = annual_means[20]
+  
+  r  <- raster(file) 
+  yr <- substr(file, nchar(file)-7, nchar(file)-4)
+  xy <- data.frame(xyFromCell(r, 1:ncell(r)))                         #get xy coords into dataframe
+  v  <- getValues(r)                                                  #get cell values 
+  tmpdf <- cbind(xy, v) %>%
+    filter(!is.na(v))                           #create dataframe of x,y, and values. remove NAs (throws error since these are cells we are interpolating over)
+  mg <- gstat(id = "v", formula = v~1, locations = ~x+y, data=tmpdf,
+              nmax=7, set=list(idp = 2)) #define model. power function = 2, this is default for idw models
+  z <- interpolate(r, mg, progress='text')                            #interpolate across NA cells
+  
+  z %>%
+    resample(ocean, method = "ngb") %>%
+    mask(ocean, filename = file.path(dir_M, 
+                        sprintf("git-annex/impact_acceleration/stressors/slr/int/slr_gf_mol_mask_%s.tif", yr)), overwrite = TRUE)
+  
+ test <-   raster(file.path(dir_M, 
+                    sprintf("git-annex/impact_acceleration/stressors/slr/int/slr_gf_mol_mask_%s.tif", yr)))
+ plot(test)
+ 
+}
+
+
+```
+
+
+### Rescale data
+Data are rescaled using the reference value.
+
+```{r rescale, eval=FALSE}
+
+rescale_data <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int"),
+                           pattern = 'gf_mol_mask', full.names = TRUE)
+
+ref <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int/ref_point.csv")) %>%
+  .$ref_9999
+
+for(rast in rescale_data){ #rast = rescale_data[5]
+  
+  yr <- as.numeric(as.character(str_sub(rast, -8, -5)))
+  
+  raster(rast)%>%
+    calc(fun=function(x){ifelse(x<0, 0, x)}) %>% #set all negative values to 0
+    calc(fun=function(x){ifelse(x>ref, 1, x/ref)}) %>%
+    writeRaster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/slr/final/slr_%s_rescaled_mol.tif", yr)), 
+                overwrite=TRUE)
+}
+
+
+```
+
+
+### Final stressor
+
+```{r final}
+
+final <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/final/slr_2016_rescaled_mol.tif"))
+
+plot(final, col=cols, main = "SLR, 2016 data")
+zoom(final)
+
+# ## quick check against previous 2016 data (will be different because 5 year average is not used)
+# old <- raster(file.path(dir_M, "git-annex/globalprep/prs_slr/v2017/output/slr_2016.tif"))
+# plot(old, col=cols, main = "OHI SLR data")
+# zoom(old)
+```
