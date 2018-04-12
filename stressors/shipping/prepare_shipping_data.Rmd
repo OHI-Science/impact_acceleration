@@ -1,0 +1,410 @@
+---
+title: 'Stressor 2018: Shipping'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+  code_folding: show
+toc: true
+toc_depth: 3
+toc_float: yes
+number_sections: false
+theme: cerulean
+highlight: haddock
+includes: 
+  in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+  
+#Summary
+We combine two data sources for this analysis.  
+
+Yearly shipping data from Tournadre is used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).
+
+We the multiple each raster describing the proportional change in shipping with the shipping layer used in the previous cumulative human impacts project (Halpern et al. 2015).  We only use the Tournadre data to derive the correction factor because the data has relatively low resolution and is stochastic.
+
+By doing this, we have the best of both worlds: high resolution temporal shipping data.
+
+
+
+***
+  
+#Data Source
+
+Tournadre, J. 2018. The ship database version-2. DOI10.13140/RG.2.2.15947.08480 (https://www.researchgate.net/publication/322520264_The_ship_database_version-2)
+
+**Downloaded**: Feb 1 2018
+
+**Description**: Yearly ship density data. Data is not based on AIS data, but rather:
+> In a recent study, Tournadre [2007] demonstrated that any target emerging from the sea could have a detectable signature in the noise part (i.e., the portion of the echo waveform above the sea) of high resolution satellite altimeter waveforms.
+
+**Native data resolution**: 1 x 2 degree
+
+**Time range**: 1992-2016
+
+**Format**: Netcdf
+
+**Units**: ships per cell, represents all the ships expected to be at sea, e.g., 62,000 in 2009
+
+**Notes about the data**: We used the smoothed version of the data
+
+
+
+*Cumulative Human Impacts data*
+
+**Reference**:
+Walbridge, S. 2013. Assessing ship movements using volunteered geographic information. Thesis, University of California, Santa Barbara. https://www.4326.us/thesis/walbridge-masters-thesis.pdf
+
+Halpern et al. 2015. Spatial and temporal changes in cumulative human impacts on the world's ocean. Nature Cummunications 6, 7615. doi:10.1038/ncomms8615
+
+**Description**: Shipping data created by Sean Walbridge
+
+**Native data resolution**: ~1 km 
+
+**Time range**: One raster data that was created using data from 1991-2011, but most of the data is from 2011.
+
+**Format**: raster, .tif
+
+
+  ***
+  
+# Methods
+  
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE}
+
+#set options for all chunks in code
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,fig.width=6, fig.height=6)
+
+#libraries
+library(raster)
+library(ncdf4)
+library(maps)
+library(RColorBrewer)
+library(sf)
+library(dplyr)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+# setwd("stressors/shipping")
+
+# parallel processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+```
+
+
+## Shipping density data
+
+These data are used to determine the proportional change in shipping (relative to 2011) across years. Each year's density raster is divided by the reference density raster (2011).  The 2011 year was chosen because most of the data in the original shipping data was from 2011.     
+
+Exploring the yearly shipping density data.
+
+```{r explore, eval=FALSE}
+ncin <- nc_open(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/prod_gridded_1992-2017.nc"))
+#ncin <- nc_open(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/ships.nc"))
+print(ncin)
+attributes(ncin$var)$names
+nc_close(ncin)
+
+```
+
+```{r raw_image}
+
+## get the data and create a raster stack
+raw <- stack(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/prod_gridded_1992-2017.nc"),
+             varname="nships_smoothed") #nships_smoothed
+
+plot_data <- rotate(flip(flip(t((raw[[25]])), direction = 'y'), direction = 'x'))
+plot(plot_data, col=cols)
+#click(tmp)
+maps::map('world', col='gray95', fill=T, border='gray80', add=T)
+
+# data standardized to 62,000 ships in 2009
+# cellStats(raw[[18]], stat='sum')
+# I get exactly 62,000 (using non-smoothed data)! 
+```
+
+Extracting the Netcdf data and saving as individual rasters.
+
+```{r density prepare, eval=FALSE}
+
+raw <- stack(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/prod_gridded_1992-2017.nc"),
+             varname="nships_smoothed") #nships_smoothed
+
+# convert names to year (equal to days since 1992)
+names(raw) <- round(as.numeric(sub("X", "", names(raw)))/365.2422)
+
+## convert 0 values to NA (since not clear for each raster whether it is NA or zero)
+for (year in 1994:2016){ #year = 2015
+  rast_year <- grep(year, names(raw))
+  tmp <- raw[[rast_year]]
+  tmp <- rotate(flip(flip(t((tmp)), direction = 'y'), direction = 'x'))
+  tmp[tmp==0] <- NA 
+  writeRaster(tmp, file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/shipping_raw_%s.tif", year)),
+              overwrite=TRUE)
+}
+
+# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_raw_2015.tif"))
+# plot(tmp)
+
+```
+
+To control for some of the stochasticity of the density data,  three years of data are used to generate each year's raster (e.g., the 2016 raster averages shipping values from 2014-2016). And, 5 years of data are used to generate the 2011 reference raster (average of 2009-2013).
+
+Scenario_year  |   Data_years
+---------------- | ----------------------
+2016                 | 2014 - 2016
+2015                 | 2013 - 2015
+...                       | ...
+1994 (final year that will be calculated) | 1992-1994
+
+
+```{r years_3, eval = FALSE}
+
+files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int"), 
+                    pattern = "raw", full = TRUE)
+
+for (year in 1994:2016){ # year = 2015
+  
+  year_range <- paste(year:(year+2), collapse="|")
+  
+  names_years_3 <- grep(year_range, files, value = TRUE)
+  years_3 <- stack(names_years_3)
+  mean_narm = function(x,...){mean(x, na.rm=TRUE)} 
+  datasum<- calc(years_3, fun = mean_narm)
+  #plot(datasum, col=cols)
+  
+  writeRaster(datasum, 
+      file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/shipping_3_yr_%s.tif", year)),
+              overwrite=TRUE)
+}
+
+```
+
+
+Calculate the 2011 reference raster. 
+
+```{r ref density, eval = FALSE}
+
+files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int"), 
+                              pattern = "raw", full = TRUE)
+
+ref_years <- grep("2009|2010|2011|2012|2013", files)
+ref <- stack(files[ref_years]) #nships_smoothed
+
+mean_narm = function(x,...){mean(x, na.rm=TRUE)} 
+ref_mean <- calc(ref, fun = mean_narm)
+plot(ref_mean, col=cols)
+click(ref_mean)
+
+writeRaster(ref_mean, file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/reference_mean_2009_2013.tif"), overwrite=TRUE)
+
+
+```
+
+Divide each year's density by the reference period.  
+
+There are many NA values, where clearly there would be data if there was less stochasticity in the data. I replaced these values with the overall proportional change in total shipping. For example,
+
+NA values = sum(all raster cells in scenario year) / sum(all raster cells in reference year)
+
+For example, for the 2016 data, the NAs get replaced with 1.17.
+
+```{r prop_density, eval=FALSE}
+
+# get total number of ships across all cells from the reference period.
+ref_mean <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/reference_mean_2009_2013.tif"))
+ref_total_ships <- cellStats(ref_mean, stat='sum', na.rm=TRUE)
+
+foreach(year = 1994:2016,.packages="dplyr") %dopar%{ # file_name = l[1]
+#for(year in 1994:2016){ # year = 2016
+  scen_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/shipping_3_yr_%s.tif", year)))
+  prop <- raster::overlay(scen_rast, ref_mean, fun=function(x,y)x/y)
+
+  # determine total number of ships (used to estimate NA cells)
+  vals <- raster::getValues(prop)
+  scen_total_ships <- raster::cellStats(scen_rast, stat="sum", na.rm=TRUE)
+  gapfill_val <- scen_total_ships/ref_total_ships 
+    
+  # get to proper projection, etc.
+  sp::proj4string(prop) <- sp::CRS("+init=epsg:4326")
+  prop <- raster::shift(prop, x = -1)
+  raster::projectRaster(prop, ocean, over=TRUE, method = "ngb",
+                        filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/prop_change_%s_mol_na.tif", year)), overwrite=TRUE)
+
+  prop_mol <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/prop_change_%s_mol_na.tif", year)))
+
+  # gapfill missing cells
+  raster::reclassify(prop_mol, cbind(NA, NA, gapfill_val), right=FALSE, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/prop_change_%s_mol_gf.tif", year)), overwrite=TRUE)
+  
+  # tmp <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/prop_change_%s_mol_gf.tif", year)))
+  #  tmp_old <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/prop_change_2016_mol.tif"))
+  #  tmp_old
+  #  tmp
+  # plot(tmp_old)
+  # plot(tmp)
+  }
+
+# delete extra files
+tmp <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int"),
+                            pattern="mol_na.tif", full=TRUE)
+file.remove(tmp)
+```
+
+
+### Shipping data
+These data were used in the 2015 Cumulative Human Impacts project (Halpern et al 2015), and are only available for a single time period.
+
+
+The outer ring of the mollweide projection has NA values unless these are gapfilled. We used the mean of the surrounding cells to gapfill this area.
+
+
+```{r prepare_shipping, eval=FALSE}
+
+ship_chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/rasters_sailwx_tmp_plus_all_ais_lzw.tif"))
+
+projectRaster(ship_chi, crs=crs(ocean), over=TRUE, method="ngb", overwrite=TRUE,
+              filename = file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_mol.tif"))
+
+ship_mol <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_mol.tif"))
+
+## gapfill outer NA regions so no NA bound around raster
+## based on mean of surrounding cells
+gf_raster <- function(x){raster::focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
+
+## Repeat 400 times (I found this was enough iterations to gapfill all missing values)
+i <- 0
+while (i <= 50){
+ship_mol <- gf_raster(ship_mol)
+i <- i + 1
+print(i)
+}
+
+# make resolution the same as other layers
+resample(ship_mol, ocean, over=TRUE, method="ngb", overwrite=TRUE,
+              filename = file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_mol_gf.tif"))
+
+```
+
+Image of gapfilled cells.
+```{r gapfill, eval=FALSE}
+
+ship_mol <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_mol.tif"))
+
+ship_mol[is.na(ship_mol)] <- 999999 
+
+resample(ship_mol, ocean, over=TRUE, method="ngb") %>%
+  mask(ocean, overwrite=TRUE,
+              filename = file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_gf.tif"))
+
+```
+
+```{r gf_vis}
+
+ship_chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_gf.tif"))
+
+plot(ship_chi)
+
+```
+
+Multiply the single year of CHI shipping data by the yearly correction factor to get a measure of change over time.
+
+```{r ship_correct, eval=FALSE}
+
+ship_master <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/shipping_mol_gf.tif"))
+
+foreach(year = 1994:2016,.packages="dplyr") %dopar%{ 
+#for(year in 1994:2016){ # year = 2016
+
+    adjust <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/prop_change_%s_mol_gf.tif", year)))
+
+raster::overlay(adjust, ship_master, fun=function(x,y)x*y) %>% 
+        filename = file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_ship_%s_tmp.tif", year)),
+          overwrite=TRUE)
+
+ship_adjust <- raster::raster(file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_ship_%s_tmp.tif", year)))  
+  ## checkforNAs, there were none (good!)
+  #ship_adjust[is.na(ship_adjust)] <- 999999
+  #na_count <- mask(ship_adjust, ocean)
+  #vals <- getValues(na_count)
+  #sum(vals==999999)
+
+    raster::mask(ship_adjust, ocean,
+         filename=file.path(dir_M, 
+              sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_%s.tif", year)), overwrite=TRUE)
+
+}
+
+# delete extra files
+tmp <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int"),
+                            pattern="_tmp.tif", full=TRUE)
+
+file.remove(tmp)
+```
+
+Log the shipping data and find the 99.99th quantile across all years/cells that is used as the rescaling value.
+
+```{r log and quant, eval=FALSE}
+
+shipping_ref_pts <- data.frame()
+
+for(year in 1994:2016){ # year = 2016
+  shipping <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_%s.tif", year)))
+  
+calc(shipping, fun=function(x)log(x+1), filename=file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_%s_log.tif", year)), overwrite=TRUE)
+
+shipping_ln <- raster(file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_%s_log.tif", year)))
+  
+vals <- getValues(shipping_ln)
+  ref <- quantile(vals, 0.9999, na.rm=TRUE)
+  ref_add <- data.frame(year_shipping = year, quantile_9999 = as.numeric(ref))
+  shipping_ref_pts <- rbind(shipping_ref_pts, ref_add)
+  print(year)
+}
+
+write.csv(shipping_ref_pts, file.path(dir_M,                                      
+                    "git-annex/impact_acceleration/stressors/shipping/int/shipping_ref_quantiles.csv"), row.names = FALSE)
+
+
+```
+
+Rescale the corrected shipping data so values range from 0-1.
+
+```{r rescale, eval=FALSE}
+
+## use mean of all years as reference
+ref <- read.csv(file.path(dir_M,                                      
+                          "git-annex/impact_acceleration/stressors/shipping/int/shipping_ref_quantiles.csv"))
+ref_point <- mean(ref$quantile_9999, na.rm=TRUE) #8.051329
+
+foreach(year = 1994:2016,.packages="dplyr") %dopar%{ 
+#for(year in 1994:2016){ # year = 2016
+  raster::raster(file.path(dir_M, 
+      sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_%s_mol_log.tif", year))) %>%
+  raster::calc(fun=function(x){ifelse(x<0,0,
+                              ifelse(x>ref_point, 1, x/ref_point))})%>%
+  raster::writeRaster(filename = file.path(dir_M, 
+                    sprintf("git-annex/impact_acceleration/stressors/shipping/final/shipping_%s_rescaled_mol.tif", year)),
+              overwrite=TRUE)
+}
+
+```
+
+
+```{r final-vis}
+
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/final/shipping_2016_rescaled_mol.tif"))
+plot(tmp, col=cols)
+
+```
