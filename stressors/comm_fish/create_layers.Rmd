@@ -11,12 +11,12 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
 pdf_document:
   toc: true
 ---
 
-This script standardizes the annual catch rasters by net primary production.
+This script standardizes the annual catch rasters by net primary production.  NPP is first gapfilled using the average of neighboring cells. The standardized catch data are rescaled to range from 0-1 using the 99.99th quantile of all global raster cells across all years of data for each commercial catch category.  
 
 ```{r setup, message=F,warning=F}
 
@@ -39,6 +39,11 @@ years_of_data <- 2003:2014
 
 # setwd("stressors/comm_fish")
 
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+
 ```
 
 
@@ -51,14 +56,15 @@ Load NPP data
 npp_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE)
 
 npp_files <- npp_files[!(str_detect(npp_files, "1km"))]
+npp_files <- npp_files[!(str_detect(npp_files, "_gf"))]
 npp_files <- npp_files[grep(paste(years_of_data, collapse="|"), npp_files)]
 
 
 ```
 
-Gapfill missing NPP raster data.  This is done by averaging the neighboring cells of raster cells with NA values and repeating until all ocean cells are gapfilled at the final resolution. 
+Gapfill missing NPP raster data.  This is done by averaging the neighboring cells of raster cells with NA values and repeating until all ocean cells are gapfilled. 
 
-```{r}
+```{r, eval=FALSE}
 
 ## Save a raster showing which areas were gapfilled
 npp_rast <- raster(npp_files[1])
@@ -71,19 +77,20 @@ writeRaster(npp_rast_mol_mask, file.path(dir_M,'/git-annex/impact_acceleration/s
 
 
 ## Function to gapfill NA cells using mean of surrounding cells
-gf_raster <- function(x){focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
+gf_raster <- function(x){raster::focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
 
 
 ## Iterative gapfilling for each year of NPP data
-for (npp in npp_files){ # npp <- npp_files[1]
+foreach(npp = npp_files,.packages="dplyr") %dopar%{ # file_name = l[1]
+#for (npp in npp_files){ # npp <- npp_files[1]
 
-r <- raster(npp)
-yr <- str_sub(npp,-8,-5)
+r <- raster::raster(npp)
+yr <- stringr::str_sub(npp,-8,-5)
 
 ## Repeat until critical NA cells are filled
 i <- 0
 
-while (i <= 5000){
+while (i <= 500){
 r <- gf_raster(r)
 i <- i + 1
 print(i)
@@ -97,16 +104,15 @@ print(i)
 # plot(r_mol_mask)
 # r_mol_mask
 
-writeRaster(r, file.path(dir_M, sprintf("/git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual/annual_mean_npp_%s_gf.tif", yr)), overwrite=TRUE)
+raster::writeRaster(r, file.path(dir_M, sprintf("/git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual/annual_mean_npp_%s_gf.tif", yr)), overwrite=TRUE)
 
 }
 
 # get a list of the npp files
 
-npp_files_mol <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE, pattern = "gf")
+npp_files_gf <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE, pattern = "gf")
 
-npp_files_mol <- npp_files_mol[!(str_detect(npp_files_mol, "npp_gf"))]
-npp_files_mol <- npp_files_mol[grep(paste(years_of_data, collapse="|"), npp_files_mol)]
+npp_files_gf <- npp_files_gf[grep(paste(years_of_data, collapse="|"), npp_files_gf)]
 
 
 ```
@@ -116,7 +122,7 @@ npp_files_mol <- npp_files_mol[grep(paste(years_of_data, collapse="|"), npp_file
 
 `catch_npp_fun` is a function that reads in a catch raster, reprojects & resamples it then divides by npp for the same year and saves the output.
 
-```{r catch}
+```{r catch, eval=FALSE}
 
 catch_npp_fun <- function(file, layer){ # file = dem_d_files[1]  layer = 'dem_dest'
   
@@ -124,7 +130,7 @@ catch_npp_fun <- function(file, layer){ # file = dem_d_files[1]  layer = 'dem_de
   
   yr <- substr(file, nchar(file)-10, nchar(file)-7)
   
-  npp <- npp_files_mol[str_detect(npp_files_mol, yr)] %>% 
+  npp <- npp_files_gf[str_detect(npp_files_gf, yr)] %>% 
     raster()
   
   c <- catch %>%
@@ -143,6 +149,7 @@ years_filter <-  paste(years_of_data, collapse="|")
 
 dem_d_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest'), full.names=TRUE, pattern = "gf")
 dem_d_files <- dem_d_files[grep(years_filter, dem_d_files)]
+dem_d_files <- dem_d_files[-grep("all_catch", dem_d_files)]
 
 dem_nd_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb'), full.names=TRUE, pattern = "gf")
 dem_nd_hb <- dem_nd_hb[grep(years_filter, dem_nd_hb)]
@@ -186,29 +193,26 @@ Determine the 99.99th quantile for each type of commercial fisheries.  This valu
 
 all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
 
-file_num <- length(all)/5
-
 layers <- c("dem_dest","dem_nondest_hb","dem_nondest_lb","pel_hb","pel_lb")
 
-registerDoParallel(5)
+for(layer in layers){
 
-foreach(layer = layers) %dopar% {   # layer = "dem_dest" 
-  
   files <-  all[which(str_detect(all, as.character(layer)))]
   
   values  <-  files %>%
-          stack() %>%
-          mask(ocean_low_res) %>%
-          getValues() 
+          raster::stack() %>%
+          raster::mask(ocean_low_res) %>%
+          raster::getValues() 
   values_vector <- as.vector(as.matrix(values)) 
   values_vector <- na.omit(values_vector)
   
   quant <-  quantile(values_vector, prob=0.9999, na.rm=TRUE)
   
   refs <- read.csv("comm_fish_ref_points.csv") %>%
-    mutate(ref_point = ifelse(pressure == layer, quant, ref_point))
+    dplyr::mutate(ref_point = ifelse(pressure == layer, quant, ref_point))
   write.csv(refs, "comm_fish_ref_points.csv", row.names=FALSE)
-
+  
+print(layer)
 }  
 
 ```
@@ -220,12 +224,13 @@ For each type of commercial fisheries, rescale each year's data according to ref
 
 # relevant files
 all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
+
 ref_points <- read.csv("comm_fish_ref_points.csv")
 
 # function to run through the 5 categories
 scale_fun <- function(prs){ # prs <- "pel_hb"
 
-    files <-  all[which(str_detect(all, prs))]
+    files <-  all[which(stringr::str_detect(all, prs))]
  cat(prs)
     quant <- ref_points$ref_point[ref_points$pressure == prs]
  cat(quant)
@@ -234,11 +239,11 @@ scale_fun <- function(prs){ # prs <- "pel_hb"
  
          yr = substr(ind_rast, nchar(ind_rast)-7, nchar(ind_rast)-4)
           
-        raster(ind_rast) %>%
-          calc(fun=function(x){ifelse(x<0, 0,
+        raster::raster(ind_rast) %>%
+          raster::calc(fun=function(x){ifelse(x<0, 0,
                                       ifelse(x>quant, 1, x/quant))}) %>%
-          resample(ocean, method = 'ngb') %>%
-            mask(ocean,
+          raster::resample(ocean, method = 'ngb') %>%
+            raster::mask(ocean,
             filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/final/%s/%s_%s_rescaled_mol.tif', prs, prs, yr)), overwrite=TRUE)  
         # check:
         # tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/pel_hb/pel_hb_2003_rescaled_mol.tif"))
@@ -248,9 +253,11 @@ scale_fun <- function(prs){ # prs <- "pel_hb"
 
 # run function for 5 commercial fishing categories
 
-scale_fun(prs = "pel_hb")
-scale_fun(prs = "pel_lb")
-scale_fun(prs = "dem_dest")
-scale_fun(prs = "dem_nondest_hb")
-scale_fun(prs = "dem_nondest_lb")
+layers <- c("dem_dest","dem_nondest_hb","dem_nondest_lb","pel_hb","pel_lb")
+
+foreach(layer = layers,.packages="dplyr") %dopar%{ # file_name = l[1]
+#for(layer in layers){
+scale_fun(prs = layer)
+}
+
 ```

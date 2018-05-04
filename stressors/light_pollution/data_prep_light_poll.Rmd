@@ -305,5 +305,5 @@ raster::raster(rast) %>%
         raster::calc(fun=function(x){ifelse(x>0, 
                                             ifelse(x>resc_num, 1, x/resc_num), 
                                             0)}, 
-                     filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/final/light_%s_recaled_mol.tif", yr)), overwrite=TRUE)
+                     filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/final/light_%s_rescaled_mol.tif", yr)), overwrite=TRUE)
 }

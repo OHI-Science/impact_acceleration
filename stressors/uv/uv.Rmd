@@ -1,0 +1,71 @@
+---
+title: "UV: potential for backcalculating missing years?"
+output: html_document
+---
+
+Based on this analysis, we will not include UV in the rate of change project.  It will probably be possible to include later when the cleaned higher resolution UV data is released.
+
+We do not have UV data further back than 2010, and we want to determine whether it would be sensible to estimate these years (2003-2009) using a regression model of the existing years of data (2010-2016).
+
+### Steps
+1. stack the unscaled data layers that describe the number of extreme events relative to a reference period from 2005-2009.
+2. randomly sample 100 points
+3. look at relationship among points
+4. if it looks fairly linear, I will estimate slope and intercept to calculate remaining years
+
+
+```{r setup, include=FALSE}
+# Steps
+# 1. stack the raw layers
+# 2. randomly sample 100 points
+# 3. look at relationship among points
+# 4. if it looks fairly linear, we will estimate slope and intercept to calculate remaining years
+library(raster)
+library(dplyr)
+library(RColorBrewer)
+library(tidyr)
+library(ggplot2)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+
+files <- list.files(file.path(dir_M, "git-annex/globalprep/prs_uv/v2017/int"), 
+                    pattern = "mol_1km.tif",
+                    full = TRUE)
+
+uv_stack <- stack(files)
+
+samp_n <- 100
+
+rand_samp <- sampleRandom(uv_stack, size=samp_n) %>%
+  data.frame()
+
+rand_samp$sample_id <- 1:samp_n
+
+rand_samp_data <- rand_samp %>%
+  gather("year", "extreme_events", starts_with("uv")) %>%
+  mutate(year = substr(year, 9, 12)) %>%
+  mutate(year = as.numeric(year)) %>%
+  filter(year != 2009)
+   
+# check that everything went well
+summary(rand_samp_data)        
+table(rand_samp_data$sample_id)  
+
+```
+
+### Generate plots of each site over time
+
+```{r plot, fig.width=4, fig.height=4}
+for(i in 1:samp_n){ # i = 2
+ 
+plot_uv <- ggplot(dplyr::filter(rand_samp_data, sample_id==i), aes(y = extreme_events, x = year)) +
+    geom_point(size = 2) +
+   geom_line() + 
+  ylim(-45, 35)
+  
+plot(plot_uv)  
+}
+
+
+```

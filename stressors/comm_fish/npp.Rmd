@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '~/github/ohiprep/src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
 pdf_document:
   toc: true
 ---
@@ -49,8 +49,9 @@ library(doParallel)
 library(foreach)
 library(parallel)
 library(RColorBrewer)
+library(dplyr)
 
-source("~/github/ohiprep/src/R/common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/common.R")
 source('vgpm_func.R')
 
 cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme

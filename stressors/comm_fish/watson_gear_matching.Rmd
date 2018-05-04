@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
 pdf_document:
   toc: true
 ---
@@ -33,12 +33,13 @@ Overview:
 
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
 
-source('~/github/ohiprep/src/R/common.R')
+source('https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/common.R')
 
 library(raster)
 library(readr)
 library(dplyr)
 library(data.table)
+library(stringr)
 
 ```
 
@@ -185,7 +186,7 @@ DT::datatable(df_type_dest%>%
 
 The final dataset that matches each unique gear & taxon from the raw Watson data to the information we will use to map each of the 5 catch layers is saved as `taxa_gear_types.csv`
 
-```{r assign_bycatch}
+```{r assign_bycatch, eval=FALSE}
 
 final_df <- df_type_dest%>%
             mutate(bycatch = ifelse(is.na(bycatch),'low',bycatch))

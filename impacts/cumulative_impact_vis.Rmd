@@ -1,0 +1,91 @@
+---
+title: 'Cumlative impacts review'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+  code_folding: show
+toc: true
+toc_depth: 3
+toc_float: yes
+number_sections: false
+theme: cerulean
+highlight: haddock
+includes: 
+  in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE, error=FALSE, echo=FALSE, results='hide'}
+
+#set options for all chunks in code
+ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align = "center", fig.width=8, fig.height =4.5)
+#knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+
+#libraries
+library(raster)
+library(ncdf4)
+library(RColorBrewer)
+library(sf)
+library(dplyr)
+library(fields)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez"), ]
+
+## function to make plots
+
+legend.shrink <- 0.4
+legend.width <- 0.6
+
+
+raster_breaks <- function(raster_data, title, title_legend=NULL, myBreaks, cols){
+  par(mar=c(2,2,2,2)) # bottom, left, top, and right
+  par(oma=c(0,0,0,4))
+plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE)
+  title(title, line=0)
+# add axis with fields package function:
+def_breaks <- seq(0, length(myBreaks), length.out=length(myBreaks))
+image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
+           legend.only = TRUE, 
+           legend.shrink=legend.shrink,
+           legend.width=legend.width,
+           col = cols,
+           legend.lab=title_legend,
+            breaks=def_breaks,
+           lab.breaks=c(0, NA, 0.2, NA, 0.6, NA, 1, NA, 1.5, NA, 2, NA, 3, NA, 4.0, NA, ">5"),
+           axis.args = list(cex.axis = 0.6))
+
+#plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+#plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE, add=TRUE)
+}
+
+my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) #(length(my_breaks)-2))
+
+#cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(250))
+
+# setwd("stressors")
+
+```
+
+  
+# Summary
+The following are the cumulative impacts between 2003 and 2013.  
+
+***
+  
+
+```{r chi, message=FALSE, warning=FALSE, verbose=FALSE, echo=FALSE, error=FALSE}
+
+
+for(year in 2003:2013){ # year = 2013
+p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
+raster_breaks(raster_data=p_rast,  
+              myBreaks=my_breaks, cols=cols, title=year)
+}
+
+```
+
