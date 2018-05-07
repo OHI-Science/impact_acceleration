@@ -199,7 +199,7 @@ rast <-  raster(file.path(dir_M, catch_path, file_name, paste0(file_name, "_", y
 # convert NA values to 0
 rast[is.na(rast)] <- 0
 
-# for cells in the coastal buffer with no catch data, convert to NA values
+# for cells in the coastal buffer with no catch data, convert from zero to NA values
 fis_gf <- overlay(rast, coastal_catch_gf, fun = function(x,y){ifelse(y %in% 9999, NA, x)})
 #plot(fis_gf)
 

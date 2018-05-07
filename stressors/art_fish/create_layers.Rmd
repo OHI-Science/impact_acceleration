@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '~/github/ohi-northeast/src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
 pdf_document:
   toc: true
 ---
@@ -31,12 +31,19 @@ library(data.table)
 library(parallel)
 library(foreach)
 library(doParallel)
+library(RColorBrewer)
 
 source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
 
 years_of_data <- 2003:2014
 
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
 # setwd("stressors/art_fish")
+
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
 
 ```
 
@@ -66,9 +73,8 @@ years_filter <-  paste(years_of_data, collapse="|")
 art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'), full.names=TRUE, pattern = "gf")
 art_catch_rasts <- art_catch_rasts[grep(years_filter, art_catch_rasts)]
 
-registerDoParallel(6) #register parallel cores
 
-foreach(file = art_catch_rasts) %dopar%{ # file = art_catch_rasts[1]
+for(file in art_catch_rasts) { # file = art_catch_rasts[1]
   
   catch <- raster(file)
   
@@ -119,18 +125,27 @@ quant <-  quantile(values_vector, prob=0.9999, na.rm=TRUE)
 tmp <- data.frame(cat="art_fishing", quant_9999=quant)
 write.csv(tmp, file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/quantile_9999.csv'))
 
+```
 
-foreach(file = all_files) %dopar% {    # file = all_files[1]
+
+Rescale the catch/npp data by the reference point and save.
+```{r rescale, eval=FALSE}
+
+quant <- read.csv(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/quantile_9999.csv'))[["quant_9999"]]
+
+for(file in all_files[11:12]){
+#foreach(file = all_files,.packages="dplyr") %dopar% {    # file = all_files[1]
   
     yr = substr(file, nchar(file)-7, nchar(file)-4)
     
     
-     raster(file) %>%
-         calc(fun=function(x){ifelse(x<0, 0,
+     raster::raster(file) %>%
+         raster::calc(fun=function(x){ifelse(x<0, 0,
                                    ifelse(x>quant, 1, x/quant))}) %>%
-          resample(ocean, method = 'ngb') %>%
-            mask(ocean,
-            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/final/art_fish_%s_rescaled_mol.tif', yr)),                       overwrite=TRUE)  
+          raster::resample(ocean, method = 'ngb') %>%
+            raster::mask(ocean,
+            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/final/art_fish_%s_rescaled_mol.tif', yr)),                       
+            overwrite=TRUE)  
 
 # check:
 # tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/art_fish/final/art_fish_2003_rescaled_mol.tif"))
@@ -143,9 +158,9 @@ foreach(file = all_files) %dopar% {    # file = all_files[1]
 
 ```{r}
 
-results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = TRUE) %>%
-          stack()
+results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = TRUE)[12]
+tmp <- raster::raster(results)
 
-plot(results, col=cols, axes=FALSE)
+plot(tmp, col=cols, axes=FALSE)
 
 ```
