@@ -1,8 +1,21 @@
-########################################
-## Preparing population data for 
-## rate of change project
-## MRF Jan 24 2018
-#########################################
+---
+  title: "Creating direct impacts stressor layers"
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+  code_folding: show
+toc: true
+toc_depth: 1
+toc_float: yes
+number_sections: false
+theme: cerulean
+highlight: haddock
+includes: 
+  in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
+---
+  
 
 ## From 2015 paper:
 # "..we modeled direct human impact on the coast as the
