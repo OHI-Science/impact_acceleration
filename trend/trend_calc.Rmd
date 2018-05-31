@@ -1,0 +1,253 @@
+---
+title: 'Trends in human impact'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+#Summary
+
+This script calculates trend data for cumulative human impacts as well as individual pressures.
+
+***  
+
+
+## Setup
+```{r setup, message=FALSE, warning=FALSE, error=FALSE}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+# setwd("trend")
+
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(gstat)
+library(stringr)
+
+# load spatial files (ocean raster and regions shapefile)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+
+```
+
+
+```{r ref point, eval=FALSE}
+
+chi   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/impact/cumulative_impact'), pattern='chi', full.names=TRUE)
+
+chi_stack <- stack(chi)
+
+samp_n <- 100
+
+rand_samp <- sampleRandom(chi_stack, size=samp_n) %>%
+  data.frame()
+
+rand_samp$sample_id <- 1:samp_n
+
+rand_samp_data <- rand_samp %>%
+  gather("year", "chi", starts_with("chi")) %>%
+  mutate(year = substr(year, 5, 8)) %>%
+  mutate(year = as.numeric(year))
+   
+# check that everything went well
+summary(rand_samp_data)        
+table(rand_samp_data$sample_id)  
+
+write.csv(rand_samp_data, "int/rand_samp.csv", row.names=FALSE)
+````
+
+### Generate plots of each site over time
+
+```{r plot, fig.width=4, fig.height=4}
+
+
+samp_n <- 100
+
+rand_samp_data <- read.csv("int/rand_samp.csv")
+
+
+for(i in 1:samp_n){ # i = 2
+ 
+plot_chi <- ggplot(dplyr::filter(rand_samp_data, sample_id==i), aes(y = chi, x = year)) +
+    geom_point(size = 2) +
+   geom_line() + 
+   stat_smooth(method=lm, se=FALSE, color="red")
+  
+plot(plot_chi)  
+}
+
+
+```
+
+
+
+### Calculate slope, intercept
+
+A regression model will be applied to each cell across all years of data, and the slope and intercept will be used to estimate 2013. 
+
+```{r estimate_2013, eval=FALSE}
+
+chi   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/impact/cumulative_impact'), pattern='chi', full.names=TRUE)
+
+chi_stack <- stack(chi)
+
+years <-   as.numeric(substr(basename(chi),5, 8))
+
+# ## much reduced regression model; [2] is to get the slope
+# quickfun <- function(y) (invXtX %*% y)[2]
+# x4 <- calc(s, quickfun) 
+
+
+funa <- function(x) { 
+  if(all(is.na(x))) {
+    c(NA, NA)
+  } else {
+    lm(x ~ years)$coefficients 
+  }
+}
+
+r <- raster::calc(chi_stack, fun=funa, progress="text")
+writeRaster(r[[1]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_intercept.tif'))
+writeRaster(r[[2]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_slope.tif'))
+
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_slope.tif'))
+plot(slope, col=cols, axes=FALSE)
+intercept <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_intercept.tif'))
+plot(intercept, col=cols, axes=FALSE)
+
+# need to run and get error
+https://stat.ethz.ch/pipermail/r-sig-geo/2013-November/019856.html
+
+funb <- function(x) {
+if (all(is.na(x))) {
+return(cbind(NA,NA))
+}
+m <- lm(x ~ years)
+s  <- summary(m)
+se <- s$coefficients[2,2]
+r2 <- s$r.squared
+return(cbind(se, r2))
+}
+
+r <- raster::calc(chi_stack, fun=funb, progress="text")
+writeRaster(r[[1]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_se.tif'))
+writeRaster(r[[2]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_r_square.tif'))
+
+se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_se.tif'))
+plot(se, col=cols, axes=FALSE)
+r_sq <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_r_square.tif'))
+plot(r_sq, col=rev(cols), axes=FALSE)
+
+## calculate upper and lower 95% CI rasters
+t_stat <- qt(0.975, 11-2)
+
+se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_se.tif'))
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_coef_slope.tif'))
+
+s <- stack(slope, se)
+overlay(s, fun=function(x,y){x + y*t_stat}, 
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'), overwrite=TRUE, progress="text")
+upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'))
+plot(upper_ci, col=cols, axes=FALSE)
+
+overlay(s, fun=function(x,y) x - y*t_stat, 
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'), overwrite=TRUE, progress="text")
+lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'))
+plot(lower_ci, col=cols, axes=FALSE)
+
+### replace negative values with -1 and positive values with +1
+# upper
+upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'))
+reclassify(upper_ci, c(-Inf,0,-1, 0,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif'), overwrite=TRUE, progress="text")
+
+upper_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif'))
+plot(upper_ci_class, col=cols, axes=FALSE)
+
+# lower
+lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'))
+reclassify(lower_ci, c(-Inf,0,-1, 0,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif'), overwrite=TRUE, progress="text")
+
+lower_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif'))
+plot(lower_ci_class, col=cols, axes=FALSE)
+
+## combine
+s <- stack(raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif')),
+           raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif')))
+
+overlay(s, fun=function(x,y){x + y}, 
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/trend_pattern.tif'), overwrite=TRUE, progress="text")
+trend_pattern <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/trend_pattern.tif'))
+plot(trend_pattern, col=cols, axes=FALSE)
+
+### trend overlay
+
+df <- data.frame(id=c(2, 0, -2), v=c(NA,1,NA))
+subs(trend_pattern, df, filename = file.path(dir_M,  'git-annex/impact_acceleration/trend/sig_overlay.tif'), overwrite=TRUE, progress="text")
+
+overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/trend/sig_overlay.tif'))
+
+cols = rev(colorRampPalette(c("#9E0142", "#9E0142", "#9E0142", "#9E0142", "#D53E4F", "#D53E4F", "#D53E4F", "#F46D43", "#F46D43", "#FDAE61", "#FDAE61",             
+              "#FFFFBF", "#FFFFBF",  
+             "#66C2A5", "#66C2A5", "#3288BD", "#3288BD", "#5E4FA2", "#5E4FA2",  "#5E4FA2"))(255)) # rainbow
+plot(slope, col=cols, axes=FALSE, box=FALSE)
+plot(overlay_rast, col="#ffffff99", add=TRUE, legend=FALSE, box=FALSE)
+plot(overlay_rast, col="#ffffff99", add=TRUE, legend=FALSE, box=FALSE)
+plot(overlay_rast, col="#ffffff99", add=TRUE, legend=FALSE, box=FALSE)
+
+plot(slope, col=cols, axes=FALSE, box=FALSE)
+plot(overlay_rast, col="#ffffff", add=TRUE, legend=FALSE, box=FALSE)
+
+plot(slope, col=cols, axes=FALSE, box=FALSE)
+plot(overlay_rast, col="#a7adba80", add=TRUE, legend=FALSE, box=FALSE)
+
+file.path(dir_M,  'git-annex/impact_acceleration/trend/sig_overlay.tif')
+
+## average of all chi years
+chi   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/impact/cumulative_impact'), pattern='chi', full.names=TRUE)
+
+chi_stack <- stack(chi)
+raster::calc(chi_stack, fun=mean, na.rm=TRUE, filename =
+       file.path(dir_M, 'git-annex/impact_acceleration/trend/avg_cumulative_impact.tif'), 
+     overwrite=TRUE, progress="text")
+
+mean_chi <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/avg_cumulative_impact.tif'))
+
+plot(mean_chi, col=cols, axes=FALSE)
+
+raster::calc(mean_chi, fun=function(x){log(x+1)}, filename=
+               file.path(dir_M, 'git-annex/impact_acceleration/trend/ln_avg_cum_impact.tif'),
+             overwrite=TRUE, progress="text")
+
+ln_mean_chi <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/ln_avg_cum_impact.tif'))
+
+plot(ln_mean_chi, col=cols, axes=FALSE)
+
+```
