@@ -146,9 +146,11 @@ file_gf <- raster(l[1]) %>%
 
 file_gf[is.na(file_gf)] <- 999
 
-file_gf <- projectRaster(file_gf, ocean, method = "ngb", over=TRUE) %>%
+projectRaster(file_gf, ocean, method = "ngb", over=TRUE) %>%
   mask(ocean, filename=file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif"),
        overwrite = TRUE)
+
+file_gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif"))
 
 plot(file_gf)
 

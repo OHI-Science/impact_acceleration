@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Thu Mar 29 12:27:58 2018 by frazier" />
+<meta name="author" content="Compiled on Fri Jun 15 08:47:00 2018 by frazier" />
 
 
 <title>OHI 2017: Sea Surface Temperature stressor layer</title>
@@ -261,7 +261,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">OHI 2017: Sea Surface Temperature stressor layer</h1>
-<h4 class="author"><em><em>Compiled on Thu Mar 29 12:27:58 2018 by frazier</em></em></h4>
+<h4 class="author"><em><em>Compiled on Fri Jun 15 08:47:00 2018 by frazier</em></em></h4>
 
 </div>
 
@@ -385,9 +385,11 @@ file_gf &lt;-<span class="st"> </span><span class="kw">raster</span>(l[<span cla
 
 file_gf[<span class="kw">is.na</span>(file_gf)] &lt;-<span class="st"> </span><span class="dv">999</span>
 
-file_gf &lt;-<span class="st"> </span><span class="kw">projectRaster</span>(file_gf, ocean, <span class="dt">method =</span> <span class="st">&quot;ngb&quot;</span>, <span class="dt">over=</span><span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
+<span class="kw">projectRaster</span>(file_gf, ocean, <span class="dt">method =</span> <span class="st">&quot;ngb&quot;</span>, <span class="dt">over=</span><span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mask</span>(ocean, <span class="dt">filename=</span><span class="kw">file.path</span>(dir_M, <span class="st">&quot;git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif&quot;</span>),
        <span class="dt">overwrite =</span> <span class="ot">TRUE</span>)
+
+file_gf &lt;-<span class="st"> </span><span class="kw">raster</span>(<span class="kw">file.path</span>(dir_M, <span class="st">&quot;git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif&quot;</span>))
 
 <span class="kw">plot</span>(file_gf)
 
