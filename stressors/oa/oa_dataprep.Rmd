@@ -96,14 +96,14 @@ files <- list.files(file.path(oagit_dir,'v2017/int/annual_avg_moll_rescaled_int'
 # not going to bother with the full data range
 files <- files[grep(paste0(paste0("_", 1980:2017), collapse="|"), files)]
 
-foreach(file = files)%dopar% {
-#for(file in files){ # file=files[1] # for some reason cores weren't all working for me.  Did it the long way!
-  yr <- substr(file, nchar(file)-7, nchar(file)-4)
+foreach(file = files, .packages="dplyr")%dopar% {
+
+    yr <- substr(file, nchar(file)-7, nchar(file)-4)
   cat(yr)
   
-  tmp <- raster(file)%>%
-  resample(ocean, method = 'ngb') %>%
-  mask(ocean, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/oa/final/oa_%s_rescaled_mol.tif", yr)), overwrite=TRUE)
+  tmp <- raster::raster(file)%>%
+  raster::resample(ocean, method = 'ngb') %>%
+  raster::mask(ocean, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/oa/final/oa_%s_rescaled_mol.tif", yr)), overwrite=TRUE)
   
   # check = raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/oa/final/oa_1980_rescaled_mol.tif"))
   # plot(check)

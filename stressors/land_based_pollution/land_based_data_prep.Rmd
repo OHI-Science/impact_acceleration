@@ -1,0 +1,264 @@
+---
+title: 'Stressor 2018: Land-based nutrient and organic pollution'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+#Summary
+
+This follows the same methods described in the original publication (Halpern et. al. 2008. A Global Map of Human Impact on Marine Ecosystems. Science. 319:948-952). 
+
+> Nutrient and non-point source organic pollution data came from Food and Agriculture Organization (FAO) national statistics (http://faostat.fao.org) on average annual use of fertilizers (nutrients) and pesticides (organic pollutants), and were distributed across landscapes in agricultural lands with dasymetric techniques. These techniques use ancillary data to distribute values based on land-use categories from the U.S. Geologic Survey (http://edcsns17.cr.usgs.gov/glcc/) which identify native, cultivated, and urbanized land uses at 1 km2 resolution. Values for these anthropogenic drivers were then aggregated to the watershed and distributed to the pour point (i.e., stream and river mouths) for the watershed with raster statistics (i.e., aggregation by watershed). Finally, spread of the driver values into coastal waters at each pour point was modeled with a cost-path surface on the basis of a decay function that assigns a fixed amount of the driver (in our case, 0.5% of the value in the previous cell) in the initial cell and then evenly distributes the remaining amount of driver in all adjacent and ‘unvisited’ cells, repeated until a minimum threshold (0.05% of global maximum) is reached.
+
+***
+
+#Data Source
+**Reference**: 
+
+###Methods
+[Halpern et al.(2008)](http://www.sciencemag.org/cgi/content/abstract/319/5865/948)
+
+###Data 
+[United Nations, Food and Agriculture Organization] (http://www.fao.org/faostat/en/#home)
+
+**Description**:  yearly tonnes fertilizer/pesticide use
+
+**Native data resolution**: Country
+
+**Time range**: 2002-2013
+
+
+Loveland, T.R., Reed, B.C., Brown, J.F., Ohlen, D.O., Zhu, Z., Yang, L., and Merchant, J.W. (2000). Development of a global land cover characteristics database and IGBP DISCover from 1 km AVHRR data. International Journal of Remote Sensing 21, 1303–1330. http://doi.org/10.1080/014311600210191
+
+**Description**:  global land cover (17 general land cover classes)
+
+**Native data resolution**: 1 km resolution raster
+
+**Time range**: composites covering 1992-1993
+
+
+***
+
+# Methods
+
+
+##Setup  
+
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE}
+
+#set options for all chunks in code
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,fig.width=6, fig.height=6)
+
+library(RColorBrewer)
+
+library(raster)
+library(rgdal)
+
+library(dplyr)
+library(stringr)
+
+library(parallel)
+library(foreach)
+library(doParallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+# setwd("stressors/land_based_pollution")
+
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+
+```
+  
+
+## Rasters
+Available raster files.
+
+```{r}
+
+# location of raw data
+rast_locs <- file.path(dir_M, 
+          "marine_threats/impact_layers_2013_redo/impact_layers/work/land_based/before_2007/raw_global_results")
+
+list.files(rast_locs)
+
+```
+
+## Mask and extend rasters
+
+Extents are a bit different than other pressures, these will be extended.
+
+```{r, eval=FALSE}
+files <- list.files(rast_locs, full.names = TRUE, pattern = "tif")
+
+foreach(file = files,.packages="dplyr")%dopar% { #file = files[1]
+  
+  year <- stringr::str_sub(file,-12,-9)
+  
+  raster::raster(file) %>%
+    raster::extend(ocean) %>%
+    raster::calc(fun=function(x){ifelse(is.na(x), 0, x)}) %>%  # gapfilling area near Antarctica with zero
+    raster::mask(ocean, 
+         filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/land_based/int/%s', basename(file))),
+         overwrite = TRUE, progress = "text")
+  
+}
+
+```
+
+## Log of data
+Given the skew in the data we log transformed it.
+
+```{r, eval=FALSE}
+
+files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int'), 
+                    full.names = TRUE, pattern = "raw.tif")
+
+foreach(file = files,.packages="dplyr") %dopar% { #file = files[9]
+  name <- basename(file)
+  name <- sub('\\.tif$', '', name)
+  name <- gsub("_raw", "", name)
+  tmp <- raster::raster(file)
+  raster::calc(tmp, function(x){log(x+1)}, 
+       filename = file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/land_based/int/%s_log.tif", name)), 
+       overwrite=TRUE)
+}
+
+```
+
+## Collect quantile data
+
+
+```{r, eval=FALSE}
+files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int'), 
+                    full.names = TRUE, pattern = "log.tif")
+
+quantiles <- data.frame(plumeData = basename(files), quantile_9999_ln=NA)
+
+for(file in files) { #file = files[9]
+  
+  tmp <- raster(file)
+  quantiles$quantile_9999_ln[quantiles$plumeData == basename(file)] <- quantile(tmp, .9999)
+  
+}
+
+write.csv(quantiles, 
+          file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/extras/quantiles.csv'),
+                               row.names = FALSE)
+
+```
+
+### rescale 
+Data is rescaled to the 99.99th quantile averaged across years.
+
+```{r, eval=FALSE}
+
+## fertilizer/nutrient
+quantiles <- read.csv(
+          file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/extras/quantiles.csv'))
+
+fert <- quantiles$quantile_9999_ln[grepl("fert", quantiles$plumeData)]
+ref_point_fert <- mean(fert)
+
+files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int'), 
+                    full.names = TRUE, pattern = "fert")
+files <- files[grep("log", files)]
+
+
+foreach(file = files,.packages="dplyr") %dopar% { #file = files[9]
+  year <- stringr::str_sub(file,-12,-9)
+  
+  tmp <- raster::raster(file)
+  
+  raster::calc(tmp, fun=function(x){ifelse(x>ref_point_fert, 1, x/ref_point_fert)},
+       filename = file.path(dir_M, 
+            sprintf("git-annex/impact_acceleration/stressors/land_based/final/nutrient/nutrient_%s_rescaled_mol.tif", year)), 
+       overwrite=TRUE)
+}
+
+## pesticide/organic
+quantiles <- read.csv(
+  file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/extras/quantiles.csv'))
+
+pest <- quantiles$quantile_9999_ln[grepl("pest", quantiles$plumeData)]
+ref_point_pest <- mean(pest)
+
+files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int'), 
+                    full.names = TRUE, pattern = "pest")
+files <- files[grep("log", files)]
+
+foreach(file = files,.packages="dplyr") %dopar% { #file = files[9]
+  year <- stringr::str_sub(file,-12,-9)
+  
+  tmp <- raster::raster(file)
+  
+  raster::calc(tmp, fun=function(x){ifelse(x>ref_point_pest, 1, x/ref_point_pest)},
+       filename = file.path(dir_M, 
+                      sprintf("git-annex/impact_acceleration/stressors/land_based/final/organic/organic_%s_rescaled_mol.tif", year)), 
+       overwrite=TRUE)
+}
+```
+
+
+### Gapfilling
+Save a raster indicating where gapfilling occurred.  NOTE: These data were not gapfilled.
+
+```{r, eval=FALSE}
+
+## organic data
+gf_test <- file.path(dir_M, 
+                      "git-annex/impact_acceleration/stressors/land_based/final/organic/organic_2009_rescaled_mol.tif")
+
+  raster::raster(gf_test) %>%
+    raster::calc(fun=function(x){ifelse(is.na(x), 999, 0)}) %>%  
+    raster::mask(ocean, 
+         filename = file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/organic_gf.tif'),
+         overwrite = TRUE, progress = "text")
+
+  ## nutrient data
+  gf_test <- file.path(dir_M, 
+                      "git-annex/impact_acceleration/stressors/land_based/final/nutrient/nutrient_2009_rescaled_mol.tif")
+
+  raster::raster(gf_test) %>%
+    raster::calc(fun=function(x){ifelse(is.na(x), 999, 0)}) %>%  
+    raster::mask(ocean, 
+         filename = file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/nutrient_gf.tif'),
+         overwrite = TRUE, progress = "text")
+
+```
+
+### Organic gapfilling
+
+
+```{r}
+  rast_organic <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/organic_gf.tif'))
+  plot(rast_organic)
+
+```
+
+### Nutrient gapfilling
+```{r}
+
+  rast_nutrient <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/land_based/int/nutrient_gf.tif'))
+  
+  plot(rast_nutrient)
+
+```
+
