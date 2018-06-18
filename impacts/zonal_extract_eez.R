@@ -1,4 +1,4 @@
-### Summarizing chi and pressure data for various boundaries
+### Summarizing chi and pressure data for eez boundaries
 
 library(dplyr)
 library(tidyr)
@@ -10,7 +10,6 @@ library(htmlwidgets)
 library(RColorBrewer)
 library(ohicore)
 
-#######################
 ## eez regions
 source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
 
@@ -32,17 +31,17 @@ chi_data_df <- data.frame(chi_data) %>%
   mutate(pressure = "chi") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(chi_data_df, "impacts/zonal_data/eez_chi.csv", row.names=FALSE)
+write.csv(chi_data_df, "impacts/zonal_data_eez/eez_chi.csv", row.names=FALSE)
 
-plot_data <- read.csv("impacts/zonal_data/eez_chi.csv") %>%
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
   dplyr::select(rgn_name, year, value)
 Motion=gvisMotionChart(plot_data, 
                        idvar="rgn_name", 
                        timevar="year")
 plot(Motion)
-print(Motion, file="impacts/zonal_data/eez_chi.html")
+print(Motion, file="impacts/zonal_data_eez/eez_chi.html")
 
-plot_data <- read.csv("impacts/zonal_data/eez_chi.csv") %>%
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
   dplyr::select(rgn_name, year, value)
 
 avg <- plot_data %>%
@@ -83,9 +82,9 @@ trend_data_df <- data.frame(trend_data) %>%
   mutate(pressure = "chi_trend") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(trend_data_df, "impacts/zonal_data/eez_chi_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_trend.csv", row.names=FALSE)
 
-plot_data <- read.csv("impacts/zonal_data/eez_chi_trend.csv") 
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") 
   
 plot_data$rgn_name <- factor(plot_data$rgn_name, 
                     levels = unique(plot_data$rgn_name)[order(plot_data$value, decreasing = TRUE)])
@@ -105,7 +104,7 @@ htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_trend.html", selfcontained =
 
 
 # scatterplot comparing the data
-chi <- read.csv("impacts/zonal_data/eez_chi.csv") %>%
+chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
   dplyr::select(rgn_name, year, value)
 
 avg <- chi %>%
@@ -115,7 +114,7 @@ avg <- chi %>%
 UNrgns <- UNgeorgn_nm %>%
   select(rgn_name=rgn_label, r2_label, r1_label)
 
-plot_data <- read.csv("impacts/zonal_data/eez_chi_trend.csv") %>%
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
   left_join(avg, by="rgn_name") %>%
   select(rgn_name, rgn_id, trend_chi=value, average_chi)%>%
   left_join(UNrgns, by="rgn_name")

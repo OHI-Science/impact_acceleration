@@ -1,0 +1,164 @@
+---
+title: 'Habitat data extraction and visualization'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+## set up
+
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE}
+
+#set options for all chunks in code
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,fig.width=6, fig.height=6)
+
+#libraries
+library(dplyr)
+library(tidyr)
+
+library(googleVis)
+library(ggplot2)
+library(plotly)
+library(htmlwidgets)
+library(RColorBrewer)
+
+library(raster)
+
+library(ohicore)
+
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+# paralell processing
+cl<-makeCluster(5)
+registerDoParallel(cl)
+
+```
+
+
+## Habitat zones
+
+```{r}
+
+habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"), full=TRUE)
+habs <- habs[-(grep(".vat.dbf|.xml|.ovr", habs))]
+
+```
+
+
+## Chi data
+
+```{r}
+
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE)
+
+chi_stack <- stack(chi)
+
+#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
+for(hab in habs){
+  
+  habitat_name <- gsub(".tif", "", basename(hab))
+  
+  zone <- raster::raster(hab)
+  
+hab_data <- raster::zonal(chi_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
+  dplyr::mutate(pressure = "chi") %>%
+  dplyr::mutate(habitat=habitat_name)
+
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_chi.csv", habitat_name), row.names=FALSE)
+}
+
+```
+
+## Trend data
+
+```{r}
+
+
+trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_coef_slope.tif"))
+
+hab_data_df <- data.frame()
+#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
+for(hab in habs){
+  
+  habitat_name <- gsub(".tif", "", basename(hab))
+  
+  zone <- raster::raster(hab)
+  
+hab_data <- raster::zonal(trend, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_tmp <- data.frame(hab_data) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(habitat=habitat_name)
+
+hab_data_df <- rbind(hab_data_tmp, hab_data_df)
+
+}
+
+write.csv(hab_data_df, "impacts/zonal_data_habitat/chi_trend.csv", row.names=FALSE)
+
+```
+
+
+## Pressure extract
+
+```{r}
+
+########### Years
+
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+
+####### Stressors
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+
+#filter to relevant years
+stress_files <- grep(years_subset, stress_files, value=TRUE)
+
+stress_stack <- stack(stress_files)
+
+#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
+for(hab in habs){ # hab <- habs[1]
+  
+  habitat_name <- gsub(".tif", "", basename(hab))
+  
+  zone <- raster::raster(hab)
+  
+hab_data <- raster::zonal(stress_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::mutate(habitat=habitat_name)
+
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_pressure.csv", habitat_name), row.names=FALSE)
+}
