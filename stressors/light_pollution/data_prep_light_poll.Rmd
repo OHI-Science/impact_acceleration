@@ -1,5 +1,5 @@
 ---
-title: 'OHI Light Pollution data'
+title: 'Cumulative Human Impacts: Light Pollution data'
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -11,7 +11,7 @@ output:
     theme: cerulean
     highlight: haddock
     includes: 
-      in_header: '../../../src/templates/ohi_hdr.html'
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
   pdf_document:
     toc: true
 ---
@@ -19,7 +19,7 @@ output:
 
 #Summary
 
-This script uses light data collected from DMSP satellites.
+This script uses light data collected from DMSP satellites to estimate light pollution.
 
 
 ***  
@@ -27,7 +27,7 @@ This script uses light data collected from DMSP satellites.
 
 #Data Source
 
-Data comes from [NOAA Earth Observation Group](https://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html)
+Data from [NOAA Earth Observation Group](https://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html)
 Downloaded: March 7, 2018
 For more information: https://ngdc.noaa.gov/eog/gcv4_readme.txt
 
@@ -36,6 +36,9 @@ For more information: https://ngdc.noaa.gov/eog/gcv4_readme.txt
 **Time Range**: 1992-2013  
 
 **Reference:**
+Image and data processing by NOAA's National Geophysical Data Center. DMSP data collected by US Air Force Weather Agency.
+
+Elvidge, C.D., Ziskin, D., Baugh, K.E., Tuttle, B.T., Ghosh, T., Pack, D.W., Erwin, E.H., and Zhizhin, M. (2009). A Fifteen Year Record of Global Natural Gas Flaring Derived from Satellite Data. Energies 2, 595–622.
 
 ***  
 
@@ -126,10 +129,10 @@ The original layers contained non-calibrated radiance values. We applied a calib
 
  DNa=C0+C1*DNo+C2*DNo2
  
-This formula is based on the assumption that a reference area (Sicily) has not changed much in light output in recent years. Lowest values in DNa (non-lit areas) were replaced with zeros. This technique, while not perfect, does allow for better comparison between different satellites and time periods.
+This formula is based on the assumption that a reference area (Sicily) has had little change in light output during this period. Lowest values in DNa (non-lit areas) were replaced with zeros. This technique, while not perfect, does allow for better comparison between different satellites and time periods.
 
 #### Get the data for Sicily
-```{r sicily, eval = FALSE}
+```{r sicily data, eval = FALSE}
 
 # identify Sicily region
 plot(regions[regions$rgn_name=="Italy", 1])
@@ -173,14 +176,14 @@ write.csv(sicily_data, file.path(dir_M, "git-annex/impact_acceleration/stressors
 
 ```
 
-#### Get the corretion factors based on Sicily data
+#### Get the correction factors based on Sicily data
 Elvidge et al., 2009:
 
 >In reviewing the data it was found that the data from satellite year F121999 had the highest digital values. Because there is saturation (DN = 63) in the bright cores of urban centers and large gas flares, F121999 was used as the reference and the data from all other satellite years were adjusted to match the F121999 data range.
 
-One thing that I add is that I force the intercept through zero so the zero cells remain zero.
+I added a model constraint to force the intercept through zero so the zero cells remain zero.
 
-```{r sicily, eval = FALSE}
+```{r sicily model, eval = FALSE}
 
 correct <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/sicily_correct_data.csv"))
 summary(correct) #check for values >63..none
@@ -194,7 +197,8 @@ for(file in data_files){ #file = data_files[1]
   summary(mod)
   
   png(file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_fit_figs/fig_%s.png", file)))
-  plot(correct$F121999, correct[ ,loc], main=file)
+  plot(correct$F121999, correct[ ,loc], main=paste0("satellite/year correction: ", file),
+       xlab="reference: F121999", ylab = paste0("corrected: ", file))
   points(correct$F121999, predict(mod), col="red")
   abline(0,1, col="blue")
   dev.off()
@@ -208,12 +212,18 @@ for(file in data_files){ #file = data_files[1]
   
   calibrate_csv <- rbind(calibrate_csv, tmp)
 }
+
 calibrate_csv[calibrate_csv$file == "F121999", "C0"] <- 0
 calibrate_csv[calibrate_csv$file == "F121999", "C2"] <- 0
 
 write.csv(calibrate_csv, file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_coeff.csv"), row.names= FALSE)
 
 ```
+
+An example of the calibration model.  Black points indicate the data for the same geographic location within Sicily between the reference satellite (F121999) and the modelled satellite.  Red points indicate the modeled relationhip between the two satellites, based on a 2nd degree polynomial with the intercept forced through zero.  This model was used to correct each satellite.  The blue line indicates a 1:1 relationhip.
+
+![](/home/shares/ohi/git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_fit_figs/fig_F101992.png)
+
 
 #### Calibrate each year's data
 
@@ -238,10 +248,10 @@ foreach(rast = cal_data$file,.packages="dplyr")%dopar%{
   c2 <- cal_data[which(cal_data$file==rast), "C2"]
   
   light_rast %>%
-  raster::calc(fun = function(x){ifelse(x==255, 0, x)})%>% # possible to have these values, although I checked a couple layers and they weren't present in the ocean regions that we are concerned about
-    raster::calc(fun = function(x){c0 + c1*x + c2*x^2})%>% # correct based on model results
-    raster::projectRaster(ocean, method="ngb", over=TRUE)%>%
-    raster::calc(fun = function(x){ifelse(is.na(x), 0, x)})%>%
+  raster::calc(fun = function(x){ifelse(x==255, 0, x)}) %>% # possible to have these values, although I checked a couple layers and they weren't present in the ocean regions that we are concerned about
+    raster::calc(fun = function(x){c0 + c1*x + c2*x^2}) %>% # correct based on model results
+    raster::projectRaster(ocean, method="ngb", over=TRUE) %>%
+    raster::calc(fun = function(x){ifelse(is.na(x), 0, x)}) %>%
     raster::mask(ocean, filename= file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts/%s_cal_mol_mask.tif", rast)), overwrite = TRUE)
 }
 
@@ -252,7 +262,7 @@ foreach(rast = cal_data$file,.packages="dplyr")%dopar%{
 
 Get non-zero and non-na values for all raster years.
 
-```{r calibrate raster, eval=FALSE}
+```{r ref point, eval=FALSE}
 
 cal_rasts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts"), full=TRUE)
 
@@ -289,7 +299,7 @@ write.csv(ref_value,
 
 Rasters rescaled from 0 to 1 using the 99.99th quantile value.
 
-```{r calibrate raster, eval=FALSE}
+```{r rescale, eval=FALSE}
 
 light_rasts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts"), full=TRUE)
 
@@ -307,3 +317,26 @@ raster::raster(rast) %>%
                                             0)}, 
                      filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/light_pollution/final/light_%s_rescaled_mol.tif", yr)), overwrite=TRUE)
 }
+
+```
+
+## Gapfilling
+
+These data are not gapfilled.  This saves a raster with this information.
+
+```{r gf, eval=FALSE}
+
+rast_gf <- file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/final/light_2000_rescaled_mol.tif")
+
+gf <- raster::raster(rast_gf) %>%
+  raster::reclassify(c(-Inf, Inf, 0), filename = file.path(dir_M,  "git-annex/impact_acceleration/stressors/light_pollution/int/light_gf.tif"), overwrite=TRUE) 
+  
+```
+
+```{r gf_image, eval=FALSE}
+
+rast_gf <- raster(file.path(dir_M,  "git-annex/impact_acceleration/stressors/light_pollution/int/light_gf.tif"))
+
+plot(rast_gf)
+```
+
