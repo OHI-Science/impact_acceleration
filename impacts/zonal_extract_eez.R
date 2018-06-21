@@ -131,7 +131,41 @@ tmp <- ggplot(plot_data, aes(y=average_chi, x=trend_chi, color=r1_label)) +
 tmp_plotly <- ggplotly(tmp, tooltip = "text")
 htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_avg_trend.html", selfcontained = TRUE)
 
+## pressures
 
+########### Years
+
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+
+####### Stressors
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+
+#filter to relevant years
+stress_files <- grep(years_subset, stress_files, value=TRUE)
+
+stress_stack <- stack(stress_files)
+
+hab_data <- raster::zonal(stress_stack, zones, fun="mean", progress="text", na.rm=TRUE)
+  
+  hab_data_df <- data.frame(hab_data) %>%
+    tidyr::gather("pressure", "value", -1) %>%
+    dplyr::rename("rgn_id" = zone) %>%
+    dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
+    dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+    dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+    inner_join(rgns_global, by="rgn_id")
+  
+  write.csv(hab_data_df, "impacts/zonal_data_eez/eez_pressure.csv", row.names=FALSE)
+
+
+
+
+##########################################
 #### 3nm eez regions
 
 rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/rgns_3nm_offshore_mol.tif"))
