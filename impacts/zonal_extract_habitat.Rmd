@@ -237,7 +237,7 @@ hab_data <- read.csv("impacts/zonal_data_habitat/chi_trend.csv") %>%
   
 library(ggrepel)
 ggplot(hab_data, aes(x=chi_average, y=trend)) +
-  geom_point(size=3, alpha=0.5, shape=19) +
+  geom_point(size=3, alpha=0.5) +
   geom_text_repel(aes(label = habitat),
                  # box.padding   = 0.35, 
                 #  point.padding = 0.5,
@@ -246,5 +246,7 @@ ggplot(hab_data, aes(x=chi_average, y=trend)) +
                 size = 3) + 
   #geom_text(aes(label=habitat))+
   theme_bw()
+
+ggsave("impacts/zonal_data_habitat/avg_chi_vs_trend_habitat.png")
 
 ```
