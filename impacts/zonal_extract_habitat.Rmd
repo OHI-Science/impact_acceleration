@@ -14,6 +14,8 @@ output:
       in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
   pdf_document:
     toc: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -162,3 +164,87 @@ hab_data_df <- data.frame(hab_data) %>%
 
 write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_pressure.csv", habitat_name), row.names=FALSE)
 }
+
+```
+
+
+## Combine habitat chi data
+
+```{r}
+
+habs <- list.files("zonal_data_habitat", full=TRUE, pattern="_chi")
+
+habitat_chi <- data.frame()
+
+for(hab in habs){ # hab=habs[1]
+  tmp <- read.csv(hab)
+  habitat_chi <- rbind(habitat_chi, tmp)
+}
+
+write.csv(habitat_chi, "zonal_data_habitat/habitat_chi.csv", row.names=FALSE)
+
+```
+
+
+### Visualize habitat CHI data
+
+Heat map
+```{r}
+hab_data <- read.csv("impacts/zonal_data_habitat/habitat_chi.csv")
+
+avg <- hab_data %>%
+  group_by(habitat) %>%
+  summarize(average=mean(value))
+
+plot_data <- hab_data %>%
+  left_join(avg, by="habitat") %>%
+  arrange(average)
+
+plot_data$habitat <- factor(plot_data$habitat, 
+                             levels = avg$habitat[order(avg$average, decreasing = TRUE)])
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
+
+tmp <- ggplot(plot_data, aes(y=year, x=habitat, text=)) +
+  geom_tile(aes(fill=value, 
+                text=sprintf("habitat: %s \nyear: %s \npressure: %s" , habitat, year, round(value, 2))), color="white") +
+  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
+  ylab("Year") +
+  xlab("") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x=element_text(angle=90, hjust=1)) 
+
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "habitat_chi_heat.html", selfcontained = TRUE)
+
+```
+
+## Trend and CHI summary
+```{r}
+
+hab_chi <- read.csv("impacts/zonal_data_habitat/habitat_chi.csv") %>%
+  group_by(habitat) %>%
+  summarize(chi_average=mean(value))
+
+hab_data <- read.csv("impacts/zonal_data_habitat/chi_trend.csv") %>%
+  rename(trend = mean) %>%
+  left_join(hab_chi, by="habitat") %>%
+  arrange(chi_average)
+  
+library(ggrepel)
+ggplot(hab_data, aes(x=chi_average, y=trend)) +
+  geom_point(size=3, alpha=0.5, shape=19) +
+  geom_text_repel(aes(label = habitat),
+                 # box.padding   = 0.35, 
+                #  point.padding = 0.5,
+                  segment.color = 'grey50',
+                segment.size = 0.2,
+                size = 3) + 
+  #geom_text(aes(label=habitat))+
+  theme_bw()
+
+```
