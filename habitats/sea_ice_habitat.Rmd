@@ -1,0 +1,160 @@
+---
+title: "Sea Ice Edge"
+author: "Melanie Frazier (UCSB, NCEAS, OHI)"
+date: "June 22, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r download data}
+
+library(rgdal)
+library(raster)
+library(rasterVis)
+```
+Goals:
+
+1. Get a sea ice raster that reflects the location of the sea ice boundary
+2. Create a permanent sea ice raster layer
+
+### Sea ice edge
+The habitat layer indicates the location of sea ice edge because this is the critical habitat.
+
+We also create a sea ice layer to add as a mask to indicate regions with high uncertainty in scores.
+
+
+### Data
+We use: Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS Passive Microwave Data
+
+Downloaded from: http://nsidc.org/data/NSIDC-0051 (July 3 2018)
+
+### Notes about data
+
+Data Value   | Description
+------------- | ---------------------
+0-250       | Sea ice concentration (fractional coverage scaled by 250)
+251         | Circular mask used in the Arctic to cover the irregularly-shaped data gap around the pole (caused by the orbit inclination and instrument swath)
+252         | Unused
+253         | Coastlines
+254         | Superimposed land mask
+255         | Missing data
+
+#### Methods
+Habitat is based on sea ice data from 1981-2010, which is used by the NOAA Sea Ice Index.  
+
+This is a good compromise between where sea ice currently is and it's location in the recent past.  
+
+We classify monthly data with 15-80% sea ice concentrations as sea ice.  
+
+We then determine the proportion of time sea ice edge is present across all years and months.  
+
+```{r download data}
+
+pixel = 25000 # pixel dimension in meters for both x and y
+prj.n = "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs"
+prj.s = "+proj=stere +lat_0=-90 +lat_ts=-70 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs"
+prj.mol = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+# URL base (ub), filename format for final monthly data is nt_YYYYMM_SSS_vVV_R.bin
+ub.n = "ftp://sidads.colorado.edu/pub/DATASETS/nsidc0051_gsfc_nasateam_seaice/final-gsfc/north/monthly"
+ub.s = "ftp://sidads.colorado.edu/pub/DATASETS/nsidc0051_gsfc_nasateam_seaice/final-gsfc/south/monthly"
+
+poles = c("n","s")
+years = c(1981:2012) 
+months = 1:12
+n.pym = length(poles)*length(years)*length(months)
+i.pym = 0  # starting count
+
+
+t0 = Sys.time()
+for(p in poles){}
+#p="n" # testing
+  
+  ######################################################################################################################
+  ## Create an empty raster stack with appropriate dimensions and CRS
+  ######################################################################################################################
+  
+
+  ## extents from NSIDC (http://nsidc.org/data/polar_stereo/ps_grids.html
+  
+  if (p == "n"){
+    xMin = -3850000; yMin = -5350000; nr = 448; nc = 304; prj = prj.n; ub = ub.n
+  } else if (p == "s"){
+    xMin = -3950000; yMin = -3950000; nr = 332; nc = 316; prj = prj.s; ub = ub.s
+  }
+  xMax = xMin + (pixel*nc); yMax = yMin + (pixel*nr)
+  
+  r <- raster(nrow = nr, ncol = nc, xmn = xMin, xmx = xMax, ymn = yMin, ymx = yMax)
+  projection(r) <- prj
+  s <- stack(r)
+
+  ######################################################################################################################
+  ## Download data
+  ######################################################################################################################
+  
+  for (yr in years){
+    for (mo in months){ 
+      
+      # yr=1981; mo=1 # testing
+      
+      ## get proper ftp (file transfer protocol) site based on time of data collection    
+      i.pym <- i.pym + 1 
+      ym <- yr*100 + mo
+      y.m <- sprintf("%d-%02d", yr, mo)
+      p.y.m <- sprintf("%s%d%02d", p, yr, mo)
+      
+      if (ym < 198709){
+        ss = "n07"
+      } else if (ym >= 198709 & ym < 199201){
+        ss = "f08"
+      } else if (ym >= 199201 & ym < 199510){
+        ss = "f11"
+      } else if (ym >= 199510 & ym < 200801){
+        ss = "f13"
+      } else if (ym >= 200801){
+        ss = "f17"
+      }
+      
+      ## retrieving the data using ftp
+      min.done <- as.numeric(difftime(Sys.time(), t0, units="mins"))
+      min.togo <- (n.pym - i.pym) * min.done/i.pym
+      print(sprintf("Retrieving %s (%d of %d). Minutes done=%0.1f, to go=%0.1f",
+                    p.y.m,i.pym,n.pym,min.done,min.togo)) # time remaining for data download
+      
+      u <- sprintf("%s/nt_%d_%s_v1.1_%s.bin", ub, ym, ss, p)
+      con <- file(u, "rb")  # "rb" = "open for reading in binary mode"
+      x <- readBin(con, "raw", 300)
+      x <- readBin(con,"int", size = 1, signed = FALSE, 150000)
+      close(con)    
+      
+      ## place result in raster framework
+      edge <- setValues(r, x)
+      
+      # these are rasters that are not ice
+      edge[edge>250] <- NA
+      edge <- edge/250
+
+      edge[(edge<0.15 | edge > 0.8) ] <- 0 
+      edge[edge>0] <- 1
+        
+
+       ## add raster data (r) to the stack (s) and name the layer: pole.year.month (e.g. s197901)
+    s.names <- names(s)
+      
+      if (nlayers(s) == 0){ 
+        s = stack(edge)
+        names(s) = p.y.m
+      } else {
+        s = stack(s, edge)
+        names(s) = c(s.names, p.y.m)   
+      }
+    }
+  }
+
+  animate(s)
+  library(rasterVis)
+  rasterVis::levelplot(s[[361:372]], col.regions=c('gray', "red"), colorkey=FALSE)
+  n.mean <- mean(s)
+  plot(n.mean)
+  writeRaster(n.mean,s "seaice/seaice_north_mean_sea_ice_edge.tif")
+```
