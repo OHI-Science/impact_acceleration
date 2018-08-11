@@ -23,7 +23,9 @@ rgns_global <- rgns_global %>%
 
 
 ### chi
-chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE)
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE,
+                  pattern="chi")
+
 
 chi_stack <- stack(chi)
 
@@ -47,43 +49,11 @@ Motion=gvisMotionChart(plot_data,
 plot(Motion)
 print(Motion, file="impacts/zonal_data_eez/eez_chi.html")
 
-## heat map
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
-  dplyr::select(rgn_name, year, value)
-
-avg <- plot_data %>%
-  group_by(rgn_name) %>%
-  summarize(average=mean(value))
-
-plot_data <- plot_data %>%
-  left_join(avg, by="rgn_name")
-
-plot_data$rgn_name <- factor(plot_data$rgn_name, 
-              levels = avg$rgn_name[order(avg$average, decreasing = TRUE)])
-
-
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
-
-tmp <- ggplot(plot_data, aes(y=year, x=rgn_name, text=)) +
-  geom_tile(aes(fill=value, 
-      text=sprintf("region: %s \nyear: %s \npressure: %s" , rgn_name, year, round(value, 2))), color="white") +
-  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
-  ylab("Year") + 
-  xlab("Region") +
-theme_bw() + 
-  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-        axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) 
-  
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_heat.html", selfcontained = TRUE)
 
 ######################
-### Trend extract eez data
+### CHI trend extract eez data
 
-trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_coef_slope.tif"))
+trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_slope.tif"))
 
 trend_data <- zonal(trend, zones, fun="mean", progress="text", na.rm=TRUE)
 
@@ -94,84 +64,87 @@ trend_data_df <- data.frame(trend_data) %>%
 
 write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_trend.csv", row.names=FALSE)
 
-## trend histogram
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") 
-  
-plot_data$rgn_name <- factor(plot_data$rgn_name, 
-                    levels = unique(plot_data$rgn_name)[order(plot_data$value, decreasing = TRUE)])
+#########################
+### Impacts trend extract eez data
 
-tmp <- ggplot(plot_data, aes(y=value, x=rgn_name, color=value)) +
-  geom_bar(aes(text=sprintf("region: %s \n trend: %s", rgn_name, round(value, 4))), stat="identity") +
-  theme_bw() + 
-  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-        axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) 
-  
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_trend.html", selfcontained = TRUE)
+impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/trend/impacts"), full=TRUE)
+impact_trends_stack <- stack(impact_trends)
+
+trend_data <- zonal(impact_trends_stack, zones, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-6)) %>%
+  inner_join(rgns_global, by="rgn_id")
 
 
-###
-# scatterplot comparing the chi and trend data
-chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
-  dplyr::select(rgn_name, year, value)
+write.csv(trend_data_df, "impacts/zonal_data_eez/eez_impacts_trend.csv", row.names=FALSE)
 
-avg <- chi %>%
-  group_by(rgn_name) %>%
-  summarize(average_chi=mean(value))
+########################
+####### Impacts
+#######################
+## Not sure I will need this, and takes a long time to run
 
-UNrgns <- UNgeorgn_nm %>%
-  select(rgn_name=rgn_label, r2_label, r1_label)
-
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
-  left_join(avg, by="rgn_name") %>%
-  select(rgn_name, rgn_id, trend_chi=value, average_chi)%>%
-  left_join(UNrgns, by="rgn_name")
-
-
-tmp <- ggplot(plot_data, aes(y=average_chi, x=trend_chi, color=r1_label)) +
-  geom_point(aes(text=sprintf("%s\ntrend: %s\naverage: %s", rgn_name, 
-                              round(trend_chi, 4), round(average_chi, 2))), 
-             alpha=0.5, size=2)+
-  xlab("Trend CHI") +
-  ylab("Average CHI") + 
-  theme_bw()
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_avg_trend.html", selfcontained = TRUE)
-
-## pressures
-
-########### Years
-
-years <- 2003:2013
-
-years_subset <- paste(years, collapse="|")
-
-
-####### Stressors
-stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
                            pattern = ".tif", full="TRUE")
-stress_files <- grep("/final/", stress_files, value=TRUE)
 
-#filter to relevant years
-stress_files <- grep(years_subset, stress_files, value=TRUE)
 
-stress_stack <- stack(stress_files)
+registerDoParallel(3)
 
-hab_data <- raster::zonal(stress_stack, zones, fun="mean", progress="text", na.rm=TRUE)
+foreach (year = 2003:2013) %dopar%{ # year = 2003
   
-  hab_data_df <- data.frame(hab_data) %>%
-    tidyr::gather("pressure", "value", -1) %>%
-    dplyr::rename("rgn_id" = zone) %>%
-    dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
-    dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
-    dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
-    inner_join(rgns_global, by="rgn_id")
+#for(year in 2003:2013){ # year = 2003
   
-  write.csv(hab_data_df, "impacts/zonal_data_eez/eez_pressure.csv", row.names=FALSE)
+impact_year_files <- grep(year, impact_files, value=TRUE)
 
+impact_stack <- raster::stack(impact_year_files)
+
+impact_data <- raster::zonal(impact_stack, zones, fun="mean", progress="text", na.rm=TRUE)
+
+impact_data_df <- data.frame(impact_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::inner_join(rgns_global, by="rgn_id")
+
+write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/eez_%s_impacts.csv", year), row.names=FALSE)
+
+}
+
+# #########################
+# ## pressures (don't think I need this)
+# 
+# ########### Years
+# 
+# years <- 2003:2013
+# 
+# years_subset <- paste(years, collapse="|")
+# 
+# 
+# ####### Stressors
+# stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+#                            pattern = ".tif", full="TRUE")
+# stress_files <- grep("/final/", stress_files, value=TRUE)
+# 
+# #filter to relevant years
+# stress_files <- grep(years_subset, stress_files, value=TRUE)
+# 
+# stress_stack <- stack(stress_files)
+# 
+# hab_data <- raster::zonal(stress_stack, zones, fun="mean", progress="text", na.rm=TRUE)
+#   
+#   hab_data_df <- data.frame(hab_data) %>%
+#     tidyr::gather("pressure", "value", -1) %>%
+#     dplyr::rename("rgn_id" = zone) %>%
+#     dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
+#     dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+#     dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+#     inner_join(rgns_global, by="rgn_id")
+#   
+#   write.csv(hab_data_df, "impacts/zonal_data_eez/eez_pressure.csv", row.names=FALSE)
+# 
 
 
 
@@ -182,7 +155,8 @@ rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/
 plot(rgns_3nm)
 
 ### chi
-chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE)
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE,
+                  pattern = "chi")
 
 chi_stack <- stack(chi)
 
@@ -207,41 +181,9 @@ Motion=gvisMotionChart(plot_data,
 plot(Motion)
 print(Motion, file="impacts/zonal_data_eez/eez_3nm_chi.html")
 
-## heat map of chi data
-plot_data <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
-  dplyr::select(rgn_name, year, value)
-
-avg <- plot_data %>%
-  group_by(rgn_name) %>%
-  summarize(average=mean(value))
-
-plot_data <- plot_data %>%
-  left_join(avg, by="rgn_name")
-
-plot_data$rgn_name <- factor(plot_data$rgn_name, 
-                             levels = avg$rgn_name[order(avg$average, decreasing = TRUE)])
-
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
-
-tmp <- ggplot(plot_data, aes(y=year, x=rgn_name, text=)) +
-  geom_tile(aes(fill=value, 
-                text=sprintf("region: %s \nyear: %s \npressure: %s" , rgn_name, year, round(value, 2))), color="white") +
-  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
-  ylab("Year") + 
-  xlab("Region") +
-  theme_bw() + 
-  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-        axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) 
-
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_3nm_chi_heat.html", selfcontained = TRUE)
-
 ### Trend: 3nm data extract
 
-trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_coef_slope.tif"))
+trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_slope.tif"))
 
 trend_data <- zonal(trend, rgns_3nm, fun="mean", progress="text", na.rm=TRUE)
 
@@ -252,88 +194,25 @@ trend_data_df <- data.frame(trend_data) %>%
 
 write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_3nm_trend.csv", row.names=FALSE)
 
-# histogram of trend data
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") 
-
-plot_data$rgn_name <- factor(plot_data$rgn_name, 
-                             levels = unique(plot_data$rgn_name)[order(plot_data$value, decreasing = TRUE)])
-
-tmp <- ggplot(plot_data, aes(y=value, x=rgn_name, color=value)) +
-  geom_bar(aes(text=sprintf("region: %s \n trend: %s", rgn_name, round(value, 4))), stat="identity") +
-  theme_bw() + 
-  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-        axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) 
-
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_3nm_trend.html", selfcontained = TRUE)
 
 
-# scatterplot comparing the trend and chi data
-chi <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
-  dplyr::select(rgn_name, year, value)
+########################
+####### Impacts: 3nm
+#######################
+# Not sure we will use these
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
 
-avg <- chi %>%
-  group_by(rgn_name) %>%
-  summarize(average_chi=mean(value))
+impact_stack <- stack(impact_files)
 
-UNrgns <- UNgeorgn_nm %>%
-  dplyr::select(rgn_name=rgn_label, r2_label, r1_label)
+impact_data <- raster::zonal(impact_stack, rgns_3nm, fun="mean", progress="text", na.rm=TRUE)
 
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") %>%
-  left_join(avg, by="rgn_name") %>%
-  dplyr::select(rgn_name, rgn_id, trend_chi=value, average_chi)%>%
-  left_join(UNrgns, by="rgn_name")
+impact_data_df <- data.frame(impact_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  inner_join(rgns_global, by="rgn_id")
 
-
-tmp <- ggplot(plot_data, aes(y=average_chi, x=trend_chi, color=r1_label)) +
-  geom_point(aes(text=sprintf("%s\ntrend: %s\naverage: %s", rgn_name, 
-                              round(trend_chi, 4), round(average_chi, 2))), 
-             alpha=0.5, size=2)+
-  xlab("Trend CHI, 3nm") +
-  ylab("Average CHI, 3nm") + 
-  theme_bw()
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "nm3_chi_avg_trend.html", selfcontained = TRUE)
-
-
-## scatterplot comparing CHI, 3nm vs. eez data
-chi_3nm <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
-  dplyr::select(rgn_name, year, val_3nm = value)
-
-chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
-  dplyr::select(rgn_name, year, val_eez = value) %>%
-  left_join(chi_3nm, by=c("rgn_name", "year"))
-
-tmp <- ggplot(filter(chi, year==2013), aes(x=val_eez, y=val_3nm)) +
-  geom_point(aes(text=sprintf("%s\neez: %s\n3nm: %s", rgn_name, 
-                              round(val_eez, 4), round(val_3nm, 2))), 
-             alpha=0.5, size=2)+
-  xlab("CHI, eez") +
-  ylab("CHI, 3nm") + 
-  theme_bw() +
-  geom_abline(slope=1, intercept = 0, col="orange")
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_vs_3nm_chi.html", selfcontained = TRUE)
-
-## scatterplot comparing CHI trend, 3nm vs. eez data
-chi_3nm <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") %>%
-  dplyr::select(rgn_name, trend_3nm = value)
-
-chi <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
-  dplyr::select(rgn_name, trend_eez = value) %>%
-  left_join(chi_3nm, by=c("rgn_name"))
-
-tmp <- ggplot(chi, aes(x=trend_eez, y=trend_3nm)) +
-  geom_point(aes(text=sprintf("%s\neez: %s\n3nm: %s", rgn_name, 
-                              round(trend_eez, 4), round(trend_3nm, 2))),
-             alpha=0.5, size=2)+
-  xlab("CHI trend, eez") +
-  ylab("CHI trend, 3nm") + 
-  theme_bw() +
-  geom_abline(slope=1, intercept = 0, col="orange")
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "eez_vs_3nm_chi_trend.html", selfcontained = TRUE)
+write.csv(impact_data_df, "impacts/zonal_data_eez/eez_3nm_impacts.csv", row.names=FALSE)
 

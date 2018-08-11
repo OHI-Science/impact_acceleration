@@ -210,7 +210,8 @@ if(p=="n"){the_pole = "north"} else
   land.mean <- mean(land_shoreline_s, na.rm=TRUE)
   #plot(land.mean)
   writeRaster(land.mean, sprintf("habitats/seaice/seaice_%s_land.tif", the_pole), overwrite=TRUE)
-  
+
+    
   cat(sprintf("missing data count for %s pole", the_pole))
   table(missing_data_count)
   }
@@ -266,11 +267,82 @@ plot(combined)
 
 #### Gapfill to coast
 
+Prepare the land data.
+```{r prep land}
+
+raster("habitats/seaice/seaice_north_land.tif") %>%
+  projectRaster(ocean, method="ngb", filename = file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_north_mol.tif"), overwrite=TRUE,
+                progress = "text")
+  
+  raster("habitats/seaice/seaice_south_land.tif") %>%
+  projectRaster(ocean, method="ngb", filename = file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_south_mol.tif"), overwrite=TRUE, progress="text")
+  
+  land_s <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_south_mol.tif"))
+  land_n <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_north_mol.tif"))
+  
+  merge(land_s, land_n, filename = file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_mol.tif"), overwrite=TRUE)
+  
+  s_and_n <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/land_shoreline_mol.tif"))
+
+  plot(s_and_n)
+
+```
+
 ```{r coast_gf}
 
-
+## get the raster cells that will be gapfilled (north_sough_sea_ice_edge_gf.tif)
 combined <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge.tif"))
 
 plot(combined)
 
+mask(combined, ocean, inverse=TRUE, file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_gf_tmp.tif"), overwrite=TRUE, progress="text")
+
+gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_gf_tmp.tif"))
+
+reclassify(gf, cbind(-Inf, +Inf, 1), progress="text", filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_gf.tif"), overwrite=TRUE)
+
+gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_gf.tif"))
+
+plot(gf)
+
+## replace NA cells with 0 in combined sea ice raster, fill gapfilled cells with NA, gapfill
+reclassify(combined, cbind(NA,0), progress="text", filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_zero_fill.tif"), overwrite=TRUE)
+
+sea_ice <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_zero_fill.tif"))
+plot(sea_ice)
+
+gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_gf.tif"))
+
+mask(sea_ice, gf, inverse=TRUE) %>%
+  mask(ocean, file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_pre_gf.tif"), overwrite=TRUE)
+
+
+pre_gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/north_south_sea_ice_edge_pre_gf.tif"))
+
+### Gapfill NA's using nearest neighbor approach
+
+gf_raster <- function(x){raster::focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
+
+i <- 0
+while (i <= 40){
+r <- gf_raster(pre_gf)
+i <- i + 1
+print(i)
+}
+
+plot(r)
+
+raster::mask(r, ocean, file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_edge.tif"), overwrite=TRUE)
+
+final <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_edge.tif"))
+raster::writeRaster(final, file.path(dir_M, "git-annex/impact_acceleration/habitats/ice.tif"), overwrite=TRUE)
+
+## check
+check_ice <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_edge.tif"))
+reclassify(check_ice, cbind(NA,999), progress="text") %>%
+  mask(ocean, filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_edge_check.tif"), overwrite=TRUE)
+
+check <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_edge_check.tif"))
+check
+plot(check)
 ```
