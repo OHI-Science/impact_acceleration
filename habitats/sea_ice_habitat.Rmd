@@ -346,3 +346,25 @@ check <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/sea_ice_e
 check
 plot(check)
 ```
+
+
+## Create different habitat layers depending on sea ice concentration
+```{r}
+
+edge <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitats/ice.tif"))
+
+calc(edge, fun=function(x){ifelse(x>0, 1, NA)}, filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_all.tif"), overwrite=TRUE, progress="text")
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_all.tif"))
+plot(tmp)
+
+calc(edge, fun=function(x){ifelse(x>.25, 1, NA)}, filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_25.tif"), overwrite=TRUE, progress="text")
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_25.tif"))
+plot(tmp)
+
+calc(edge, fun=function(x){ifelse(x>.5, 1, NA)}, filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_50.tif"), overwrite=TRUE, progress="text")
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_50.tif"))
+plot(tmp)
+
+calc(edge, fun=function(x){ifelse(x>.75, 1, NA)}, filename=file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_75.tif"), overwrite=TRUE, progress="text")
+tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice_edge_75.tif"))
+plot(tmp)

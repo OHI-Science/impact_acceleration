@@ -84,7 +84,6 @@ write.csv(trend_data_df, "impacts/zonal_data_eez/eez_impacts_trend.csv", row.nam
 ########################
 ####### Impacts
 #######################
-## Not sure I will need this, and takes a long time to run
 
 impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
                            pattern = ".tif", full="TRUE")
