@@ -126,7 +126,7 @@ npp_files_gf <- npp_files_gf[grep(paste(years_of_data, collapse="|"), npp_files_
 
 ```{r catch, eval=FALSE}
 
-catch_npp_fun <- function(file, layer){ # file = dem_d_files[1]  layer = 'dem_dest'
+catch_npp_fun <- function(file, layer){ # file = dem_d_files[12],  layer = 'dem_dest'
   
   catch <- raster(file)
   
@@ -140,6 +140,8 @@ catch_npp_fun <- function(file, layer){ # file = dem_d_files[1]  layer = 'dem_de
         overlay(., npp, fun=function(x,y){x/y})
   
   writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr)), overwrite=TRUE) 
+  
+#  raster(file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr)))
 }
 
 ```

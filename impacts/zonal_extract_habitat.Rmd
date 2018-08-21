@@ -48,12 +48,46 @@ source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R
 
 cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
 
-# paralell processing
-cl<-makeCluster(5)
-registerDoParallel(cl)
 
 ```
 
+## Sea ice check
+Unclear how to best extract sea ice habitat data because this is on a continuous scale.  
+
+```{r}
+
+ice_habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks"), full=TRUE)
+
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE, pattern = "chi")
+
+chi_stack <- stack(chi)
+
+
+for(ice_hab in ice_habs) { # ice_hab = ice_habs[1]
+
+  habitat_name <- gsub(".tif", "", basename(ice_hab))
+  
+  zone <- raster::raster(ice_hab)
+  
+hab_data <- raster::zonal(chi_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
+  dplyr::mutate(pressure = "chi") %>%
+  dplyr::mutate(habitat=habitat_name)
+
+write.csv(hab_data_df, sprintf("habitats/mask_explore/%s_chi.csv", habitat_name), row.names=FALSE)
+}
+
+
+filenames <- list.files("habitats/mask_explore", full=TRUE)
+datalist = lapply(filenames, function(x){read.csv(file=x,header=T)})
+
+ice_edge_chi <- bind_rows(datalist)
+
+```
 
 ## Habitat zones
 
@@ -61,20 +95,26 @@ registerDoParallel(cl)
 
 habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"), full=TRUE)
 habs <- habs[-(grep(".vat.dbf|.xml|.ovr", habs))]
-
+habs <- habs[-(grep("ice", habs))]
+ice <- file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice.tif")
+habs <- c(habs, ice)
 ```
+
+
 
 
 ## Chi data
 
 ```{r}
 
-chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE)
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE, pattern = "chi")
 
 chi_stack <- stack(chi)
 
-#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
-for(hab in habs){
+registerDoParallel(4)
+
+foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[21]
+#for(hab in habs){
   
   habitat_name <- gsub(".tif", "", basename(hab))
   
@@ -94,16 +134,24 @@ write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_chi.csv", habitat_
 
 ```
 
-## Trend data
+## CHI Trend data
 
 ```{r}
 
+# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/sst__ice__2013.tif"))
+# plot(tmp)
+# 
+# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/art_fish__ice__2013.tif"))
+# plot(tmp)
 
-trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_coef_slope.tif"))
+# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/sst__inttidalmud__2003.tif"))
+# plot(tmp)
+
+trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_slope.tif"))
 
 hab_data_df <- data.frame()
-#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
-for(hab in habs){
+
+for(hab in habs){ #hab=habs[7]
   
   habitat_name <- gsub(".tif", "", basename(hab))
   
@@ -123,9 +171,49 @@ write.csv(hab_data_df, "impacts/zonal_data_habitat/chi_trend.csv", row.names=FAL
 
 ```
 
+## Impacts trend extract
 
-## Pressure extract
+```{r}
 
+impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/trend/impacts"), full=TRUE)
+
+registerDoParallel(4)
+
+foreach(impact = impact_trends,.packages="dplyr")%dopar% { # impact = impact_trends[1]
+
+impact_name <- basename(impact)
+impact_name <- gsub("_trend.tif", "", impact_name)  
+
+trend <- raster::raster(impact)
+  
+hab_data_df <- data.frame()
+
+for(hab in habs){ # hab=habs[11]
+  
+  habitat_name <- gsub(".tif", "", basename(hab))
+  
+  zone <- raster::raster(hab)
+  
+hab_data <- raster::zonal(trend, zone, fun="mean", na.rm=TRUE)
+
+hab_data_tmp <- data.frame(hab_data) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(habitat=habitat_name)
+
+hab_data_df <- rbind(hab_data_tmp, hab_data_df)
+
+
+}
+hab_data_df$impact <- impact_name
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", impact_name), row.names=FALSE)
+}
+
+
+
+```
+
+## Impact extract
+I don't think I will need these, but will keep code here in case.
 ```{r}
 
 ########### Years
@@ -162,7 +250,53 @@ hab_data_df <- data.frame(hab_data) %>%
   dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
   dplyr::mutate(habitat=habitat_name)
 
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_pressure.csv", habitat_name), row.names=FALSE)
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_stressor.csv", habitat_name), row.names=FALSE)
+}
+
+```
+
+
+
+
+## Stressor extract
+I don't think I will need these, but will keep code here in case.
+```{r}
+
+########### Years
+
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+
+####### Stressors
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+
+#filter to relevant years
+stress_files <- grep(years_subset, stress_files, value=TRUE)
+
+stress_stack <- stack(stress_files)
+
+#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
+for(hab in habs){ # hab <- habs[1]
+  
+  habitat_name <- gsub(".tif", "", basename(hab))
+  
+  zone <- raster::raster(hab)
+  
+hab_data <- raster::zonal(stress_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::mutate(habitat=habitat_name)
+
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_stressor.csv", habitat_name), row.names=FALSE)
 }
 
 ```
@@ -186,67 +320,4 @@ write.csv(habitat_chi, "zonal_data_habitat/habitat_chi.csv", row.names=FALSE)
 ```
 
 
-### Visualize habitat CHI data
 
-Heat map
-```{r}
-hab_data <- read.csv("impacts/zonal_data_habitat/habitat_chi.csv")
-
-avg <- hab_data %>%
-  group_by(habitat) %>%
-  summarize(average=mean(value))
-
-plot_data <- hab_data %>%
-  left_join(avg, by="habitat") %>%
-  arrange(average)
-
-plot_data$habitat <- factor(plot_data$habitat, 
-                             levels = avg$habitat[order(avg$average, decreasing = TRUE)])
-
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
-
-tmp <- ggplot(plot_data, aes(y=year, x=habitat, text=)) +
-  geom_tile(aes(fill=value, 
-                text=sprintf("habitat: %s \nyear: %s \npressure: %s" , habitat, year, round(value, 2))), color="white") +
-  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
-  ylab("Year") +
-  xlab("") +
-  theme_bw() + 
-  theme(panel.border = element_blank(), 
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x=element_text(angle=90, hjust=1)) 
-
-tmp_plotly <- ggplotly(tmp, tooltip = "text")
-htmlwidgets::saveWidget(widget=tmp_plotly, "habitat_chi_heat.html", selfcontained = TRUE)
-
-```
-
-## Trend and CHI summary
-```{r}
-
-hab_chi <- read.csv("impacts/zonal_data_habitat/habitat_chi.csv") %>%
-  group_by(habitat) %>%
-  summarize(chi_average=mean(value))
-
-hab_data <- read.csv("impacts/zonal_data_habitat/chi_trend.csv") %>%
-  rename(trend = mean) %>%
-  left_join(hab_chi, by="habitat") %>%
-  arrange(chi_average)
-  
-library(ggrepel)
-ggplot(hab_data, aes(x=chi_average, y=trend)) +
-  geom_point(size=3, alpha=0.5) +
-  geom_text_repel(aes(label = habitat),
-                 # box.padding   = 0.35, 
-                #  point.padding = 0.5,
-                  segment.color = 'grey50',
-                segment.size = 0.2,
-                size = 3) + 
-  #geom_text(aes(label=habitat))+
-  theme_bw()
-
-ggsave("impacts/zonal_data_habitat/avg_chi_vs_trend_habitat.png")
-
-```

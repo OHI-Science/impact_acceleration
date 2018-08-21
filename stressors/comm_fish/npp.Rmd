@@ -126,8 +126,8 @@ foreach (i = 2004:2015) %dopar%{ #i=2012
 
 ```{r output}
 
-raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual/annual_mean_npp_moll_1km_2015.tif')) %>% 
-  plot(col=cols, box=FALSE, axes=FALSE, main = 'Mean Net Primary Productivity (mg C/m2/day)')
+raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual/annual_mean_npp_moll_1km_2013.tif')) %>% 
+  plot(col=cols, box=FALSE, axes=FALSE, main = 'Mean Net Primary Productivity for 2013 (mg C/m2/day)')
 
 ```
 

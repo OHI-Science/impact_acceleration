@@ -80,22 +80,27 @@ The raw data comes with 5 years of data in each file. Here we disaggregate the d
 
 registerDoParallel(10) #register cores
 
-foreach(file = watson_data) %dopar% { # file = watson_data[1]
+foreach(file = watson_data) %dopar% { # file = watson_data[3]
   
 data <- readRDS(file)
 
 yrs <- unique(data$Year)
 
-for(i in 1:length(yrs)){
+for(i in 1:length(yrs)){ # i =5
   print(i)
   
 yr = yrs[i]
   
 yr_data <- data%>%
-            filter(Year == yr)%>%
+            filter(Year == yr) %>%
             left_join(gear_taxa, by = c('Taxonkey','TaxonName','CommonName', 'Gear', 'GearName'))
 
 write_rds(yr_data,path = paste0(file.path(dir_M),'/git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_data/catch_data_',yr,'.rds'))
+
+yr_data2 <- yr_data %>%
+  rowwise() %>%
+  mutate(total_comm = sum(LSF_CR, IUU_CR, Discards_CR)) %>%
+  mutate(total_comm_count = total_comm * OceanArea)
 
 }
 }
@@ -253,10 +258,21 @@ foreach(file = annual_files, .packages="dplyr") %dopar%{ # file = annual_files[6
   
   #rasterize catch by swapping cell ids with 
 
-      raster::subs(saup_rast, data, by = 1, which = 2) %>%
+    raster::subs(saup_rast, data, by = 1, which = 2) %>%
         raster::projectRaster(crs=raster::crs(ocean), method="ngb", over = TRUE,
                       filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest/dem_dest_%s.tif', yr)), overwrite=TRUE)
-
+      
+    cellStats(tmp, sum, na.rm=TRUE)
+# dd <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest/dem_dest_2014.tif'))
+# cellStats(dd, sum, na.rm=TRUE)
+# dhb <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb/dem_nondest_hb_2014.tif'))
+#  cellStats(dhb, sum, na.rm=TRUE)  
+#  dlb <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb/dem_nondest_lb_2014.tif'))
+#  cellStats(dlb, sum, na.rm=TRUE)  
+#  plb <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb/pel_lb_2014.tif'))
+#  cellStats(plb, sum, na.rm=TRUE)    
+#        phb <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_hb/pel_hb_2014.tif'))
+#  cellStats(phb, sum, na.rm=TRUE)    
 }
 
 ## apply gapfill function to each of the above rasters
@@ -319,7 +335,7 @@ foreach(file = annual_files, .packages="dplyr") %dopar%{
                   dplyr::summarise(cell_catch = sum(catch)) %>%
     data.frame()
 
-     raster::subs(saup_rast, data, by = 1, which = 2) %>%
+raster::subs(saup_rast, data, by = 1, which = 2) %>%
        raster::projectRaster(crs=raster::crs(ocean), method= "ngb", over = TRUE,
                     filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb/dem_nondest_lb_%s.tif', yr)), overwrite=TRUE)
 }
@@ -351,7 +367,7 @@ foreach(file = annual_files, .packages="dplyr") %dopar%{
                   summarise(cell_catch = sum(catch)) %>%
     data.frame()
   
-     raster::subs(saup_rast, data, by = 1, which = 2) %>%
+  raster::subs(saup_rast, data, by = 1, which = 2) %>%
        raster::projectRaster(crs=raster::crs(ocean), method = "ngb", over = TRUE,
                      filename =  file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb/pel_lb_%s.tif', yr)), overwrite=TRUE)
 

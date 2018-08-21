@@ -1,0 +1,150 @@
+---
+title: "Calc_stressor_habitat"
+output: html_document
+---
+
+This script stressor x habitat x vulnerability rasters for each pressure/habitat/year.
+
+## Loading packages
+
+```{r}
+#libraries
+library(raster)
+library(RColorBrewer)
+library(sf)
+library(dplyr)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+# parallel processing
+
+registerDoSEQ()
+registerDoParallel(4)
+
+```
+
+## Reading in data files
+
+This code also checks that the vulnerability matrix is harmonious with the habitat and stressor files.
+```{r}
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+# Vulnerability matrix
+vulnerability <- read.csv("vulnerability_weighting_matrix.csv") %>%
+  filter(pressure != "pressure")
+
+
+# Habitats: 21 habitats
+# make sure habitat rasters from vulnerability matrix are available
+# Habitats in vulnerability matrix:
+names(vulnerability)
+# List of habitat rasters
+habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"))
+habs <- habs[-(grep(".vat.dbf|.xml|.ovr", habs))]
+
+# The following should be zero
+# The habitat rasters should all be in the vulnerability matrix
+setdiff(habs, paste0(names(vulnerability), '.tif'))
+
+# there are a couple habitats in the vulnerability table that we do not have raster habitat data for:
+# "vent"        "Soft.Canyon" "Hard.Canyon"
+xtra_vul_habs <- setdiff(paste0(names(vulnerability), '.tif'), habs) 
+xtra_vul_habs <- xtra_vul_habs[-which(xtra_vul_habs=="pressure.tif")]
+xtra_vul_habs <- gsub(".tif", "", xtra_vul_habs)
+xtra_vul_habs
+
+
+####### Stressors
+# List of stressor files we have for 16 stressors across all years
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+
+#filter to relevant years 
+# (this includes uv and benthic structures...which are not included due to not having enough years data)
+stress_files <- grep(years_subset, stress_files, value=TRUE)
+
+# make sure all stressor files are available
+files <- basename(stress_files)
+files <- gsub("_rescaled_mol.tif", "", files)
+files <- gsub('_[[:digit:]]+', '', files)
+files <- unique(files)
+
+# list of stressors
+files
+
+#should be zero: all stressors rasters should be in the vulnerability matrix
+setdiff(files, vulnerability$pressure)
+
+# a few pressures that will not be included in this year's analysis:
+# "inorg_pollution" "invasives"       "ocean_pollution"
+xtra_vul_stressor <- setdiff(vulnerability$pressure, files)
+xtra_vul_stressor
+
+######### Clean vulnerability table
+vulnerability_clean <- vulnerability %>%
+  dplyr::select(-one_of(xtra_vul_habs)) %>%  # cut habitats we do not have raster data for
+  dplyr::filter(!(pressure %in% xtra_vul_stressor)) %>%  # cut stressors we do not have raster data for
+  tidyr::gather("habitat", "vulnerability", -1) %>%
+  merge(data.frame(years), by=NULL) %>%
+  dplyr::mutate(stress_loc = NA) %>%
+  mutate(output = NA)
+```
+
+
+## Create raster of each habitat x stressor x vulnerability combo
+
+```{r}
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+
+#filter to relevant years
+stress_files <- grep(years_subset, stress_files, value=TRUE)
+
+
+foreach(row = 1:dim(vulnerability_clean)[1], .packages="dplyr") %dopar%{ # row=1
+
+  combo_data <- vulnerability_clean[row, ]
+  
+  #obtain stressor raster location
+  pxy <- paste(combo_data$pressure, combo_data$years, sep="_")
+  stress_rast <- grep(pxy, stress_files, value=TRUE)
+  
+  #obtain habitat raster location
+  hab_rast <- sprintf("/home/shares/ohi/git-annex/impact_acceleration/habitats/%s.tif", combo_data$habitat)
+  
+  #vulnerability
+  vuln <- as.numeric(combo_data$vulnerability)
+  
+  # multiply stressor * habitat * vulnerability:
+  combo_stack <- raster::stack(stress_rast, hab_rast)
+  raster::overlay(combo_stack, fun=function(x,y){(x*y*vuln)}, 
+          filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/hab_stressor_combo/%s__%s__%s.tif", 
+                               combo_data$pressure, combo_data$habitat, combo_data$years)), overwrite=TRUE)
+  }
+
+```
+
+# check to see if all combos were created
+
+```{r}
+combos_obs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"))
+length(combos_obs)
+
+dim(vulnerability_clean)
+
+#N = 336 were not created 
+# all were UV and benthic structures....which we don't have complete years for, so this is fine.
+vulnerability_clean$combos_list <- paste(vulnerability_clean$pressure, 
+                                         vulnerability_clean$habitat, 
+                                         vulnerability_clean$years, sep="__")
+
+not_done <- setdiff(paste0(vulnerability_clean$combos_list, ".tif"), combos_obs)
+sort(not_done)
+```

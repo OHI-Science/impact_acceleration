@@ -1,0 +1,875 @@
+---
+title: 'Figures'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(sf)
+library(gstat)
+library(stringr)
+library(fields)
+library(cowplot)
+
+# load spatial files (ocean raster and regions shapefile)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+```
+
+# Plot of CHI
+
+```{r}
+
+## function to make plots
+
+legend.shrink <- 0.7
+legend.width <- 0.6
+
+
+raster_breaks <- function(raster_data, title, title_legend=NULL, myBreaks, cols){
+  par(mar=c(2,2,2,2)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE)
+  title(title, line=0)
+# add axis with fields package function:
+def_breaks <- seq(0, length(myBreaks), length.out=length(myBreaks))
+image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
+           legend.only = TRUE, 
+           legend.shrink=legend.shrink,
+           legend.width=legend.width,
+           col = cols,
+           legend.lab=title_legend,
+            breaks=def_breaks,
+           lab.breaks=c(0, NA, 0.2, NA, 0.6, NA, 1, NA, 1.5, NA, 2, NA, 3, NA, 4.0, NA, ">5"),
+           axis.args = list(cex.axis = 0.6))
+
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+#plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE, add=TRUE)
+}
+
+my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) #(length(my_breaks)-2))
+
+
+for(year in 2003:2013){ # year = 2013
+png(sprintf("impacts/figures/chi_maps/chi_%s.png", year), res=600, width=6, height=3, units="in")  
+p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
+raster_breaks(raster_data=p_rast,  
+              myBreaks=my_breaks, cols=cols, title="")
+dev.off()
+}
+
+
+```
+
+# Plot map of trend
+
+```{r}
+
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_slope.tif'))
+overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/trend/sig_overlay.tif'))
+
+
+cols = rev(colorRampPalette(c("#9E0142", "#9E0142", "#9E0142", "#9E0142", "#D53E4F", "#D53E4F", "#D53E4F", "#F46D43", "#F46D43", "#FDAE61", "#FDAE61",             
+              "#FFFFBF", "#FFFFBF",  
+             "#66C2A5", "#66C2A5", "#3288BD", "#3288BD", "#5E4FA2", "#5E4FA2",  "#5E4FA2"))(255)) # 
+
+png("impacts/figures/trend/chi_trend.png", res=600, width=6, height=3, units="in")  
+par(mar=c(2, 2, 2, 2))
+par(oma=c(0,0,0,0))
+plot(slope, col=cols, axes=FALSE, box=FALSE, legend=FALSE)
+plot(overlay_rast, col="#ffffff", add=TRUE, legend=FALSE, box=FALSE)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(slope, legend.only=TRUE, legend.shrink=.7, legend.width=.5, col=cols, axis.args = list(cex.axis = 0.6))
+dev.off()
+
+```
+
+# CHI quantile plot
+
+## Organize the quantile data
+
+```{r}
+
+files <- list.files("impacts/quantiles", full=TRUE, pattern=".csv")
+
+filter_str <- function(stressor){ #stressor <- "art_fish"
+stress_files <- grep(stressor, files, value=TRUE)
+
+all_data <- c()
+for (file in stress_files){ # file = stress_files[1]
+  little_data <- read.csv(file)
+  all_data <- rbind(all_data, little_data)
+}
+
+all_data$year <- as.numeric(str_sub(all_data$impact,-8,-5))
+all_data
+}
+
+```
+
+### Plot the CHI data
+```{r}
+library(ggrepel)
+
+quant_names <- data.frame(quant = c("quant_1", "quant_5", "quant_50", "quant_95", "quant_99"),
+                          new_name =c("1th", "5th", "50th", "95th", "99th"))
+
+plot_data <- filter_str(stressor="chi") %>%
+  mutate(quant = gsub("%", "", quant)) %>%
+  mutate(quant = paste0("quant_", quant)) %>%
+  filter(quant %in% c("quant_5", "quant_50", "quant_95", "quant_99")) %>%
+  left_join(quant_names) %>%
+  mutate(label = if_else(year == max(year), as.character(new_name), NA_character_)) %>%
+  mutate(quants_plus = quants+0.4)
+
+lvls <- unique(plot_data$year)
+
+ggplot(plot_data, aes(x=as.factor(year), y=quants, group=quant, col=quant)) +
+#  geom_point(size=3, alpha=0.7) +
+  geom_line(alpha=0.7, size=2) +
+  labs(x="Year", y="Cumulative human impact", title="Global quantiles") +
+  scale_x_discrete(breaks = lvls[seq(1, length(lvls), by=2)]) +
+  geom_text_repel(aes(label = label), na.rm=TRUE, nudge_x=-0.3, point.padding = unit(8, "points"), nudge_y = 0.1, size=4.5, segment.color=NA) +
+  scale_color_discrete(guide = FALSE) +
+  theme(plot.title = element_text(face="plain", hjust=0.88, size=13))
+
+ggsave("impacts/figures/quants/chi_global_quants.png", width=6, height=5, units=c("in"), dpi=300)
+
+```
+
+
+# Trend for each impact barplot
+
+```{r}
+
+# get data
+un_rgn <- UNgeorgn_nm %>%
+  dplyr::select(rgn_id, georegion = r1_label)
+
+chi <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
+  dplyr::select(rgn_id, rgn_name, chi=value) %>%
+  left_join(un_rgn, by="rgn_id")
+
+
+# rank of georegions
+rank_georgn <- chi %>%
+  group_by(georegion) %>%
+  summarize(mean_chi = mean(chi),
+            count = length(chi)) %>%
+  arrange(mean_chi)
+
+chi$georegion <- factor(chi$georegion, levels=rank_georgn$georegion)
+
+rank_rgn <- chi %>%
+  arrange(georegion, chi)
+
+rank_rgn <- rank_rgn %>%
+  mutate(rgn_name_short = rgn_name, 
+         rgn_name_short = gsub("Islands", "Isl", rgn_name_short),
+         rgn_name_short = gsub("Island", "Isl", rgn_name_short),
+         rgn_name_short = gsub("Democratic", "Dem", rgn_name_short),
+         rgn_name_short = gsub("Republic", "Rep", rgn_name_short),
+         rgn_name_short = gsub("South", "S", rgn_name_short),
+         rgn_name_short = gsub("American", "Am", rgn_name_short),
+         rgn_name_short = gsub("the United States", "US", rgn_name_short),
+         rgn_name_short = gsub("Territory", "Terr", rgn_name_short),
+         rgn_name_short = gsub("Saint", "St", rgn_name_short),
+         rgn_name_short = gsub(" and ", " & ", rgn_name_short),
+         rgn_name_short = gsub("Republique", "Rep", rgn_name_short),
+         rgn_name_short = gsub("Dem Rep of the", "Dem Rep of", rgn_name_short),
+         rgn_name_short = gsub("Georgia and the", "Georgia and", rgn_name_short),
+         rgn_name_short = gsub("St Vincent and the", "St Vincent and", rgn_name_short),
+         rgn_name_short = gsub("Howland Isl & Baker Isl", "Howland & Baker Isl", rgn_name_short),
+         rgn_name_short = gsub("Northern", "N", rgn_name_short), 
+         rgn_name_short = gsub("Reunion", "Reunion                 ", rgn_name_short))
+
+
+# some code to orient the country labels
+sequence_length = length(unique(impacts$rgn_name))
+first_sequence = c(1:(sequence_length%/%2)) 
+second_sequence = c((sequence_length%/%2+1):sequence_length) 
+first_angles = c(90 - 180/length(first_sequence) * first_sequence)
+second_angles = c(-90 - 180/length(second_sequence) * second_sequence)
+
+rank_rgn$id <- 1:220
+rank_rgn$angle <- c(first_angles,second_angles)
+
+########### marking georegions
+# add column to identify when georegion changes
+rgn_shift <- rank_rgn %>%
+  mutate(region_shift = as.numeric(georegion) - lag(as.numeric(georegion), default=first(as.numeric(georegion))))
+
+rgn_shift <- which(rgn_shift$region_shift > 0)
+rgn_shift <- c(1, rgn_shift) -0.5
+
+# dataframe to add base lines
+base_data=rank_rgn %>%
+  mutate(id = rep( seq(1, nrow(rank_rgn)))) %>%
+  group_by(georegion) %>%
+  summarize(start=min(id), end=max(id)) %>%
+  rowwise() %>%
+  mutate(title=mean(c(start, end)))
+
+# ###########
+# # alternatively add extra row for each georegion
+# empty_bar=1
+# to_add = data.frame( matrix(NA, empty_bar*nlevels(rank_georgn$georegion), ncol(chi)) )
+# colnames(to_add) = colnames(chi)
+# to_add$georegion=rep(levels(rank_georgn$georegion), each=empty_bar)
+# 
+# #######
+# # ranking of regions
+# combine_rank_rgn <- rbind(chi, to_add) 
+
+# rank_rgn <- combine_rank_rgn %>%
+#   arrange(georegion, -chi) %>%
+#     mutate(id = seq(1, nrow(combine_rank_rgn)))
+  
+# organize impact data
+impacts <- read.csv("impacts/zonal_data_eez/eez_impacts_trend.csv") %>%
+  left_join(un_rgn)
+
+## shorten rgn names
+
+# ## add some blanks to separate groups
+# empty_bar <- 4
+# to_add <-  data.frame( matrix(NA, empty_bar*nlevels(rank_georgn$georegion)*nlevels(as.factor(impacts$pressure)), ncol(impacts)) )
+# colnames(to_add) <- colnames(impacts)
+# to_add$georegion <- rep(levels(rank_georgn$georegion), each=empty_bar)
+# to_add$pressure <- rep(levels(as.factor(impacts$pressure)), each=empty_bar)
+# to_add$value <-  0
+# 
+# impacts <- rbind(impacts, to_add) 
+
+# impacts <- impacts %>%
+#   left_join(dplyr::select(rank_rgn, rgn_id, id, georegion))
+# 
+# impacts$id <- factor(impacts$id, levels=rank_rgn$id)
+# impacts <- impacts %>%
+#   arrange(id)
+
+impacts$rgn_name <- factor(impacts$rgn_name, levels=unique(rank_rgn$rgn_name))
+
+
+## rank of pressure categories
+impacts %>%
+  group_by(pressure) %>%
+  summarize(mean = mean(value))
+
+impacts$pressure <- factor(impacts$pressure, levels=rev(c("sst", "oa", "slr", 
+                                                  "shipping",
+                                                  "nutrient", "organic", "direct_human", "light",
+                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                                  "dem_nondest_lb", "art_fish")))
+
+pressure_name <- data.frame(pressure = c("sst", "oa", "slr", 
+                                                  "shipping",
+                                                  "nutrient", "organic", "direct_human", "light",
+                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                                  "dem_nondest_lb", "art_fish"),
+                            pressure_name = c("sst", "oa", "slr", 
+                                              "shipping", 
+                                              "nutrient pollution", "organic pollution", "direct human", "light pollution",
+                                              "comm fish: pel hb", "comm fish: pel lb", "comm fish: dem dest", 
+                                              "comm fish: dem nondest hb", "comm fish: dem nondest lb",
+                                              "artisanal fishing"))
+impacts <- impacts %>%
+  left_join(pressure_name, by = "pressure")
+
+
+
+library(beyonce)
+
+myPalette <- c(beyonce_palette(18, 15, type=c("continuous"))[1:6],
+               beyonce_palette(18, 25, type=c("continuous"))[15:18],
+               beyonce_palette(18, 15, type=c("continuous"))[8],
+               beyonce_palette(18, 20, type=c("continuous"))[16:19])
+               
+
+p <- ggplot(data=impacts, aes(x=fct_reorder(rgn_name, id), y=value, fill=pressure_name)) + 
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=myPalette) +
+  coord_flip() +
+  theme_bw() +
+  labs(y="Average change in impact per year", x="") + 
+  guides(fill=guide_legend(reverse=TRUE)) +
+  theme(axis.text.y=element_text(size=10),
+        legend.justification=c(1,0), legend.position=c(0.3,0), legend.title = element_blank()) +
+  geom_point(data=chi, aes(y=chi, x=rgn_name), fill="black", shape="|", size=2.5) + 
+  geom_hline(yintercept=0, color="black") +
+  geom_vline(xintercept=c(rgn_shift - 0.5), color="gray") +
+  annotate("text", y=0.1, x=(c(rgn_shift, 220) -2), label=c(as.character(rank_georgn$georegion)), size=5)
+p
+ggsave('impacts/figures/trend/eez_trend_barplot.jpg', height=25, width=10)
+
+
+## some theme stuff to make the plot look nice
+
+#ax <- length(unique(impacts$rgn_name))
+circle_theme <- theme(axis.line=element_blank(),
+      axis.text.y=element_blank(),
+      axis.ticks=element_blank(),
+      axis.title.x=element_blank(),
+      axis.title.y=element_blank(),
+      legend.position="none",
+      panel.background=element_blank(),
+      panel.border=element_blank(),
+      panel.grid.major=element_blank(),
+      panel.grid.minor=element_blank(),
+      plot.background=element_blank(),
+      axis.text.x = element_blank())
+
+# circle plot
+# https://www.r-graph-gallery.com/299-circular-stacked-barplot/
+p <- ggplot(data=impacts, aes(x=rgn_name, y=value, fill=pressure_name)) + 
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=myPalette) +
+  coord_polar() +
+  geom_hline(yintercept=0, color="black") +
+ geom_vline(xintercept=rgn_shift, color="gray") +
+  geom_text(data=rank_rgn, aes(x=id, y=0.17, label=rgn_name_short, angle=angle), inherit.aes = FALSE) +
+  #geom_point(data=chi, aes(y=chi, x=rgn_name), fill="black", shape="|", size=2.5) +
+#  geom_segment(data=base_data, aes(x = start + 3, y = -0.015, xend = end-3, yend = -0.015), colour = "black", alpha=0.8, size=0.6 , inherit.aes = FALSE )  +
+#  geom_text(data=base_data, aes(x = title, y = -18, label=group), hjust=c(1,1,0,0), colour = "black", alpha=0.8, size=4, fontface="bold", inherit.aes = FALSE) +
+  circle_theme
+
+p
+ggsave('impacts/figures/trend/eez_trend_circleplot.jpg', height=18, width=18, units=c("in"))
+
+
+  theme_bw() +
+  labs(y="Average change in impact per year", x="") + 
+  guides(fill=guide_legend(reverse=TRUE)) +
+  theme(axis.text.y=element_text(size=10),
+        legend.justification=c(1,0), legend.position=c(0.3,0), legend.title = element_blank()) +
+  geom_point(data=chi, aes(y=chi, x=rgn_name), fill="black", shape="|", size=2.5) + 
+  annotate("text", y=0.1, x=(c(rgn_shift, 220) -2), label=c(as.character(rank_georgn$georegion)), size=5)
+
+
+```
+
+
+
+### Habitat CHI heat map
+
+```{r}
+hab_data <- read.csv("impacts/zonal_data_habitat/habitat_chi.csv")
+
+hab_names <- read.csv("habitats/habitat.csv") %>%
+  dplyr::select(habitat=tif_name, name=plot_name2)
+
+# combine habitats with same raster locations
+hab_data <- hab_data %>%
+  left_join(hab_names) %>%
+  group_by(name, year) %>%
+  summarize(value = mean(value))
+  
+  
+avg_data <- hab_data %>%
+  group_by(name) %>%
+  summarize(average=mean(value)) %>%
+  arrange(average)
+  
+
+hab_data$name <- factor(hab_data$name, 
+                             levels = avg_data$name)
+
+
+#cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
+cols = rev(colorRampPalette(c("#9E0142", "#9E0142", "#9E0142", "#9E0142", 
+                              "#D53E4F", "#D53E4F", "#D53E4F", 
+                              "#F46D43", "#F46D43", "#F46D43", 
+                              "#FDAE61", "#FDAE61", 
+                              "#FED690", "#FED690",             
+                               
+                              "#FFFFBF", "#FFFFBF",   "#FFFFBF", "#FFFFBF",
+                              
+                              "#66C2A5", "#66C2A5", 
+                              "#3288BD", "#3288BD", 
+                              "#5E4FA2",  "#5E4FA2"))(255)) # 
+
+
+tmp <- ggplot(hab_data, aes(y=year, x=name)) +
+  geom_tile(aes(fill=value, 
+                text=sprintf("habitat: %s \nyear: %s \npressure: %s" , name, year, round(value, 2))), color="white") +
+  scale_fill_gradientn(colors=cols, name="Impact") +
+  ylab("") +
+  xlab("") +
+  theme_bw() + 
+  scale_y_continuous(breaks=c(2003, 2005, 2007, 2009, 2011, 2013)) +
+  theme(panel.border = element_blank(), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.x=element_text(angle=45, hjust=1, vjust=1, size=13),
+        axis.text.y=element_text(size=13)) 
+tmp
+ggsave("impacts/figures/habitat/carpet_plot_habitat.png", width=8, height=5, units=c("in"), dpi=300)
+
+```
+
+## Habitat Trend and CHI summary
+```{r}
+
+filenames <- list.files("impacts/zonal_data_habitat", pattern="chi.csv", full=TRUE)
+datalist = lapply(filenames, function(x){read.csv(file=x,header=T)})
+
+hab_chi <- rbind_all(datalist)%>%
+  group_by(habitat) %>%
+  summarize(chi_average=mean(value))
+
+hab_data <- read.csv("impacts/zonal_data_habitat/chi_trend.csv") %>%
+  rename(trend = mean) %>%
+  left_join(hab_chi, by="habitat") %>%
+  arrange(chi_average)
+  
+library(ggrepel)
+ggplot(hab_data, aes(x=chi_average, y=trend)) +
+  geom_point(size=3, alpha=0.5) +
+  geom_text_repel(aes(label = habitat),
+                 # box.padding   = 0.35, 
+                #  point.padding = 0.5,
+                  segment.color = 'grey50',
+                segment.size = 0.2,
+                size = 3) + 
+  #geom_text(aes(label=habitat))+
+  theme_bw()
+
+ggsave("impacts/zonal_data_habitat/avg_chi_vs_trend_habitat.png")
+
+```
+
+
+
+
+
+
+
+# Heat map of EEZ CHI
+```{r}
+## heat map
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+  dplyr::select(rgn_name, year, value)
+
+avg <- plot_data %>%
+  group_by(rgn_name) %>%
+  summarize(average=mean(value))
+
+plot_data <- plot_data %>%
+  left_join(avg, by="rgn_name")
+
+plot_data$rgn_name <- factor(plot_data$rgn_name, 
+              levels = avg$rgn_name[order(avg$average, decreasing = TRUE)])
+
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
+
+tmp <- ggplot(plot_data, aes(y=year, x=rgn_name, text=)) +
+  geom_tile(aes(fill=value, 
+      text=sprintf("region: %s \nyear: %s \npressure: %s" , rgn_name, year, round(value, 2))), color="white") +
+  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
+  ylab("Year") + 
+  xlab("Region") +
+theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) 
+  
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_heat.html", selfcontained = TRUE)
+
+
+```
+
+
+## trend histogram
+
+```{r}
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") 
+  
+plot_data$rgn_name <- factor(plot_data$rgn_name, 
+                    levels = unique(plot_data$rgn_name)[order(plot_data$value, decreasing = TRUE)])
+
+tmp <- ggplot(plot_data, aes(y=value, x=rgn_name, color=value)) +
+  geom_bar(aes(text=sprintf("region: %s \n trend: %s", rgn_name, round(value, 4))), stat="identity") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) 
+  
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_trend.html", selfcontained = TRUE)
+
+```
+
+# scatterplot comparing the chi and trend data
+
+```{r}
+chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+  dplyr::select(rgn_name, year, value)
+
+avg <- chi %>%
+  group_by(rgn_name) %>%
+  summarize(average_chi=mean(value))
+
+UNrgns <- UNgeorgn_nm %>%
+  select(rgn_name=rgn_label, r2_label, r1_label)
+
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
+  left_join(avg, by="rgn_name") %>%
+  select(rgn_name, rgn_id, trend_chi=value, average_chi)%>%
+  left_join(UNrgns, by="rgn_name")
+
+
+tmp <- ggplot(plot_data, aes(y=average_chi, x=trend_chi, color=r1_label)) +
+  geom_point(aes(text=sprintf("%s\ntrend: %s\naverage: %s", rgn_name, 
+                              round(trend_chi, 4), round(average_chi, 2))), 
+             alpha=0.5, size=2)+
+  xlab("Trend CHI") +
+  ylab("Average CHI") + 
+  theme_bw()
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_avg_trend.html", selfcontained = TRUE)
+```
+
+## Stacked bar plot: individual impacts
+Not sure we will need this.  Data has not been extracted.  This takes a long time and may only need the 2013 data.
+
+```{r}
+
+
+## stacked bar plot of pressures for each region
+pressures <- read.csv("impacts/zonal_data_eez/eez_impacts.csv") %>%
+  mutate(rgn_name = gsub("Cura\x8dao", "Curacao", rgn_name),
+         rgn_name = gsub("R\x8epublique du Congo", "Republique du Congo", rgn_name),
+         rgn_name = gsub("R\x8eunion", "Reunion", rgn_name))
+
+chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+  rename(chi = value) %>%
+  select(-pressure) %>%
+  arrange(year, chi)
+
+ranks <- pressures %>%
+  left_join(chi, by=c("rgn_id", "rgn_name", "year")) %>%
+  arrange(year, -chi) %>%
+  group_by(pressure) %>%
+  mutate(pressure_num = n()) %>%
+  ungroup() %>%
+  filter(pressure_num == max(pressure_num)) %>%  ## cut pressures without all years of data
+  select(-pressure_num)
+
+
+#test: Check that the summed values and chi are the same
+sum(ranks$value[ranks$year==2013 & ranks$rgn_name=="Singapore"])
+filter(ranks[ranks$year==2013 & ranks$rgn_name=="Singapore", ])
+
+
+## add levels to pressure categories
+ranks %>%
+  group_by(pressure) %>%
+  summarize(mean = mean(value))
+
+ranks$pressure <- factor(ranks$pressure, levels=rev(c("sst", "oa", "slr", 
+                                                  "shipping",
+                                                  "nutrient", "organic", "direct_human", "light",
+                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                                  "dem_nondest_lb", "art_fish")))
+
+#myPalette <- colorRampPalette(brewer.pal(11, "Spectral"), space="Lab")
+library(beyonce)
+
+myPalette <- c(beyonce_palette(18, 15, type=c("continuous"))[1:6],
+               beyonce_palette(18, 25, type=c("continuous"))[15:18],
+               beyonce_palette(18, 15, type=c("continuous"))[8],
+               beyonce_palette(18, 20, type=c("continuous"))[16:19])
+               
+ranks$rgn_name <- factor(ranks$rgn_name, levels=chi$rgn_name[chi$year==2013])
+
+## plot for website
+
+stack_pressure <- function(plot_year=2013)
+  plotdata <- ranks %>%
+  filter(year==plot_year)
+
+p <- ggplot(plotdata, aes(x=rgn_name, y=value, fill=pressure)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=myPalette) +
+  coord_flip() +
+  theme_bw() +
+  labs(y="Cumulative Human Impact", x="") + 
+  ylim(0, 4.1) + 
+  guides(fill=guide_legend()) +
+  theme(axis.text.y=element_text(size=4),
+        legend.justification=c(1,0), legend.position=c(1,0), legend.key.size = unit(0.5, "cm"), legend.text=element_text(size=6))
+p
+ggsave('impacts/zonal_data_eez/country_impacts_stacked_bar.png', height=15, width=5) 
+
+
+
+## Save if need to break up figure
+# batch1 <- ranks$rgn_id[1:79]
+# batch2 <- ranks$rgn_id[80:159]
+# batch3 <- ranks$rgn_id[160:length(ranks$rgn_id)]
+# 
+# 
+# p <- ggplot(subset(eez_2013, region_id %in% batch1), aes(x=factor(region_id, levels=(region_id)[order(global_cumulative_impact_2013_all_layers.gri)]), y=value, fill=pressure, order=desc(pressure))) +
+#   geom_bar(stat="identity") +
+#   scale_fill_manual(values=myPalette(19)) +
+#   coord_flip() +
+#   theme_bw() +
+#   labs(y="Pressure", x="") + 
+#   ylim(0, 9) + 
+#   guides(fill=guide_legend(reverse=TRUE)) +
+#   theme(axis.text.y=element_text(size=10),
+#         legend.justification=c(1,0), legend.position=c(1,0))
+# p
+# ggsave(file.path(path_save, 'Impacts4EEZs_p1.pdf'), height=20, width=10)
+# 
+# p %+% subset(eez_2013, region_id %in% batch2)
+# ggsave(file.path(path_save, 'Impacts4EEZs_p2.pdf'), height=20, width=10)
+# 
+# p %+% subset(eez_2013, region_id %in% batch3)
+# ggsave(file.path(path_save, 'Impacts4EEZs_p3.pdf'), height=20, width=10)
+# 
+
+```
+
+
+
+# Heat map of 3nm CHI data
+```{r}
+
+## heat map of chi data
+plot_data <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
+  dplyr::select(rgn_name, year, value)
+
+avg <- plot_data %>%
+  group_by(rgn_name) %>%
+  summarize(average=mean(value))
+
+plot_data <- plot_data %>%
+  left_join(avg, by="rgn_name")
+
+plot_data$rgn_name <- factor(plot_data$rgn_name, 
+                             levels = avg$rgn_name[order(avg$average, decreasing = TRUE)])
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # 
+
+tmp <- ggplot(plot_data, aes(y=year, x=rgn_name, text=)) +
+  geom_tile(aes(fill=value, 
+                text=sprintf("region: %s \nyear: %s \npressure: %s" , rgn_name, year, round(value, 2))), color="white") +
+  scale_fill_gradientn(colors=rev(brewer.pal(11, 'Spectral'))) +
+  ylab("Year") + 
+  xlab("Region") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) 
+
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_3nm_chi_heat.html", selfcontained = TRUE)
+
+```
+
+# Histogram of region trend data
+```{r}
+
+# histogram of trend data
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") 
+
+plot_data$rgn_name <- factor(plot_data$rgn_name, 
+                             levels = unique(plot_data$rgn_name)[order(plot_data$value, decreasing = TRUE)])
+
+tmp <- ggplot(plot_data, aes(y=value, x=rgn_name, color=value)) +
+  geom_bar(aes(text=sprintf("region: %s \n trend: %s", rgn_name, round(value, 4))), stat="identity") +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) 
+
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_chi_3nm_trend.html", selfcontained = TRUE)
+
+```
+
+
+# scatterplot comparing the trend and chi data
+
+```{r}
+chi <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
+  dplyr::select(rgn_name, year, value)
+
+avg <- chi %>%
+  group_by(rgn_name) %>%
+  summarize(average_chi=mean(value))
+
+UNrgns <- UNgeorgn_nm %>%
+  dplyr::select(rgn_name=rgn_label, r2_label, r1_label)
+
+plot_data <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") %>%
+  left_join(avg, by="rgn_name") %>%
+  dplyr::select(rgn_name, rgn_id, trend_chi=value, average_chi)%>%
+  left_join(UNrgns, by="rgn_name")
+
+
+tmp <- ggplot(plot_data, aes(y=average_chi, x=trend_chi, color=r1_label)) +
+  geom_point(aes(text=sprintf("%s\ntrend: %s\naverage: %s", rgn_name, 
+                              round(trend_chi, 4), round(average_chi, 2))), 
+             alpha=0.5, size=2)+
+  xlab("Trend CHI, 3nm") +
+  ylab("Average CHI, 3nm") + 
+  theme_bw()
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "nm3_chi_avg_trend.html", selfcontained = TRUE)
+
+```
+
+# scatterplot comparing CHI, 3nm vs. eez data
+
+```{r}
+chi_3nm <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
+  dplyr::select(rgn_name, year, val_3nm = value)
+
+chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+  dplyr::select(rgn_name, year, val_eez = value) %>%
+  left_join(chi_3nm, by=c("rgn_name", "year"))
+
+tmp <- ggplot(filter(chi, year==2013), aes(x=val_eez, y=val_3nm)) +
+  geom_point(aes(text=sprintf("%s\neez: %s\n3nm: %s", rgn_name, 
+                              round(val_eez, 4), round(val_3nm, 2))), 
+             alpha=0.5, size=2)+
+  xlab("CHI, eez") +
+  ylab("CHI, 3nm") + 
+  theme_bw() +
+  geom_abline(slope=1, intercept = 0, col="orange")
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_vs_3nm_chi.html", selfcontained = TRUE)
+```
+
+# scatterplot comparing CHI trend, 3nm vs. eez data
+
+```{r}
+chi_3nm <- read.csv("impacts/zonal_data_eez/eez_chi_3nm_trend.csv") %>%
+  dplyr::select(rgn_name, trend_3nm = value)
+
+chi <- read.csv("impacts/zonal_data_eez/eez_chi_trend.csv") %>%
+  dplyr::select(rgn_name, trend_eez = value) %>%
+  left_join(chi_3nm, by=c("rgn_name"))
+
+tmp <- ggplot(chi, aes(x=trend_eez, y=trend_3nm)) +
+  geom_point(aes(text=sprintf("%s\neez: %s\n3nm: %s", rgn_name, 
+                              round(trend_eez, 4), round(trend_3nm, 2))),
+             alpha=0.5, size=2)+
+  xlab("CHI trend, eez") +
+  ylab("CHI trend, 3nm") + 
+  theme_bw() +
+  geom_abline(slope=1, intercept = 0, col="orange")
+tmp_plotly <- ggplotly(tmp, tooltip = "text")
+htmlwidgets::saveWidget(widget=tmp_plotly, "eez_vs_3nm_chi_trend.html", selfcontained = TRUE)
+```
+
+# stacked bar plot of 3nm pressures for each region
+```{r}
+pressures <- read.csv("impacts/zonal_data_eez/eez_3nm_impacts.csv") %>%
+  mutate(rgn_name = gsub("Cura\x8dao", "Curacao", rgn_name),
+         rgn_name = gsub("R\x8epublique du Congo", "Republique du Congo", rgn_name),
+         rgn_name = gsub("R\x8eunion", "Reunion", rgn_name))
+
+## to be consistent with previous plot, using eez chi to order data
+chi <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+  rename(chi = value) %>%
+  select(-pressure) %>%
+  arrange(year, chi)
+
+ranks <- pressures %>%
+  left_join(chi, by=c("rgn_id", "rgn_name", "year")) %>%
+  arrange(year, -chi) %>%
+  group_by(pressure) %>%
+  mutate(pressure_num = n()) %>%
+  ungroup() %>%
+  filter(pressure_num == max(pressure_num)) %>%  ## cut pressures without all years of data
+  select(-pressure_num)
+
+
+#test: Check that the summed values and chi are the same
+sum(ranks$value[ranks$year==2013 & ranks$rgn_name=="Singapore"])
+filter(ranks[ranks$year==2013 & ranks$rgn_name=="Singapore", ])
+
+
+## add levels to pressure categories
+ranks %>%
+  group_by(pressure) %>%
+  summarize(mean = mean(value))
+
+ranks$pressure <- factor(ranks$pressure, levels=rev(c("sst", "oa", "slr", 
+                                                      "shipping",
+                                                      "nutrient", "organic", "direct_human", "light",
+                                                      "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                                      "dem_nondest_lb", "art_fish")))
+
+#myPalette <- colorRampPalette(brewer.pal(11, "Spectral"), space="Lab")
+library(beyonce)
+
+myPalette <- c(beyonce_palette(18, 15, type=c("continuous"))[1:6],
+               beyonce_palette(18, 25, type=c("continuous"))[15:18],
+               beyonce_palette(18, 15, type=c("continuous"))[8],
+               beyonce_palette(18, 20, type=c("continuous"))[16:19])
+
+ranks$rgn_name <- factor(ranks$rgn_name, levels=chi$rgn_name[chi$year==2013])
+
+## plot for website
+
+stack_pressure <- function(plot_year=2013)
+  plotdata <- ranks %>%
+  filter(year==plot_year)
+
+p <- ggplot(plotdata, aes(x=rgn_name, y=value, fill=pressure)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=myPalette) +
+  coord_flip() +
+  theme_bw() +
+  labs(y="Cumulative Human Impact", x="") + 
+  ylim(0, 4.1) + 
+  guides(fill=guide_legend()) +
+  theme(axis.text.y=element_text(size=4),
+        legend.justification=c(1,0), legend.position=c(1,0), legend.key.size = unit(0.5, "cm"), legend.text=element_text(size=6))
+p
+ggsave('impacts/zonal_data_eez/country_3nm_impacts_stacked_bar.png', height=15, width=5) 
+
+```
+
