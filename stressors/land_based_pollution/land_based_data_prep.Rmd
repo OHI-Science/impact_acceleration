@@ -134,7 +134,7 @@ foreach(file = files,.packages="dplyr") %dopar% { #file = files[9]
   name <- basename(file)
   name <- sub('\\.tif$', '', name)
   name <- gsub("_raw", "", name)
-  tmp <- raster::raster(file)
+  raster::raster(file)
   raster::calc(tmp, function(x){log(x+1)}, 
        filename = file.path(dir_M, 
         sprintf("git-annex/impact_acceleration/stressors/land_based/int/%s_log.tif", name)), 
