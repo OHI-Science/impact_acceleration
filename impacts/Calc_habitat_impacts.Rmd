@@ -1,0 +1,197 @@
+---
+title: "Calc_impacts"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Caculate impact for each habitat by summing the stressor x habitat x vulnerability rasters for each habitat.
+
+## Loading packages
+
+```{r}
+#libraries
+library(raster)
+library(RColorBrewer)
+library(sf)
+
+library(stringr)
+library(dplyr)
+
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+
+```
+
+
+## List of combos
+```{r}
+
+
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+pressures_to_use <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"))
+complete_yr <- table(str_sub(pressures_to_use, 1, -11))
+complete_yr <- complete_yr[complete_yr == max(complete_yr)]
+complete_yr <- paste(names(complete_yr), collapse="|")
+
+combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
+combos <- grep(complete_yr, combos, value=TRUE)
+combos <- grep(years_subset, combos, value=TRUE)
+
+```
+
+
+## Create a list of habitat/year combinations
+
+```{r}
+years <- 2003:2013
+
+## Get a list of the habitat/year combinations:
+hab_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"))
+hab_files <- hab_files[-(grep(".vat.dbf|.xml|.ovr", hab_files))]
+hab_files <- gsub(".tif", "", hab_files)
+  
+habs <- expand.grid(hab = basename(hab_files), year=years)
+  
+```
+
+## Check stressor data
+All stressor/years should have 21 rasters, one for each habitat.
+
+```{r}
+
+check_hab_count <- data.frame(N=rep(NA, dim(habs)[1]), pressure_year=rep(NA, dim(habs)[1]))
+
+for(row in 1:dim(habs)[1]){ # row=1
+
+  year_n <- habs$year[row]
+  hab_n <- habs$hab[row]
+  
+  tmp <- grep(year_n, combos, value=TRUE)
+  tmp <- grep(hab_n, tmp, value =TRUE)
+  
+  check_hab_count$N[row] = length(tmp)
+  check_hab_count$pressure_year[row] = paste(hab_n, year_n, sep="_")
+
+}
+
+check_hab_count
+summary(check_hab_count)
+
+```
+
+## Create raster that sums all stressors x vulnerabilty for a habitat/year
+For each habitat and year, identify the stressor x habitat x vulnerability rasters.  Sum these to get the cumulative impact on the habitats.  
+
+```{r}
+
+registerDoParallel(5)
+
+foreach(row = 1:dim(habs)[1]) %dopar%{ # row=230
+
+  year_n <- habs$year[row]
+  hab_n <- habs$hab[row]
+  
+  tmp <- grep(year_n, combos, value=TRUE)
+  tmp <- grep(hab_n, tmp, value =TRUE)
+  
+  hab_stack <- raster::stack(tmp)
+  
+  raster::calc(hab_stack, fun=sum, na.rm=TRUE,
+      filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/habitat_impact/hab_impact/%s_%s.tif", hab_n, year_n)), 
+      overwrite=TRUE)
+
+}
+
+plot_tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_impact/cum_impact_surface_waters_2013.tif"))
+plot(plot_tmp)
+
+```
+
+## Calculate trend for each habitat
+
+```{r}
+
+# list of pressure x habitat combos
+
+impacts <- c("sst", "oa", "slr", 
+            "shipping",
+            "nutrient", "organic", "direct_human", "light",
+            "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb", "dem_nondest_lb", "art_fish")
+
+## Get a list of the habitat/year combinations:
+hab_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"))
+hab_files <- hab_files[-(grep(".vat.dbf|.xml|.ovr", hab_files))]
+hab_files <- gsub(".tif", "", hab_files)
+  
+hab_x_stress <- expand.grid(habs = hab_files, impacts=impacts)
+
+combo_files   <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
+
+
+registerDoParallel(5)
+
+
+foreach (row = 1:dim(hab_x_stress)[1]) %dopar%{ # row=1
+
+  impacts_n <- hab_x_stress$impacts[row]
+  hab_n <- hab_x_stress$hab[row]
+  
+  tmp <- grep(impacts_n, combo_files, value=TRUE)
+  tmp <- grep(hab_n, tmp, value =TRUE)
+  
+  years <-   as.numeric(stringr::str_sub(basename(tmp), -8, -5))
+  
+  # add 1 for a model with an intercept
+X <- cbind(1, years)
+invXtX <- solve(t(X) %*% X) %*% t(X)
+quickfun <- function(y) (invXtX %*% y)[2]
+
+  
+  hab_stack <- raster::stack(tmp)
+
+  raster::calc(hab_stack, quickfun, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/habitat_impact/hab_trend/%s_%s_trend.tif", hab_n, impacts_n)),
+       overwrite=TRUE)
+  
+}
+
+plot(raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_trend/beach_sst_trend.tif")))
+
+
+
+```
+
+
+## Ocean mask for each layer created above.
+```{r}
+rescaled_data <- list.files(file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp")), full=TRUE)
+rescaled_data <- rescaled_data[grep("rescaled", rescaled_data)]
+
+for(rescale in rescaled_data) { # rescale=rescaled_data[1]
+  
+ rescaled <- raster::raster(rescale)
+
+ # get stressor and year from file name
+stressor <- basename(rescale)
+ stressor <- gsub("_rescaled.tif", "", stressor)
+ stressor <- gsub("summed_raster_", "", stressor)
+ stressor <- data.frame(combo=stressor)
+ 
+ combo_data <- stressor %>% 
+   tidyr::separate(combo, c("stressor", "year"), sep=-4) %>%
+   dplyr::mutate(stressor = substr(stressor, 1, nchar(stressor)-1))
+ 
+ # mask data and save
+ raster::mask(rescaled, ocean,
+                 filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/stressor_impact/%s_%s.tif", 
+                                                   combo_data$stressor, combo_data$year)),
+                 overwrite=TRUE, progress="text")
+ 
+}

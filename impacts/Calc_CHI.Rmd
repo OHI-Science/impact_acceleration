@@ -54,7 +54,7 @@ stressors_all_yrs <- names(stress_length[stress_length == length(years)])
 stressors_chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"),
                             full=TRUE)
 
-stressors_chi <- grep(paste(stressors_full, collapse="|"), stressors_chi, value=TRUE)
+stressors_chi <- grep(paste(stressors_all_yrs, collapse="|"), stressors_chi, value=TRUE)
 
 length(stressors_chi)/length(years) # needs to be a whole number
 

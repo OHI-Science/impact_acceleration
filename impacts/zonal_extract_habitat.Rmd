@@ -1,5 +1,5 @@
 ---
-title: 'Habitat data extraction and visualization'
+title: 'Habitat data extraction'
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -107,217 +107,64 @@ habs <- c(habs, ice)
 
 ```{r}
 
-chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE, pattern = "chi")
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_impact"), full=TRUE)
 
-chi_stack <- stack(chi)
+hab_list <- basename(habs)
+hab_list <- gsub(".tif", "", hab_list)
 
 registerDoParallel(4)
 
-foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[21]
+foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[18]
 #for(hab in habs){
   
-  habitat_name <- gsub(".tif", "", basename(hab))
+hab_impacts <- grep(hab, impact_files, value=TRUE)
+hab_impacts_stack <- raster::stack(hab_impacts)
+
+zone <- grep(hab, habs, value=TRUE)
+zone <- raster::raster(zone)
   
-  zone <- raster::raster(hab)
-  
-hab_data <- raster::zonal(chi_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+hab_data <- raster::zonal(hab_impacts_stack, zone, fun="mean", progress="text", na.rm=TRUE)
 
 hab_data_df <- data.frame(hab_data) %>%
-  tidyr::gather("pressure", "value", -1) %>%
-  dplyr::rename("habitat" = zone) %>%
-  dplyr::mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
-  dplyr::mutate(pressure = "chi") %>%
-  dplyr::mutate(habitat=habitat_name)
+  tidyr::gather("habitat", "impact", -1) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_extract(habitat,"(\\d)+"))) %>%
+  dplyr::mutate(habitat = hab) %>%
+  dplyr::select(habitat, year, impact)
 
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_chi.csv", habitat_name), row.names=FALSE)
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_impacts.csv", hab), row.names=FALSE)
 }
 
 ```
 
-## CHI Trend data
+# Trend data
 
 ```{r}
 
-# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/sst__ice__2013.tif"))
-# plot(tmp)
-# 
-# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/art_fish__ice__2013.tif"))
-# plot(tmp)
+trend_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_trend"), full=TRUE)
 
-# tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo/sst__inttidalmud__2003.tif"))
-# plot(tmp)
-
-trend <- raster(file.path(dir_M, "git-annex/impact_acceleration/trend/chi_slope.tif"))
-
-hab_data_df <- data.frame()
-
-for(hab in habs){ #hab=habs[7]
-  
-  habitat_name <- gsub(".tif", "", basename(hab))
-  
-  zone <- raster::raster(hab)
-  
-hab_data <- raster::zonal(trend, zone, fun="mean", progress="text", na.rm=TRUE)
-
-hab_data_tmp <- data.frame(hab_data) %>%
-  dplyr::rename("habitat" = zone) %>%
-  dplyr::mutate(habitat=habitat_name)
-
-hab_data_df <- rbind(hab_data_tmp, hab_data_df)
-
-}
-
-write.csv(hab_data_df, "impacts/zonal_data_habitat/chi_trend.csv", row.names=FALSE)
-
-```
-
-## Impacts trend extract
-
-```{r}
-
-impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/trend/impacts"), full=TRUE)
+hab_list <- basename(habs)
+hab_list <- gsub(".tif", "", hab_list)
 
 registerDoParallel(4)
 
-foreach(impact = impact_trends,.packages="dplyr")%dopar% { # impact = impact_trends[1]
-
-impact_name <- basename(impact)
-impact_name <- gsub("_trend.tif", "", impact_name)  
-
-trend <- raster::raster(impact)
+foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[18]
+#for(hab in habs){
   
-hab_data_df <- data.frame()
+hab_trend <- grep(hab, trend_files, value=TRUE)
+hab_trend_stack <- raster::stack(hab_trend)
 
-for(hab in habs){ # hab=habs[11]
+zone <- grep(hab, habs, value=TRUE)
+zone <- raster::raster(zone)
   
-  habitat_name <- gsub(".tif", "", basename(hab))
-  
-  zone <- raster::raster(hab)
-  
-hab_data <- raster::zonal(trend, zone, fun="mean", na.rm=TRUE)
-
-hab_data_tmp <- data.frame(hab_data) %>%
-  dplyr::rename("habitat" = zone) %>%
-  dplyr::mutate(habitat=habitat_name)
-
-hab_data_df <- rbind(hab_data_tmp, hab_data_df)
-
-
-}
-hab_data_df$impact <- impact_name
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", impact_name), row.names=FALSE)
-}
-
-
-
-```
-
-## Impact extract
-I don't think I will need these, but will keep code here in case.
-```{r}
-
-########### Years
-
-years <- 2003:2013
-
-years_subset <- paste(years, collapse="|")
-
-
-####### Stressors
-stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
-           pattern = ".tif", full="TRUE")
-stress_files <- grep("/final/", stress_files, value=TRUE)
-
-#filter to relevant years
-stress_files <- grep(years_subset, stress_files, value=TRUE)
-
-stress_stack <- stack(stress_files)
-
-#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
-for(hab in habs){ # hab <- habs[1]
-  
-  habitat_name <- gsub(".tif", "", basename(hab))
-  
-  zone <- raster::raster(hab)
-  
-hab_data <- raster::zonal(stress_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+hab_data <- raster::zonal(hab_trend_stack, zone, fun="mean", progress="text", na.rm=TRUE)
 
 hab_data_df <- data.frame(hab_data) %>%
-  tidyr::gather("pressure", "value", -1) %>%
-  dplyr::rename("habitat" = zone) %>%
-  dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
-  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
-  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
-  dplyr::mutate(habitat=habitat_name)
+  tidyr::gather("habitat_impact", "trend", -1) %>%
+  dplyr::mutate(habitat = hab) %>%
+  dplyr::mutate(impact = gsub(paste0(hab, "_"), "", habitat_impact)) %>% 
+  dplyr::select(habitat, impact, trend)
 
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_stressor.csv", habitat_name), row.names=FALSE)
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", hab), row.names=FALSE)
 }
 
 ```
-
-
-
-
-## Stressor extract
-I don't think I will need these, but will keep code here in case.
-```{r}
-
-########### Years
-
-years <- 2003:2013
-
-years_subset <- paste(years, collapse="|")
-
-
-####### Stressors
-stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
-           pattern = ".tif", full="TRUE")
-stress_files <- grep("/final/", stress_files, value=TRUE)
-
-#filter to relevant years
-stress_files <- grep(years_subset, stress_files, value=TRUE)
-
-stress_stack <- stack(stress_files)
-
-#foreach(hab = habs,.packages="dplyr")%dopar% { # hab = habs[1]
-for(hab in habs){ # hab <- habs[1]
-  
-  habitat_name <- gsub(".tif", "", basename(hab))
-  
-  zone <- raster::raster(hab)
-  
-hab_data <- raster::zonal(stress_stack, zone, fun="mean", progress="text", na.rm=TRUE)
-
-hab_data_df <- data.frame(hab_data) %>%
-  tidyr::gather("pressure", "value", -1) %>%
-  dplyr::rename("habitat" = zone) %>%
-  dplyr::mutate(pressure = gsub("_rescaled_mol", "", pressure)) %>%
-  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
-  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
-  dplyr::mutate(habitat=habitat_name)
-
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_stressor.csv", habitat_name), row.names=FALSE)
-}
-
-```
-
-
-## Combine habitat chi data
-
-```{r}
-
-habs <- list.files("zonal_data_habitat", full=TRUE, pattern="_chi")
-
-habitat_chi <- data.frame()
-
-for(hab in habs){ # hab=habs[1]
-  tmp <- read.csv(hab)
-  habitat_chi <- rbind(habitat_chi, tmp)
-}
-
-write.csv(habitat_chi, "zonal_data_habitat/habitat_chi.csv", row.names=FALSE)
-
-```
-
-
-

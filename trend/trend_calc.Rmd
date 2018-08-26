@@ -203,8 +203,8 @@ list2$fun   <- max
 list2$na.rm <- TRUE
 rast.mosaic <- do.call(mosaic, list2)
 
-writeRaster(rast.mosaic[[1]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_slope.tif'))
-writeRaster(rast.mosaic[[2]], file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_se.tif'))
+writeRaster(rast.mosaic[[1]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
+writeRaster(rast.mosaic[[2]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_se.tif'))
 
 ```
 
@@ -212,9 +212,9 @@ writeRaster(rast.mosaic[[2]], file.path(dir_M, 'git-annex/impact_acceleration/tr
 # View rasters
 ```{r}
 
-se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_se.tif'))
+se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_se.tif'))
 plot(se, col=cols, axes=FALSE)
-slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_slope.tif'))
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
 plot(slope, col=cols, axes=FALSE)
 
 ```
@@ -224,21 +224,21 @@ plot(slope, col=cols, axes=FALSE)
 ```{r}
 t_stat <- qt(0.975, 11-2)
 
-se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_se.tif'))
-slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_slope.tif'))
+se <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_se.tif'))
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
 
 # upper limit
 s <- stack(slope, se)
 overlay(s, fun=function(x,y){x + y*t_stat}, 
-                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'), overwrite=TRUE, progress="text")
-upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'))
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci.tif'), overwrite=TRUE, progress="text")
+upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci.tif'))
 
 plot(upper_ci, col=cols, axes=FALSE)
 
 # lower limit
 overlay(s, fun=function(x,y) x - y*t_stat, 
-                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'), overwrite=TRUE, progress="text")
-lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'))
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci.tif'), overwrite=TRUE, progress="text")
+lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci.tif'))
 plot(lower_ci, col=cols, axes=FALSE)
 
 ```
@@ -248,34 +248,34 @@ plot(lower_ci, col=cols, axes=FALSE)
 
 ### replace negative values with -1 and positive values with +1
 # upper
-upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci.tif'))
+upper_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci.tif'))
 reclassify(upper_ci, c(-Inf,0,-1, 0,Inf,1), 
-           filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif'), overwrite=TRUE, progress="text")
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci_convert.tif'), overwrite=TRUE, progress="text")
 
-upper_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif'))
+upper_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci_convert.tif'))
 plot(upper_ci_class, col=cols, axes=FALSE)
 
 # lower
-lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci.tif'))
+lower_ci <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci.tif'))
 reclassify(lower_ci, c(-Inf,0,-1, 0,Inf,1), 
-           filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif'), overwrite=TRUE, progress="text")
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci_convert.tif'), overwrite=TRUE, progress="text")
 
-lower_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif'))
+lower_ci_class <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci_convert.tif'))
 plot(lower_ci_class, col=cols, axes=FALSE)
 
 ## combine
-s <- stack(raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_upper_ci_convert.tif')),
-           raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/chi_lower_ci_convert.tif')))
+s <- stack(raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_upper_ci_convert.tif')),
+           raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_lower_ci_convert.tif')))
 
 overlay(s, fun=function(x,y){x + y}, 
-                    filename = file.path(dir_M, 'git-annex/impact_acceleration/trend/trend_pattern.tif'), overwrite=TRUE, progress="text")
-trend_pattern <- raster(file.path(dir_M, 'git-annex/impact_acceleration/trend/trend_pattern.tif'))
+                    filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/trend_pattern.tif'), overwrite=TRUE, progress="text")
+trend_pattern <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/trend_pattern.tif'))
 plot(trend_pattern, col=cols, axes=FALSE)
 
 ### trend overlay
 
 df <- data.frame(id=c(2, 0, -2), v=c(NA, 1, NA))
-subs(trend_pattern, df, filename = file.path(dir_M,  'git-annex/impact_acceleration/trend/sig_overlay.tif'), overwrite=TRUE, progress="text")
+subs(trend_pattern, df, filename = file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'), overwrite=TRUE, progress="text")
 
 ```
 
@@ -337,7 +337,7 @@ foreach (file = impact) %dopar%{ # file = impact[1]
   impact_from_files <- grep(file, impact_files, value=TRUE)
   print(length(impact_from_files))
   impact_stack <- raster::stack(impact_from_files)
-  raster::calc(impact_stack, quickfun, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/trend/impacts/%s_trend.tif", file)),
+  raster::calc(impact_stack, quickfun, filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/trend/impacts/%s_trend.tif", file)),
        overwrite=TRUE)
   
 }

@@ -103,7 +103,7 @@ hab_num <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_number
 
 combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
 
-
+registerDoParallel(4)
 foreach(row = 1:dim(stress_combos)[1]) %dopar%{ # row=1
 
   year <- stress_combos$year[row]
@@ -151,6 +151,7 @@ combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stresso
 
 hab_num <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_number/habitat_num.tif"))
 
+registerDoParallel(4)
 foreach(row = 1:dim(not_done)[1]) %dopar%{ # row=1
 
   year <- not_done$year[row]
