@@ -14,6 +14,8 @@ output:
       in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
 pdf_document:
   toc: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 This script standardizes the annual catch rasters by net primary production.  NPP is first gapfilled using the average of neighboring cells. The standardized catch data are rescaled to range from 0-1 using the 99.99th quantile of all global raster cells across all years of data for each commercial catch category.  
@@ -35,14 +37,13 @@ library(doParallel)
 
 source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
 
-years_of_data <- 2003:2014
+years_of_data <- 2003:2015
 
 # setwd("stressors/comm_fish")
 
 # paralell processing
 cl<-makeCluster(10)
 registerDoParallel(cl)
-
 
 ```
 
@@ -73,11 +74,12 @@ plot(npp_rast)
 
 npp_rast_mol <- resample(npp_rast, ocean, method="ngb")
 npp_rast_mol_mask <- mask(npp_rast_mol, ocean)  
-writeRaster(npp_rast_mol_mask, file.path(dir_M,'/git-annex/impact_acceleration/stressors/comm_fish/int/npp_gf.tif'))
-
+#writeRaster(npp_rast_mol_mask, file.path(dir_M,'/git-annex/impact_acceleration/stressors/comm_fish/int/npp_gf.tif'))
+gf <- raster(file.path(dir_M,'/git-annex/impact_acceleration/stressors/comm_fish/int/npp_gf.tif'))
 
 ## Function to gapfill NA cells using mean of surrounding cells
 gf_raster <- function(x){raster::focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
+
 
 
 ## Iterative gapfilling for each year of NPP data
