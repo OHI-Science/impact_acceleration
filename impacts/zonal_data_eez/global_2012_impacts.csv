@@ -1,0 +1,16 @@
+"rgn_id","pressure","value","year"
+"global","benthic_str",1.95702211967517e-06,2012
+"global","light",0.000363409451844495,2012
+"global","pel_lb",0.00100035403578627,2012
+"global","organic",0.00106548186083945,2012
+"global","direct_human",0.0014391347113312,2012
+"global","dem_nondest_lb",0.00192406531615635,2012
+"global","dem_nondest_hb",0.0031431981980601,2012
+"global","nutrient",0.00335725744340307,2012
+"global","art_fish",0.00359412285075648,2012
+"global","dem_dest",0.00569503305265823,2012
+"global","pel_hb",0.0101238341984893,2012
+"global","slr",0.0112561632291512,2012
+"global","shipping",0.121459000042767,2012
+"global","oa",0.367595417812356,2012
+"global","sst",0.570805831355494,2012

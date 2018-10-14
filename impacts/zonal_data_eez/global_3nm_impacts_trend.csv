@@ -1,0 +1,15 @@
+"rgn_id","pressure","value"
+"global_3nm","art_fish",-0.000997463749924206
+"global_3nm","dem_dest",-0.000510127632478276
+"global_3nm","dem_nondest_lb",-0.000433576647240963
+"global_3nm","pel_lb",-5.72569873508177e-05
+"global_3nm","pel_hb",4.20908161762919e-05
+"global_3nm","dem_nondest_hb",0.000211986513243337
+"global_3nm","direct_human",0.000297449786094736
+"global_3nm","organic",0.00039028143282545
+"global_3nm","nutrient",0.000658859335714506
+"global_3nm","light",0.0012102344639952
+"global_3nm","shipping",0.00167880891487748
+"global_3nm","oa",0.00371627236684007
+"global_3nm","sst",0.0137224577866937
+"global_3nm","slr",0.0153089011359829

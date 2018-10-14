@@ -1,22 +1,22 @@
-tif_name,original_matrix_name,plot_name,plot_name2
-rky_intidal,Rocky Intertidal,rocky intertidal,intertidal habitats
-inttidalmud,Intertidal Mud,intertidal mud,intertidal habitats
-beach,Beach,beach,intertidal habitats
-mangroves,mangroves,mangrove,mangrove
-salt_marsh,Salt Marsh,salt marsh,intertidal habitats
-coral_reef,coral,coral reef,coral reef
-seagrass,seagrass,seagrass,seagrass
-kelp,Kelp Forest,kelp forest,kelp forest
-rocky_reef,h_0_to_60,rocky reef,rocky reef
-suspension_reef,Susp.-Feeder Reef,susp. feeder reef,intertidal habitats
-s_t_s_bottom,s_0_to_60,subtidal soft bottom,subtidal soft bottom
-ice,Ice,ice edge,ice edge
-soft_shelf,s_60_to_200,soft shelf (60-200m),soft shelf
-hard_shelf,h_60_to_200,hard shelf (60-200m),hard shelf
-soft_slope,s_200_to_2000,soft slope (200-2000m),soft slope
-hard_slope,h_200_to_2000,hard slope  (200-2000m),hard slope
-d_s_benthic,s_2000_p,deep soft benthic,deep soft benthic
-d_h_bottom,h_2000_p,deep hard bottom,deep hard bottom
-seamounts,seamounts,deep seamount,deep seamount
-surface_waters,pelagic,surface water,pelagic
-deep_waters,pelagic_deep,deep water,pelagic
+tif_name,original_matrix_name,plot_name,plot_name2,plot_name3
+rky_intidal,Rocky Intertidal,rocky intertidal,intertidal habitats,rocky intertidal
+inttidalmud,Intertidal Mud,intertidal mud,intertidal habitats,intertidal mud
+beach,Beach,beach,intertidal habitats,beach
+mangroves,mangroves,mangrove,mangrove,mangrove
+salt_marsh,Salt Marsh,salt marsh,intertidal habitats,salt marsh
+coral_reef,coral,coral reef,coral reef,coral reef
+seagrass,seagrass,seagrass,seagrass,seagrass
+kelp,Kelp Forest,kelp forest,kelp forest,kelp forest
+rocky_reef,h_0_to_60,rocky reef,rocky reef,rocky reef
+suspension_reef,Susp.-Feeder Reef,susp. feeder reef,intertidal habitats,susp. feeder reef
+s_t_s_bottom,s_0_to_60,subtidal soft bottom,subtidal soft bottom,subtidal soft bottom
+ice,Ice,ice edge,ice edge,ice edge
+soft_shelf,s_60_to_200,soft shelf (60-200m),soft shelf,soft shelf
+hard_shelf,h_60_to_200,hard shelf (60-200m),hard shelf,hard shelf
+soft_slope,s_200_to_2000,soft slope (200-2000m),soft slope,soft slope
+hard_slope,h_200_to_2000,hard slope (200-2000m),hard slope,hard slope
+d_s_benthic,s_2000_p,deep soft benthic,deep soft benthic,deep soft benthic
+d_h_bottom,h_2000_p,deep hard bottom,deep hard bottom,deep hard bottom
+seamounts,seamounts,deep seamount,deep seamount,deep seamount
+surface_waters,pelagic,surface water,pelagic,surface water
+deep_waters,pelagic_deep,deep water,pelagic,deep water

@@ -168,3 +168,36 @@ write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", hab), 
 }
 
 ```
+
+# impacts data
+
+```{r}
+
+files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
+
+files <- grep("2013", files, value=TRUE)
+files <- grep("benthic_str", files, value=TRUE, invert=TRUE)
+files <- grep("ice", files, value=TRUE, invert=TRUE)
+files <- grep("uv", files, value=TRUE, invert=TRUE)
+
+
+habitat_impacts <- parallel::mclapply(files, mc.cores=10,
+                                      FUN = function(x) { # x=files[30]
+
+     hab_pres <- basename(gsub(".tif", "", x))
+     hab_pres_raster <- raster::raster(x)
+     hab_pres_mean <- raster::cellStats(hab_pres_raster, stat="mean", na.rm=TRUE)
+     hab_pres_sd <- raster::cellStats(hab_pres_raster, stat="sd", na.rm=TRUE)
+     hab_pres_df <- data.frame(pressure_hab = hab_pres,
+                               mean = hab_pres_mean,
+                               sd = hab_pres_sd)                                    
+    return(hab_pres_df)                                    
+                                      })
+
+    habitat_impacts_df <- bind_rows(habitat_impacts) %>%
+      tidyr::separate(pressure_hab, c("impact", "habitat", "year"), sep="__")
+
+write.csv(habitat_impacts_df, "impacts/zonal_data_habitat/habitat_pressure_2013.csv", row.names=FALSE)
+
+```
+

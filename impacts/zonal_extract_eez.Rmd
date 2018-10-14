@@ -232,23 +232,178 @@ write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_3nm_trend.csv", row.nam
 ```
 
 
-## 3nm eez regions: impacts
+## 3nm eez regions: impact trend
 
 ```{r}
+
+rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/rgns_3nm_offshore_mol.tif"))
+plot(rgns_3nm)
+
+impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts"), full=TRUE)
+impact_trends_stack <- stack(impact_trends)
+
+trend_data <- zonal(impact_trends_stack, rgns_3nm, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-6)) %>%
+  inner_join(rgns_global, by="rgn_id")
+
+
+write.csv(trend_data_df, "impacts/zonal_data_eez/eez_3nm_impacts_trend.csv", row.names=FALSE)
+
+```
+
+## 3nm global: impact trend
+
+```{r}
+
+rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/rgns_3nm_offshore_mol.tif"))
+plot(rgns_3nm)
+
+rgns_3nm_global <- rgns_3nm
+
+rgns_3nm_global[!is.na(rgns_3nm_global)] <- 1
+
+impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts"), full=TRUE)
+impact_trends_stack <- stack(impact_trends)
+
+trend_data <- zonal(impact_trends_stack, rgns_3nm_global, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-6)) %>%
+  dplyr::mutate(rgn_id = "global_3nm") %>%
+  arrange(value)
+
+
+write.csv(trend_data_df, "impacts/zonal_data_eez/global_3nm_impacts_trend.csv", row.names=FALSE)
+
+```
+
+
+## 3nm global regions: impacts
+
+```{r}
+
+rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/rgns_3nm_offshore_mol.tif"))
+plot(rgns_3nm)
+
+rgns_3nm_global <- rgns_3nm
+
+rgns_3nm_global[!is.na(rgns_3nm_global)] <- 1
+
 impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
                            pattern = ".tif", full="TRUE")
 
-impact_stack <- stack(impact_files)
+registerDoParallel(3)
 
-impact_data <- raster::zonal(impact_stack, rgns_3nm, fun="mean", progress="text", na.rm=TRUE)
+foreach (year = 2003:2013) %dopar%{ # year = 2003
+for(year in 2003:2013){
+    
+impact_year_files <- grep(year, impact_files, value=TRUE)
+
+impact_stack <- raster::stack(impact_year_files)
+
+impact_data <- raster::zonal(impact_stack, rgns_3nm_global, fun="mean", progress="text", na.rm=TRUE)
 
 impact_data_df <- data.frame(impact_data) %>%
   tidyr::gather("pressure", "value", -1) %>%
   dplyr::rename("rgn_id" = zone) %>%
   dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
   dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::mutate(rgn_id = "global_3nm") %>%
+  dplyr::arrange(value)
+
+write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/global_3nm_%s_impacts.csv", year), row.names=FALSE)
+
+}
+
+```
+
+## Global: impact and chi trends
+
+```{r}
+
+global <- ocean
+plot(global)
+
+impact_trends <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts"), full=TRUE)
+chi_trend <- file.path(dir_M, "git-annex/impact_acceleration/impact/trend/chi_slope.tif")
+trend <- stack(c(impact_trends, chi_trend))
+
+trend_data <- zonal(trend, global, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  rename("ocean" = zone) %>%
+  gather("impact", "value", -1) %>%
+  arrange(value)
+
+write.csv(trend_data_df, "impacts/zonal_data_eez/global_impacts_trend.csv", row.names=FALSE)
+
+```
+
+## Global: impacts
+
+```{r}
+
+global <- ocean
+plot(global)
+
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
+
+impact_files <- impact_files[-(grep("uv", impact_files))]
+impact_files <- impact_files[-(grep("benthic_str", impact_files))]
+
+registerDoParallel(3)
+
+foreach (year = 2003:2013) %dopar%{ # year = 2003
+for(year in 2003:2013){
+    
+impact_year_files <- grep(year, impact_files, value=TRUE)
+
+impact_stack <- raster::stack(impact_year_files)
+
+impact_data <- raster::zonal(impact_stack, global, fun="mean", progress="text", na.rm=TRUE)
+
+impact_data_df <- data.frame(impact_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn_id" = zone) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_sub(pressure, -4,-1))) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::mutate(rgn_id = "global") %>%
+  dplyr::arrange(value)
+
+write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/global_%s_impacts.csv", year), row.names=FALSE)
+
+}
+
+```
+
+### Global: CHI
+
+```{r}
+
+global <- ocean
+### chi
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE,
+                  pattern = "chi")
+
+chi_stack <- stack(chi)
+
+chi_data <- zonal(chi_stack, global, fun="mean", progress="text", na.rm=TRUE)
+
+chi_data_df <- data.frame(chi_data) %>%
+  gather("pressure", "value", -1) %>%
+  rename("rgn_id" = zone) %>%
+  mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
+  mutate(pressure = "chi") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(impact_data_df, "impacts/zonal_data_eez/eez_3nm_impacts.csv", row.names=FALSE)
+write.csv(chi_data_df, "impacts/zonal_data_eez/global_chi.csv", row.names=FALSE)
+
 
 ```
