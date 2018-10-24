@@ -398,10 +398,10 @@ chi_data <- zonal(chi_stack, global, fun="mean", progress="text", na.rm=TRUE)
 
 chi_data_df <- data.frame(chi_data) %>%
   gather("pressure", "value", -1) %>%
-  rename("rgn_id" = zone) %>%
+  rename("rgn" = zone) %>%
   mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
   mutate(pressure = "chi") %>%
-  inner_join(rgns_global, by="rgn_id")
+  mutate(rgn = "global")
 
 write.csv(chi_data_df, "impacts/zonal_data_eez/global_chi.csv", row.names=FALSE)
 
