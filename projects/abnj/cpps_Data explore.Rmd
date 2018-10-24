@@ -1,0 +1,881 @@
+---
+title: 'Figures for Eastern Tropical Pacific: High Seas'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
+
+#libraries
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(rgdal)
+library(sf)
+library(fields)
+library(cowplot)
+library(ggplot2)
+library(here)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+regions_shape <- spTransform(regions_shape, CRS("+init=epsg:4326"))
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+land_wgs <- spTransform(land, CRS("+init=epsg:4326"))
+```
+
+
+# Eastern Tropical Pacific
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+## Get the region maps from gdb file
+
+fgdb <- "projects/abnj/spatial/CPPS_NC_Pilot_Regions.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(fgdb)
+print(fc_list)
+
+# Read the feature class and convert to mollweide for viewing
+cpps <- readOGR(dsn=fgdb, layer="cpps")
+cpps <- cpps[cpps$type == "ABNJ", ]
+
+png("projects/abnj/figures/ben_cpps_Oct19_2018/latlong_global_cpps.png", res=500, width=7, height=5, units="in")
+par(mar=c(1,1,1,1)) # bottom, left, top, and right
+par(oma=c(0,0,0,0))
+
+plot(regions_shape, col='#e3e7ea', border=NA)
+plot(land_wgs, col='gray85', border='grey80', add=TRUE, lwd=0.5)
+plot(cpps, col="red", border="red", add=TRUE)
+dev.off()
+
+
+# # make a mollweide version for figure showing region location
+# cpps_mol <- spTransform(cpps, CRS(proj4string(regions_shape)))
+# cpps_mol <- cpps_mol[cpps_mol$type == "ABNJ", ]
+# writeOGR(cpps_mol, "projects/abnj/spatial", "cpps_mol", driver="ESRI Shapefile")
+# rgn_area <- readOGR("projects/abnj/spatial", "cpps_mol")
+# 
+# png("projects/abnj/figures/global_cpps.png", res=500, width=7, height=4, units="in")
+# par(mar=c(2,2,2,2)) # bottom, left, top, and right
+# par(oma=c(0,0,0,0))
+# 
+# plot(regions_shape, col='#e3e7ea', border=NA)
+# plot(land, col='gray85', border='grey80', add=TRUE, lwd=0.5)
+# plot(rgn_area, col="red", border="red", add=TRUE)
+# dev.off()
+
+
+
+```
+
+![](figures/ben_cpps_Oct19_2018/latlong_global_cpps.png)
+## Make a raster of crop region
+```{r}
+
+chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/chi_lat_long_2013.tif"))
+cpps_extent <- extent(cpps)+20
+
+cpps_crop <- crop(chi, cpps_extent)
+cpps_raster <- rasterize(cpps, cpps_crop, progress="text", 
+                         filename=file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+
+test <- mask(cpps_crop, cpps_raster)
+
+```
+
+
+# Human impacts summary
+
+# Data
+
+## Cumulative Human Impacts (2013)
+
+# Arguments for CHI maps
+```{r, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) 
+chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/chi_lat_long_2013.tif"))
+
+```
+
+
+# Make the global map
+
+```{r}
+
+
+raster_breaks <- function(raster_data, myBreaks, cols, filename, title, title_legend=""){
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", filename), res=600, width=7, height=4, units="in")  
+  par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE)
+  title(main=list(title, cex=1.2), line=0)
+# add axis with fields package function:
+def_breaks <- seq(0, length(myBreaks), length.out=length(myBreaks))
+fields::image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
+           legend.only = TRUE, 
+           legend.shrink=legend.shrink,
+           legend.width=legend.width,
+           col = cols,
+           legend.lab=title_legend,
+            breaks=def_breaks,
+           lab.breaks=c(0, NA, 0.2, NA, 0.6, NA, 1, NA, 1.5, NA, 2, NA, 3, NA, 4.0, NA, ">5"),
+           axis.args = list(cex.axis = 0.6))
+
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+dev.off()
+}
+
+legend.shrink <- 0.7
+legend.width <- 0.6
+
+raster_breaks(raster_data=chi,
+              myBreaks=my_breaks, cols=cols, filename="chi_global", title="Cumulative human impact",
+              title_legend="")
+
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+
+## mollweide extents...save in case we use these again
+#cpps_extent <- extent(-12500000, -4051410, -7000000, 1397378)
+cpps_extent <- extent(cpps)+20
+
+raster_breaks <- function(raster_data, rgn_shape, crop_rgn, myBreaks, cols, filename){
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", filename), res=600, width=5, height=4, units="in")  
+
+master <- raster_data
+master_crop <- crop(master, crop_rgn)
+
+# save cropped file as tif
+writeRaster(master_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/%s.tif", filename)))
+# save a 2nd version of cropped file as tif
+cpps_raster <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+mask(master_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_%s.tif", filename)))
+
+check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_chi_cpps.tif"))
+
+  
+# plot parameters:   
+  plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]))
+  par(mar=c(1,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+# plot the data
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  breaks=myBreaks, legend=FALSE, add=TRUE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+
+dev.off()
+}
+
+
+
+raster_breaks(raster_data=chi,  rgn_shape=cpps, crop_rgn=cpps_extent,
+              myBreaks=my_breaks, cols=cols, filename="chi_cpps")
+
+
+```
+
+# Putting together
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+global_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/chi_global.png"))
+
+plot_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/chi_cpps.png"))
+
+plot_grid(global_rgn, plot_rgn, ncol=1, labels=c("", ""))
+
+ggsave("projects/abnj/figures/ben_cpps_Oct19_2018/Cumulative_human_impact.png", dpi=300, width=5, height=5, units=c("in"))
+
+```
+
+## Change in Cumulative Human Impacts
+
+# Arguments for trend maps
+```{r}
+
+slope <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/slope_lat_long.tif"))
+#overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'))
+
+sig_overlay <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/sig_overlay_lat_long.tif"))
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#A6DBA4", "#7ECBA4", "#59B4AA", "#3B92B8", "#4470B1", "#5E4FA2"))(254)) # 
+
+
+```
+
+# Make the global map
+
+```{r}
+
+
+raster_breaks <- function(raster_data, cols, filename, title){
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", filename), res=600, width=7, height=4, units="in")  
+  par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+  
+  
+plot(raster_data, col=cols, axes=FALSE, box=FALSE, legend=FALSE)
+plot(sig_overlay, add=TRUE, col="white", legend=FALSE, box=FALSE)
+  
+  title(main=list(title, cex=1.2), line=0)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(raster_data, legend.only=TRUE, legend.shrink=.7, legend.width=.5, col=cols, axis.args = list(cex.axis = 0.6))
+dev.off()
+}
+
+legend.shrink <- 0.7
+legend.width <- 0.6
+
+raster_breaks(raster_data=slope,
+              cols=cols, filename="trend_global_v2", title="Yearly change in cumulative human impact")
+
+```
+
+
+# Make regional map
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+
+region_plot <- function(raster_data, rgn_shape, crop_rgn, filename, cols){
+
+## crop region
+master_crop <- crop(raster_data, crop_rgn)
+
+# save cropped file as tif
+writeRaster(master_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/%s.tif", filename)))
+# save a 2nd version of cropped file as tif
+cpps_raster <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+mask(master_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_%s.tif", filename)))
+# check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_trend_cpps.tif"))
+# plot(check)
+# save cropped version of overlay as well:
+sig_crop <- crop(sig_overlay, crop_rgn)
+writeRaster(sig_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/sig_%s.tif", filename)))
+# save a 2nd version of cropped file as tif
+mask(sig_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_sig_%s.tif", filename)))
+# check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_sig_trend_cpps.tif"))
+# plot(check)
+
+
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", filename), 
+    res=500, width=5, height=4, units="in")  
+  par(mar=c(1,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  
+     breaks=seq(minValue(raster_data),
+                  maxValue(raster_data), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(sig_overlay, add=TRUE, col="white", legend=FALSE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+
+region_plot(raster_data=slope, crop_rgn=cpps_extent, rgn_shape=cpps,  filename="trend_cpps_v2", cols=cols)
+filename="trend_cpps"
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+global_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/trend_global.png"))
+
+plot_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/trend_cpps.png"))
+
+plot_grid(global_rgn, plot_rgn, ncol=1, labels=c("", ""))
+
+ggsave("projects/abnj/figures/ben_cpps_Oct19_2018/Trend_cumulative_human_impact.png", dpi=300, width=5, height=5, units=c("in"))
+
+## 2nd version with non-sig trend as white
+global_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/trend_global_v2.png"))
+
+plot_rgn <- ggdraw() + draw_image(here("projects/abnj/figures/ben_cpps_Oct19_2018_int/trend_cpps_v2.png"))
+
+plot_grid(global_rgn, plot_rgn, ncol=1, labels=c("", ""))
+
+ggsave("projects/abnj/figures/ben_cpps_Oct19_2018/Trend_cumulative_human_impact_v2.png", dpi=300, width=5, height=5, units=c("in"))
+
+```
+
+
+
+## Impact contributions
+The following impacts are not included because they had no impact on this region:
+
+* artisanal fishing
+* direct human
+* land-based nutrient pollution 
+* land-based organic pollution
+* light pollution
+
+## get data
+(NOTE: This should be in mollweide)
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+# create raster of cpps region
+cpps_raster <- readOGR("projects/abnj/spatial", "cpps_mol")
+rasterize(cpps_mol, 
+          raster("/home/shares/ohi/git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"), 
+          filename = file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_mol.tif"), progress="text")
+
+
+# Get chi/impact files for 2013
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE,
+                  pattern="chi")
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
+
+impacts <- c(chi, impact_files)
+impacts_2013 <- grep("2013", impacts, value=TRUE) 
+impacts_2013 <- grep("uv|benthic_str", impacts_2013, value=TRUE, invert=TRUE)
+
+impact_stack <- stack(impacts_2013)
+
+## Extract and format data
+
+cpps_mol_tif <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_mol.tif"))
+
+impact_data <- raster::zonal(impact_stack, cpps_mol_tif, fun="mean", progress="text", na.rm=TRUE)
+
+impact_data_df <- data.frame(impact_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("rgn" = zone) %>%
+  dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
+  dplyr::mutate(rgn = "cpps_highseas") %>%
+  arrange(value)
+
+write.csv(impact_data_df, "projects/abnj/cpps_impacts.csv", row.names=FALSE)
+
+
+```
+
+# Figure showing relative contribution of different impacts in the region
+
+## Get relevant data
+```{r}
+
+pacific <- read.csv("projects/abnj/cpps_impacts.csv") 
+
+# global values:
+global_chi <- read.csv("impacts/zonal_data_eez/global_chi.csv") %>%
+  filter(year==2013) %>%
+  dplyr::select(rgn, pressure, value)
+  
+global <- read.csv("impacts/zonal_data_eez/global_2013_impacts.csv") %>%
+  dplyr::select(rgn=rgn_id, pressure, value) %>%
+  filter(pressure != "benthic_str") %>%
+  bind_rows(global_chi)
+
+
+impacts <- bind_rows(pacific, global)
+
+
+```
+
+## Some details for plotting
+
+```{r}
+
+library(beyonce)
+
+impact_name <- data.frame(pressure = c("sst", "oa", "slr", 
+                                                  "shipping",
+                                                  "nutrient", "organic", "direct_human", "light",
+                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                                  "dem_nondest_lb", "art_fish"),
+                            impact_name = c("sst", "oa", "slr", 
+                                              "shipping", 
+                                              "nutrient pollution", "organic pollution", "direct human", "light pollution",
+                                              "fish: pel hb", "fish: pel lb", "fish: dem dest", 
+                                              "fish: dem nondest hb", "fish: dem nondest lb",
+                                              "artisanal fishing"),
+                          impact_category = c(rep("climate change", 3), "shipping",
+                                              rep("land-based", 4), rep("fishing", 6)))
+
+impacts_plot <- impacts %>%
+  left_join(impact_name) %>%
+  arrange(rgn, value)
+
+impacts_plot$impact_name <- factor(impacts_plot$impact_name, levels=rev(impacts_plot$impact_name[impacts_plot$rgn == "cpps_highseas"]))
+impacts_plot$impact_category <- factor(impacts_plot$impact_category, 
+                                       levels=c("climate change", "shipping", "fishing", "land-based"))
+
+
+
+```
+
+## Create the plot!
+```{r}
+
+library(ggplot2)
+
+ggplot(filter(impacts_plot, rgn=="cpps_highseas" & pressure != "chi"), aes(x=impact_name, y=value, fill=impact_category)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values = beyonce_palette(129), name="impact\ncategory") +
+  ylab("impact") +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1),
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.title.x=element_blank()) +
+  geom_point(data=filter(impacts_plot, rgn=="global" & pressure != "chi"), 
+             aes(x=impact_name, y=value, color=impact_category), shape = "-", size=7, inherit.aes = FALSE) +
+  scale_color_manual(values = beyonce_palette(129), name="impact\ncategory", guide=FALSE) 
+
+
+ggsave("projects/abnj/figures/impacts_bar_plot.png", width=10, height=5, dpi=300)
+```
+
+
+### Climate change
+Global images.
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+# create climate change rasters
+
+sst <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_sst_2013.tif"))
+
+# all values scaled to sst
+cc_plot_function <- function(cc_rast, cols=cols, title = "", saveFile){
+
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=7, height=4, units="in")  
+  par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(cc_rast, col=cols,  
+     breaks=c(-.1, seq(minValue(sst),
+                  maxValue(sst), length.out=254)), 
+     legend=FALSE, axes=FALSE, box=FALSE)
+
+  title(main=list(title, cex=1.2), line=0)
+
+  plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(sst, legend.only=TRUE, legend.shrink=.7, legend.width=.5, col=cols, axis.args = list(cex.axis = 0.6))
+  dev.off()
+}
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(254))
+
+sst <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_sst_2013.tif"))
+cc_plot_function(cc_rast=sst, cols=cols, saveFile="sst_global", title="Sea surface temperature")
+
+oa <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_oa_2013.tif"))
+cc_plot_function(cc_rast=oa, cols=cols, saveFile="oa_global", title="Ocean acidification")
+
+
+# Adding white for regions that this doesn't apply
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(253))
+cols_white <- c("#f7f7f7", cols) # (254) should be (253)
+slr <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_slr_2013.tif"))
+cc_plot_function(cc_rast=slr, cols=cols_white, saveFile="slr_global", title = "Sea level rise")
+
+```
+
+Climate change zoom
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+
+# climate change region maps
+cc_region_plot <- function(raster_data, rgn_shape, crop_rgn, saveFile, cols){
+
+## crop region
+cc_crop <- crop(raster_data, crop_rgn)
+
+## Save rasters of files
+writeRaster(cc_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/%s.tif", saveFile)), overwrite=TRUE)
+# save a 2nd version of cropped file as tif
+cpps_raster <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+mask(cc_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_%s.tif", saveFile)), overwrite=TRUE)
+# check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_sst_cpps.tif"))
+# plot(check)
+
+
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=5, height=4, units="in")  
+  par(mar=c(1,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(cc_crop, col=cols,  
+     breaks=seq(minValue(sst),
+                  maxValue(sst), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(254))
+
+cc_region_plot(raster_data=sst, crop_rgn=cpps_extent, rgn_shape=cpps, saveFile="sst_cpps", cols=cols)
+
+cc_region_plot(raster_data=oa, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="oa_cpps", cols=cols)
+
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(253))
+cols_white <- c("#f7f7f7", cols) # (254) should be (253)
+
+cc_region_plot(raster_data=slr, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="slr_cpps", cols=cols_white)
+
+
+```
+
+#### Combine climate change plots
+
+# function
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+global_region_plot <- function(global_fig, cpps_fig, filename){
+
+  global_rgn <- ggdraw() + draw_image(here(
+  sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", global_fig)))
+
+plot_rgn <- ggdraw() + draw_image(here(
+  sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png", cpps_fig)))
+
+plot_grid(global_rgn, plot_rgn, ncol=1, labels=c("", ""))
+
+ggsave(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018/%s.png", filename), dpi=300, width=5, height=5, units=c("in"))
+}
+
+```
+
+## Combine
+```{r}
+global_region_plot(global_fig = "sst_global", cpps_fig="sst_cpps", filename="SST")
+
+global_region_plot(global_fig = "oa_global", cpps_fig="oa_cpps", filename="OA")
+
+global_region_plot(global_fig = "slr_global", cpps_fig="slr_cpps", filename="SLR")
+
+```
+
+### Shipping
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+# create shipping raster
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(254))
+
+shipping <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_shipping_2013.tif"))
+
+ship_plot_function <- function(ship_rast, cols=cols, saveFile, title=""){
+  #cc_rast=sst
+  #saveFile="sst_global"
+  # cols=cols
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=7, height=4, units="in")  
+  par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(ship_rast, col=cols,  
+     breaks=c(-.1, seq(minValue(shipping),
+                  maxValue(shipping), length.out=254)), 
+     legend=FALSE, axes=FALSE, box=FALSE)
+  title(main=list(title, cex=1.2), line=0)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(ship_rast, legend.only=TRUE, legend.shrink=.7, legend.width=.5, col=cols, axis.args = list(cex.axis = 0.6))
+  dev.off()
+}
+
+shipping <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_shipping_2013.tif"))
+ship_plot_function(ship_rast=shipping, cols=cols, title = "Shipping", saveFile="shipping_global")
+
+
+```
+
+# Get regional shipping data
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+
+ship_region_plot <- function(raster_data, rgn_shape, crop_rgn, saveFile, cols){
+
+## crop region
+cc_crop <- crop(raster_data, crop_rgn)
+
+## Save rasters of files
+writeRaster(cc_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/%s.tif", saveFile)), overwrite=TRUE)
+# save a 2nd version of cropped file as tif
+cpps_raster <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+mask(cc_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_%s.tif", saveFile)), overwrite=TRUE)
+# check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_sst_cpps.tif"))
+# plot(check)
+
+
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=5, height=4, units="in")  
+  par(mar=c(1,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(cc_crop, col=cols,  
+     breaks=seq(minValue(shipping),
+                  maxValue(shipping), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+ship_region_plot(raster_data=shipping, crop_rgn=cpps_extent, rgn_shape=cpps, saveFile="shipping_cpps", cols=cols)
+
+
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+
+global_region_plot(global_fig = "shipping_global", cpps_fig="shipping_cpps", filename="Shipping")
+
+```
+
+### Fishing
+
+# Calculate logged version of the data
+```{r}
+## Also display logged data (fishing only)
+
+fish_rasters <- c(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_dest_2013.tif"),
+                file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_nondest_hb_2013.tif"),
+                file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_nondest_lb_2013.tif"),
+                file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_pel_hb_2013.tif"),
+                file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_pel_lb_2013.tif"))
+
+
+
+for(fis_rast in fish_rasters){ # fis_rast = fish_rasters[1]
+
+    file_name = paste("ln", basename(fis_rast), sep="_")
+
+    fun <- function(x){log(x + 1)}
+
+    calc(raster(fis_rast), fun, 
+         filename=file.path(dir_M, 
+                  sprintf("git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/%s", file_name)), overwrite=TRUE, progress="text")
+}
+
+check <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_dem_dest_2013.tif"))
+
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+# prepare fishing rasters
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(254))
+
+
+# figure out biggest values among fishing rasters
+
+dd <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_dest_2013.tif"))
+dnd_hb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_nondest_hb_2013.tif"))
+dnd_lb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_dem_nondest_lb_2013.tif"))
+pel_hb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_pel_hb_2013.tif"))
+pel_lb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/latlong_pel_lb_2013.tif"))
+
+# all scaled to demersal non destructive high bycatch
+fish_plot_function <- function(fis_rast, cols=cols, title="", saveFile){
+  #cc_rast=sst
+  #saveFile="sst_global"
+  # cols=cols
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=7, height=4, units="in")  
+  par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(fis_rast, col=cols,  
+     breaks=c(seq(minValue(dnd_hb),
+                  maxValue(dnd_hb), length.out=254)), 
+     legend=FALSE, axes=FALSE, box=FALSE)
+
+title(main=list(title, cex=1.2), line=0)
+
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(dnd_hb, legend.only=TRUE, legend.shrink=.7, legend.width=.5, col=cols, axis.args = list(cex.axis = 0.6))
+  dev.off()
+}
+
+fish_plot_function(fis_rast=dd, cols=cols, saveFile="fis_dd_global", title="Fishing: demersal destructive")
+
+fish_plot_function(fis_rast=dnd_hb, cols=cols, saveFile="fis_dnd_hb_global", title = "Fishing: demersal nondestructive high bycatch")
+
+fish_plot_function(fis_rast=dnd_lb, cols=cols, saveFile="fis_dnd_lb_global", title="Fishing: demersal nondestructive low bycatch")
+
+fish_plot_function(fis_rast=pel_hb, cols=cols, saveFile="fis_pel_hb_global", title="Fishing: pelagic high bycatch")
+
+fish_plot_function(fis_rast=pel_lb, cols=cols, saveFile="fis_pel_lb_global", title = "Fishing: pelagic low bycatch")
+
+
+```
+
+# Fisheries region zoom
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+fish_region_plot <- function(raster_data, rgn_shape, crop_rgn, saveFile, cols){
+
+## crop region
+cc_crop <- crop(raster_data, crop_rgn)
+
+## Save rasters of files
+writeRaster(cc_crop, file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/%s.tif", saveFile)), overwrite=TRUE)
+# save a 2nd version of cropped file as tif
+cpps_raster <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/spatial/cpps_latlong_raster.tif"))
+mask(cc_crop, cpps_raster, 
+     file.path(dir_M, sprintf("git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_%s.tif", saveFile)), overwrite=TRUE)
+# check <- raster(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files/rgn_only_sst_cpps.tif"))
+# plot(check)
+
+
+png(sprintf("projects/abnj/figures/ben_cpps_Oct19_2018_int/%s.png",  saveFile), 
+    res=500, width=5, height=4, units="in")  
+  par(mar=c(1,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(cc_crop, col=cols,  
+     breaks=seq(minValue(dnd_hb),
+                  maxValue(dnd_hb), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+fish_region_plot(raster_data=dd, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="dd_cpps", cols=cols)
+
+fish_region_plot(raster_data=dnd_hb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="dnd_hb_cpps", cols=cols)
+
+fish_region_plot(raster_data=dnd_lb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="dnd_lb_cpps", cols=cols)
+
+fish_region_plot(raster_data=pel_hb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="pel_hb_cpps", cols=cols)
+
+fish_region_plot(raster_data=pel_lb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="pel_lb_cpps", cols=cols)
+
+
+```
+
+#### Make combined figs
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+global_region_plot(global_fig = "fis_dd_global", cpps_fig="dd_cpps", filename="fish_dd")
+
+global_region_plot(global_fig = "fis_dnd_hb_global", cpps_fig="dnd_hb_cpps", filename="fish_ndd_hb")
+
+global_region_plot(global_fig = "fis_dnd_lb_global", cpps_fig="dnd_lb_cpps", filename="fish_ndd_lb")
+
+global_region_plot(global_fig = "fis_pel_hb_global", cpps_fig="pel_hb_cpps", filename="fish_pel_hb")
+
+global_region_plot(global_fig = "fis_pel_lb_global", cpps_fig="pel_lb_cpps", filename="fish_pel_lb")
+
+```
+
+# Logged version of fisheries pressures
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+# prepare fishing rasters
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#7ECBA4", "#3B92B8"))(254))
+
+
+
+dd <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_dem_dest_2013.tif"))
+dnd_hb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_dem_nondest_hb_2013.tif"))
+dnd_lb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_dem_nondest_lb_2013.tif"))
+pel_hb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_pel_hb_2013.tif"))
+pel_lb <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/impacts_lat_long/log_latlong/ln_latlong_pel_lb_2013.tif"))
+
+# all scaled to demersal non destructive high bycatch
+
+fish_plot_function(fis_rast=dd, cols=cols, saveFile="log_fis_dd_global", title="Fishing: demersal destructive (log)")
+
+fish_plot_function(fis_rast=dnd_hb, cols=cols, saveFile="log_fis_dnd_hb_global", title = "Fishing: demersal nondestructive high bycatch (log)")
+
+fish_plot_function(fis_rast=dnd_lb, cols=cols, saveFile="log_fis_dnd_lb_global", title="Fishing: demersal nondestructive low bycatch (log)")
+
+fish_plot_function(fis_rast=pel_hb, cols=cols, saveFile="log_fis_pel_hb_global", title="Fishing: pelagic high bycatch (log)")
+
+fish_plot_function(fis_rast=pel_lb, cols=cols, saveFile="log_fis_pel_lb_global", title = "Fishing: pelagic low bycatch (log)")
+
+
+```
+
+# Fisheries region zoom
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+fish_region_plot(raster_data=dd, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="log_dd_cpps", cols=cols)
+
+fish_region_plot(raster_data=dnd_hb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="log_dnd_hb_cpps", cols=cols)
+
+fish_region_plot(raster_data=dnd_lb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="log_dnd_lb_cpps", cols=cols)
+
+fish_region_plot(raster_data=pel_hb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="log_pel_hb_cpps", cols=cols)
+
+fish_region_plot(raster_data=pel_lb, crop_rgn=cpps_extent, rgn_shape=cpps,  saveFile="log_pel_lb_cpps", cols=cols)
+
+
+```
+
+#### Make combined figs
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+global_region_plot(global_fig = "log_fis_dd_global", cpps_fig="log_dd_cpps", filename="log_fish_dd")
+
+global_region_plot(global_fig = "log_fis_dnd_hb_global", cpps_fig="log_dnd_hb_cpps", filename="log_fish_ndd_hb")
+
+global_region_plot(global_fig = "log_fis_dnd_lb_global", cpps_fig="log_dnd_lb_cpps", filename="log_fish_ndd_lb")
+
+global_region_plot(global_fig = "log_fis_pel_hb_global", cpps_fig="log_pel_hb_cpps", filename="log_fish_pel_hb")
+
+global_region_plot(global_fig = "log_fis_pel_lb_global", cpps_fig="log_pel_lb_cpps", filename="log_fish_pel_lb")
+
+```
