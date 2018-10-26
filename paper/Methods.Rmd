@@ -1,0 +1,168 @@
+---
+title: 'Methods for cumulative impacts and their rate of change'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+We calculated and mapped global cumulative impacts on global marine ecosystems during an 11 year period from 2003 to 2013.  The cumulative impact is calculated using 14 stressors from 4 general categories: fishing (commercial and artisanal), climate change, and ocean- and land-based stressors.  
+
+We also describe: (1) how cumulative impacts are changing over time; and, (2) how the 14 stressor impacts contribute to spatial patterns and trends of cumulative human impact.   
+
+For more information about methods see Halpern et al. [2008](http://science.sciencemag.org/content/319/5865/948) and [2015](https://www.nature.com/articles/ncomms8615). 
+
+## General model
+We measure cumulative impact $I_{c}$ at a ~1km resolution, using the following information:
+
+1. Stressor rasters describe the magnitude of each of 14 stressors on a scale of 0-1 (1 is highest relative stress). 
+2. Habitat rasters describe the location (1 if present, otherwise NA) of 21 global marine ecosystem types.
+3. Vulnerability matrix describes the vulnerability of each habitat to each stressor.  Vulnerability is a value from 1-3.
+
+Impacts are calculated as:
+
+1. For every stressor/habitat combination, multiply stressor, $D_{j}$, and habitat, $E_{i}$, rasters and  corresponding vulnerability, $mu _{ij}$.
+2. Average impact of each stressor, $I_{s}$ is calculated by summing the stressor x habitat x vulnerability rasters for all habitats and then dividing by the number of habitats ($m$) in each cell:
+
+$$I_{s} = 
+{\frac{1}{m} \sum\limits_{i=1}^{m}{D_{j} \times E_{i} \times} \mu _{ij}}$$
+
+
+
+3. The Cumulative Impact, $I_{c}$, is calculated by summing the stressor impact rasters:
+$$I_{c} = 
+{\sum\limits_{i=1}^{m}{I_{s}}}$$
+
+## Stressors
+We include stressors from 4 primary categories:
+
+* Fishing: commercial demersal destructive, commercial demersal nondestructive high bycatch, commercial demersal nondestructive low bycatch, pelagic high bycatch, pelagic low bycatch, artisanal
+* Climate change: sea surface temperature, ocean acidification, sea level rise
+* Ocean: shipping
+* Land-based: nutrient pollution, organic chemical pollution, direct human, light
+
+Stressors are rescaled to have values between 0-1.  In most cases, this is acheived by dividing the values from the 99.99th quantile across raster cells and times (values are capped to a maximum value of 1). We rescaled data in this way to ensure comparability across time periods (that is, using the same reference point across time). Rescaling allows for direct comparison among drivers with dramatically different units of measurement.
+
+#### Stressors: general description
+##### Fishing
+
+*Commercial fishing (5 stressors)*
+
+Commercial fishing stressors are determined for 5 broad categories of fisheries based on gear type: demersal destructive (e.g., bottom trawl), demersal non-destructive high bycatch (e.g., pots, traps), demersal non-destructive low bycatch (e.g., hook and line), pelagic high bycatch (e.g., long-line), and pelagic low bycatch (e.g., hook and line).  The stressor was calculated using annual wild caught fisheries catch by gear type data at 0.5&deg; resolution (Watson 2017).
+
+Catch (landings) data are only a proxy for the potential stress of fishing on marine ecosystems because it is the effort to land the catch that determines stress. For example, an area with low fish densities would have to be trawled many more times to harvest an equal catch to an area with higher fish densities. To attempt to control for this issue, we standardize catch by Net Primary Productivity (Behrenfeld and Falkowski 1997). 
+
+*Artisanal fishing*
+
+The artisanal fishing stressor is based on small scale fisheries.  Small scale fisheries catch data were obtained at 0.5&deg; (Watson 2017). Otherwise, the methods are the same as those described for commercial fisheries.
+
+##### Climate change
+
+*Sea surface temperature*
+
+The sea surface temperature (SST) stressor describes the frequency of extreme temperature events.  The data were obtained from version 5 of the Coral Reef Temperature Anomaly Database (CoRTAD) These data are a product of the NOAA National Oceanographic Data Center, produced using Advanced Very High Resolution Radiometer (AVHRR) Pathfinder Version 5.2 SST data (www.nodc.noaa.gov/SatelliteData/CoRTAD). 
+
+The number of extreme SST weeks during a five year period is subtracted from the number of extreme SST weeks during a five year reference period (1985-1989). An extreme week was defined as one that exceeds the standard deviation (SD) of SSTs from the climatology for that location (i.e., grid cell) and week of the year, calculated across all years of data (1982-2012). Extreme events were calculated in only the positive (warming) direction.
+
+Some of the local-scale changes in SST anomalies could be due to natural variation and not a consequence of long-term human induced climate change. 
+
+*Ocean acidification*
+
+The ocean acidification stressor describes the magnitude of decreasing aragonite saturation state ($\Omega_{arag}$)(Feely et al. 2009) due to increasing atmospheric CO~2~ levels from human influences. When values are $\leq$ 1, the threshold at which seawater becomes undersaturated, the pressure is classified as 1.  For values >1, rescaling is based on the change in saturation relative to the reference period (average from 1880-1889). 
+
+*Sea level rise*
+
+The sea level rise stressor describes the magnitude of increasing sea level (mm) due to loss of sea ice.  The data are derived from satellite altimetry data  ([http://www.aviso.altimetry.fr/en/data/products/sea-surface-height-products/global/msla-mean-climatology.html](http://www.aviso.altimetry.fr/en/data/products/sea-surface-height-products/global/msla-mean-climatology.html)) at a 0.25x0.25&deg; resolution. Monthly mean sea level anomalies were defined as meters above mean sea level, with mean sea level calculated using a reference period from 1993-2012.  Monthly values were averaged across pixels to get annual sea level rise anomalies. A running 5 year mean of annual data was used to smooth large yearly variation. All negative values were set to zero (i.e., no negative pressure), such that only positive sea level rise values are considered.
+
+##### Ocean-based
+
+*Shipping*
+
+Shipping describes intensity of shipping traffic throughout the ocean.  We used two sources of data to derive these data.  First we used a high resolution (0.1&deg;) baseline map of vessel traffic obtained using data from the the Volunteer Observing System (VOS) and Automatic Identification System (AIS) (data from Halpern et al. 2015).  These data combine several years of shipping data, but most is from 2011. Second, to estimate change over time, we used Tournadre (2018) data with annual ship densities at 1 x 2&deg; resolution.  We only use the Tournadre data to derive the correction factor because the data has relatively low resolution and is stochastic.
+
+Both datasets were resampled to ~1km grid cells (using nearest neighbor estimates of cell values).  Yearly shipping data from Tournadre is used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).  To control for stochasticity of these data we averaged 3 year time periods for each year.
+
+We then multipled the baseline shipping raster (Halpern et al. 2015) with each of the rasters describing the proportional change in shipping.  
+
+Data were ln(x+1) transformed.
+
+
+##### Land-based
+
+*Nutrient pollution*
+
+The nutrient pollution stresor describes the amount of nutrient pollution from land-based applications and run-off.  We used fertilizer data as a proxy for general nutrient pollution. Country level fertilizer use data is available from FAO.  We estimated missing fertilizer values using a linear regression model with pesticides as a predictor when available, and, agricultural GDP when unavailable. The country-level average fertilizer values were then dasymetrically distributed over a country’s landscape using global land cover data from 2009, derived from the Moderate Resolution imaging Spectroradiometer (MODIS) instrument at ~500m resolution. These values were then aggregated by ~140,000 global basins, and diffusive plumes were modeled from each basin’s pourpoint. The final non-zero plumes (about ~76,000) were aggregated into ~1km^2^ rasters in the Mollweide projection (WGS1984 datum) to produce a single plume aggregated pollution raster. These raw values were then ln(x+1) transformed and normalized to 0-1.
+
+*Organic chemical pollution*
+
+The organic chemical pollution stressor describes the amount of organic chemical pollution from land-based applications and run-off.  We use FAO data describing country-level pesticide use as a proxy measure for organic pollution. Otherwise, the methods are the same as those for nutrient pollution. 
+
+*Direct human*
+
+The direct human stressor estimates the magnitude of direct human interactions on coastal and near-coastal habitats, such as trampling.  This was estimated using human density data at 30 arc-second resolution (Gridded Population of the World Population Count Grid, v4, from the Center for International Earth Science Information) for years 2005, 2010, 2015, and 2020.  Data were resampled to ~1 km grid and intervening years of data were linearly interpolated.  We summed the coastal human population, defined as the number of people within a moving circular window around an arbitrary focal coastal cell of radius 10 km.  Data was cropped to include only cells 1km from the coast because this stressor primarily affects intertidal and very nearshore ecosystems.  Values were ln(x+1) transformed.
+
+*Light*
+
+The light stressor describes the amount of light pollution in marine environments. We used annual DMSP stable night lights satellite data (image and data processing by NOAA's National Geophysical Data Center; DMSP satellite data collected by US Air Force Weather Agency) with resolution of 30 arc-second. The original data contained non-calibrated radiance values of 0-63. We applied a calibration technique developed elsewhere to make the data more comparable among years/satellites (Elvidge et al. 2009). 
+
+This formula is based on the assumption that a reference area (around Sicily) has not changed much in light output in recent years. Lowest values (non-lit areas) were replaced with zeros. This technique, while not perfect, does allow for better comparison between different satellites and time periods.
+
+
+
+#### Stressors: methods
+
+
+*Table 1: Data sources for stressor data*
+
+stressor  | source   | short description | spatial resolution  | temporal resolution
+---------- | --------- | ---------------- | ------------------- | ----------------------
+sea surface temperature  | Selig et al. 2010 | SST and SST anomalies | approximately 4.6 km at the equator    | weekly, 1982-2012
+ocean acidification | Feely et al. 2009   | aragonite saturation state | 1&deg; | monthly, 1880-2020
+sea level rise     | [Aviso](http://www.aviso.altimetry.fr/en/data/products/sea-surface-height-products/global/msla-mean-climatology.html)  | sea level anomalies (meters above mean sea level) | 0.25&deg; | monthly, 1993-2016
+fishing: artisanal |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
+fishing: demersal destructive |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
+fishing: demersal nondestructive high bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
+fishing: demersal nondestructive low bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
+fishing: pelagic high bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
+fishing: pelagic low bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly; NPP: monthly   
+nutrient pollution (runoff) | fertilizer use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000 (http://doi.org/10.1080/014311600210191); Plume model: Halpern et al. 2008 | modeled from FAO country fertilizer use, land-use data and elevation data | ~ 1km  | Fertilizer use: yearly; land-use: one year
+organic chemical pollution (runoff) | pesticide use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000 (http://doi.org/10.1080/014311600210191); Plume model: Halpern et al. 2008 | modeled from FAO country pesticide use, land-use data and elevation data | ~ 1km  | Pesticide data: yearly; land-use: one year
+direct human | CIESIN & CIAT 2005 | Human density from Gridded Population of the World (GPW) Population Count Grid Future Estimates (v4) | 30 arc-second | 2005, 2010, 2015, and 2020
+Light  | Elvidge et al. 2009 | DMSP satellite data (Image and data processing by NOAA's National Geophysical Data Center) | 30 arc-second spanning -180 to 180 degrees longitude and -65 to 75 degrees latitude | yearly
+Shipping | Halpern et al. 2015; Tournadre 2018 | Tournadre data provides yearly change estimates with coarse resolution was used to adjust high resolution shipping data | Halpern: 0.1&deg;; Tournadre: 1x2&deg; | Halpern: combined years (mostly 2011); Tournadre: yearly, 1992-2016
+
+
+*Table 2: Methods used for stressor data*
+
+stressor  | preparing data   | gapfilling | rescaling (0 to 1) 
+---------- | ------------------------------- | ------------------------- | ----------- 
+sea surface temperature  | Number of extreme SST weeks during a five year period subtracted from the number of extreme SST weeks during the 5 year reference period (1985-1989).  An extreme week is defined as when the SST anomaly (SST - average SST) exceeds 1 SD of the anomalies calculated across all years (1982-2012) for that week. |Gapfilling performed on total annual extreme events.  Near coastal cells gapfilled using mean of surrounding cells; year 2013 was estimated by fitting a linear regression model to the change in the number of extreme events (relative to reference period) vs. the year (1982-2012) for each raster cell.  The slope and intercept coefficients for each cell were used to predict the 2013 data. | raster value corresponding 99.99th quantile across all years data (based on non-gapfilled data)
+ocean acidification | Mean of monthly aragonite staturation state values | inverse distance weighting on rescaled data to get coastal values | Monthly values are averaged to obtain an annual mean. Cell values $\leq$ 1 are given a pressure score of 1; for all other cells, rescaling is based on the change in saturation relative to the reference period (average from 1880-1889)
+sea level rise     | Monthly data were averaged to get annual sea level rise anomalies.  Running 5 year means of annual data were used to help smooth large yearly variation.| gapfilled 5 year mean slr data to get coastal values using inverse distance weighting | raster value corresponding 99.99th quantile across all years data
+fishing: artisanal | The total catch from small scale fisheries was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+fishing: demersal destructive | The total catch in each of the 5 commercial fishing categories (Halpern et al. 2008) was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+fishing: demersal nondestructive high bycatch| The total catch in each of the 5 commercial fishing categories (Halpern et al. 2008) was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+fishing: demersal nondestructive low bycatch| The total catch in each of the 5 commercial fishing categories (Halpern et al. 2008) was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+fishing: pelagic high bycatch| The total catch in each of the 5 commercial fishing categories (Halpern et al. 2008) was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+fishing: pelagic low bycatch| The total catch in each of the 5 commercial fishing categories (Halpern et al. 2008) was calculated for each year.  The catch data was divided by corresponding year's Net Primary Productivity (monthly data was averaged to get a yearly estimate) to standardize by the region's productivity. | Fisheries and NPP gapfilled using average of neighbors | raster value corresponding 99.99th quantile across all years data
+nutrient pollution (runoff) | Intensity of pollution from modeled plumes of land-based fertilizer pollution  [(Halpern et al. 2008)](http://ohi-science.org/ohi-global/layers.html#nutrient_pollution); Data were log transformed due to the large skew in data (ln(x + 1)) |  NA | raster value corresponding to average 99.99th quantile across all years data 
+organic chemical pollution (runoff) | Intensity of pollution from modeled plumes of land-based pesticide pollution  [(Halpern et al. 2008)](http://ohi-science.org/ohi-global/layers.html#chemical_pollution); Data were log transformed due to the large skew in data (ln(x + 1)) |  NA | raster value corresponding to average 99.99th quantile across all years data
+direct human | Data were resampled to ~1 km grid cells (using nearest neighbor estimates cell values). Intervening years were interpolated.  Coastal human population was summed for a radius 10 km for each cell. Data cropped to include only cells 1km from the coast since this driver primarily affects intertidal and very nearshore ecosystems.  Values were ln(x+1) transformed. | NA | raster value corresponding to average 99.99th quantile across all years data
+light | Satellite data was calibrated across year/satellite because original layers contain non-calibrated radiance values (following method of Elvidge et al. 2009). | NA | 99.99th quantile across year and raster cell (excluding 0 values) 
+shipping | Both datasets were resampled to ~1km grid cells (using nearest neighbor estimates of cell values).  Yearly shipping data from Tournadre used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).  To control for stochasticity of these data we averaged 3 year time periods for each year.Multiple each raster describing the proportional change in shipping with the shipping layer used in the previous cumulative human impacts project (Halpern et al. 2015).  We only use the Tournadre data to derive the correction factor because the data has relatively low resolution and is stochastic.Data were ln(x+1) transformed. | Outer border of Halpern et al. shipping data was gapfilled using mean of nearest neighbors; NA values for yearly shipping density were estimated as the change in shipping relative to 2011 (i.e. total ships interest year/total ships 2011).  | 99.99th quantile determined for each year (1992-2016), the average of these values used to rescale data
+
+#### Stressors: gapfilling
+Given that many of the habitats are only found near the coast, the stressor raster data must extend all the way to the coastline (at ~1 km resolution).  In most cases, there were gaps in the data along the coastline. In some cases this occurred because monitoring missed some regions; however, it was most often due to converting a coarser resolution raster to a finer resolution raster, resulting in zig-zags of missing data along the coast.  This made gapfilling necessary.  The methods used to gapfill each data layer are described in table 2.  The following figures describe gapfilled cells for each stressor.
+
+```{r}
+
+
+
+```
