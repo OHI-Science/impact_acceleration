@@ -1,0 +1,317 @@
+---
+title: 'ABNJ regions'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/github/ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+
+#libraries
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(rgdal)
+library(sf)
+library(fields)
+library(cowplot)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez"), ]
+
+```
+
+
+
+Right now, just exploring the regions and data we will want to include.
+
+Questions:
+
+1. What to call the regions
+2. Do regions look correct
+3. Report the two regions separately/together
+4. Include methods overview?
+5. Include a summary of global vs. regional patters
+6. Better to have individual impacts with consistent color scale?
+7. Stick with mollweide projection?
+8. Should the cpps region not include the EEZ region?
+
+# ABNJ Regions
+
+Location of ABNJ regions.
+```{r, eval=FALSE}
+
+## Get the region maps from gdb file
+
+fgdb <- "projects/abnj/spatial/CPPS_NC_Pilot_Regions.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(fgdb)
+print(fc_list)
+
+# Read the feature class and convert to mollweide for viewing
+cpps <- readOGR(dsn=fgdb, layer="cpps")
+cpps_mol <- spTransform(cpps, CRS(proj4string(regions_shape)))
+writeOGR(cpps_mol, "projects/abnj/spatial", "cpps_mol", driver="ESRI Shapefile")
+
+rgn_area <- readOGR("projects/abnj/spatial", "cpps_mol")
+
+
+png("projects/abnj/figures/global_cpps.png", res=500, width=7, height=4, units="in")
+par(mar=c(2,2,2,2)) # bottom, left, top, and right
+par(oma=c(0,0,0,0))
+
+plot(regions_shape, col='#e3e7ea', border=NA)
+plot(land, col='gray85', border='grey80', add=TRUE, lwd=0.5)
+plot(rgn_area, col="red", border="red", add=TRUE)
+dev.off()
+
+
+# Read the feature class and convert to mollweide for viewing
+wio <- readOGR(dsn=fgdb, layer="wio_pilot")
+wio_mol <- spTransform(wio, CRS(proj4string(regions_shape)))
+writeOGR(wio_mol, "projects/abnj/spatial", "wio_mol", driver="ESRI Shapefile")
+
+rgn_area <- readOGR("projects/abnj/spatial", "wio_mol")
+
+
+png("projects/abnj/figures/global_wio.png", res=500, width=7, height=4, units="in")
+par(mar=c(2,2,2,2)) # bottom, left, top, and right
+par(oma=c(0,0,0,0))
+
+plot(regions_shape, col='#e3e7ea', border=NA)
+plot(land, col='gray85', border='grey80', add=TRUE, lwd=0.5)
+plot(rgn_area, col="red", border="red", add=TRUE)
+dev.off()
+
+
+```
+
+```{r}
+
+cpps <- ggdraw() + draw_image("projects/abnj/figures/global_cpps.png")
+wio <- ggdraw() + draw_image("projects/abnj/figures/global_wio.png")
+
+plot_grid(cpps, wio, labels = c("cpps", "wio"), vjust=8, hjust=-1)
+
+```
+
+# Human impacts summary
+
+
+
+# Data
+
+## Cumulative Human Impacts (2013)
+
+```{r}
+
+global_chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
+plot(global_chi)
+tmp <- zoom(global_chi)
+
+cpps_extent <- extent(-12500000, -4051410, -7000000, 1397378)
+cpps_mol <- readOGR("projects/abnj/spatial", "cpps_mol")
+
+wio_extent <- extent(940920.8, 8164375, -6000000, 1697831)
+wio_mol <- readOGR("projects/abnj/spatial", "wio_mol")
+
+
+raster_breaks <- function(raster_data, rgn_shape, crop_rgn, myBreaks, cols, filename){
+png(sprintf("projects/abnj/figures/%s.png", filename), res=600, width=5, height=6, units="in")  
+  plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]))
+  par(mar=c(0,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+master <- raster_data
+master_crop <- crop(master, crop_rgn)
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  breaks=myBreaks, legend=FALSE, add=TRUE)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+
+dev.off()
+}
+
+
+my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) 
+chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
+
+
+raster_breaks(raster_data=chi,  rgn_shape=wio_mol, crop_rgn=wio_extent,
+              myBreaks=my_breaks, cols=cols, filename="chi_wio")
+
+raster_breaks(raster_data=chi,  rgn_shape=cpps_mol, crop_rgn=cpps_extent,
+              myBreaks=my_breaks, cols=cols, filename="chi_cpps")
+
+
+```
+
+```{r}
+global_chi_2013_png <- ggdraw() + draw_image("impacts/figures/chi_maps/chi_2013.png")
+
+cpps_chi <- ggdraw() + draw_image("projects/abnj/figures/chi_cpps.png")
+wio_chi <- ggdraw() + draw_image("projects/abnj/figures/chi_wio.png")
+
+plot_grid(cpps_chi, wio_chi, NULL, labels=c("", "", ""), nrow=1, rel_widths=c(1,1,0.4))
+ggsave("projects/abnj/figures/rgn_chi.png")
+
+rgn_chi <- ggdraw() + draw_image("projects/abnj/figures/rgn_chi.png")
+plot_grid(global_chi_2013, rgn_chi, labels=c("", ""), nrow=2, rel_heights = c(1,1))
+
+
+```
+
+## Change in Cumulative Human Impacts
+```{r}
+
+cpps_extent <- extent(-12500000, -4051410, -7000000, 1397378)
+cpps_mol <- readOGR("projects/abnj/spatial", "cpps_mol")
+
+wio_extent <- extent(940920.8, 8164375, -6000000, 1697831)
+wio_mol <- readOGR("projects/abnj/spatial", "wio_mol")
+
+
+region_plot <- function(raster_data, rgn_shape, crop_rgn, saveFile, cols){
+
+## crop region
+master_crop <- crop(raster_data, crop_rgn)
+
+png(sprintf("projects/abnj/figures/%s.png",  saveFile), 
+    res=500, width=6, height=5, units="in")  
+  par(mar=c(0,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  
+     breaks=seq(minValue(raster_data),
+                  maxValue(raster_data), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(overlay_rast, add=TRUE, col="white", legend=FALSE)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
+overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'))
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#A6DBA4", "#7ECBA4", "#59B4AA", "#3B92B8", "#4470B1", "#5E4FA2"))(254)) # 
+
+region_plot(raster_data=slope, crop_rgn=cpps_extent, rgn_shape=cpps_mol,  saveFile="slope_cpps", cols=cols)
+
+region_plot(raster_data=slope, crop_rgn=wio_extent, rgn_shape=wio_mol,  saveFile="slope_wio", cols=cols)
+
+```
+
+```{r}
+global_slope_png <- ggdraw() + draw_image("impacts/figures/trend/chi_trend.png")
+
+cpps_slope <- ggdraw() + draw_image("projects/abnj/figures/slope_cpps.png")
+wio_slope <- ggdraw() + draw_image("projects/abnj/figures/slope_wio.png")
+
+plot_grid(cpps_slope, wio_slope, NULL, labels=c("", "", ""), nrow=1, rel_widths=c(1,1,0.4))
+ggsave("projects/abnj/figures/rgn_slope.png")
+
+rgn_slope <- ggdraw() + draw_image("projects/abnj/figures/rgn_slope.png")
+plot_grid(global_slope_png, rgn_slope, labels=c("", ""), nrow=2, rel_heights = c(1.1,1))
+
+
+```
+
+
+
+## Impact contributions
+
+### Climate change
+
+#### Sea Surface Temperature
+
+```{r}
+
+
+
+```
+
+
+```{r}
+
+cpps_extent <- extent(-12500000, -4051410, -7000000, 1397378)
+cpps_mol <- readOGR("projects/abnj/spatial", "cpps_mol")
+
+wio_extent <- extent(940920.8, 8164375, -6000000, 1697831)
+wio_mol <- readOGR("projects/abnj/spatial", "wio_mol")
+
+
+region_plot <- function(raster_data, rgn_shape, crop_rgn, saveFile, cols){
+
+## crop region
+master_crop <- crop(raster_data, crop_rgn)
+
+png(sprintf("projects/abnj/figures/%s.png",  saveFile), 
+    res=500, width=6, height=5, units="in")  
+  par(mar=c(0,1,0,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  
+     breaks=seq(minValue(raster_data),
+                  maxValue(raster_data), length.out=255), 
+     legend=FALSE, add=TRUE)
+plot(overlay_rast, add=TRUE, col="white", legend=FALSE)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(rgn_shape, add=TRUE, border="red", col=NA)
+box("plot", col="gray")
+  dev.off()
+}
+
+slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
+overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'))
+
+cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
+               "#FEF0A7", "#F3FAAD",  
+              "#CAE99D", "#A6DBA4", "#7ECBA4", "#59B4AA", "#3B92B8", "#4470B1", "#5E4FA2"))(254)) # 
+
+region_plot(raster_data=slope, crop_rgn=cpps_extent, rgn_shape=cpps_mol,  saveFile="slope_cpps", cols=cols)
+
+region_plot(raster_data=slope, crop_rgn=wio_extent, rgn_shape=wio_mol,  saveFile="slope_wio", cols=cols)
+
+```
+
+```{r}
+global_slope_png <- ggdraw() + draw_image("impacts/figures/trend/chi_trend.png")
+
+cpps_slope <- ggdraw() + draw_image("projects/abnj/figures/slope_cpps.png")
+wio_slope <- ggdraw() + draw_image("projects/abnj/figures/slope_wio.png")
+
+plot_grid(cpps_slope, wio_slope, NULL, labels=c("", "", ""), nrow=1, rel_widths=c(1,1,0.4))
+ggsave("projects/abnj/figures/rgn_slope.png")
+
+rgn_slope <- ggdraw() + draw_image("projects/abnj/figures/rgn_slope.png")
+plot_grid(global_slope_png, rgn_slope, labels=c("", ""), nrow=2, rel_heights = c(1.1,1))
+
+
+```
+
+
+# Methods

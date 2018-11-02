@@ -256,6 +256,45 @@ foreach(file = annual_files, .packages="dplyr") %dopar%{ # file = annual_files[6
     data.frame()#summing up all types of catch rates (units: tonnes/km2)
 
   
+  # ##### Checking something
+  # ###
+  # 
+  # # Part 1: convert data from tonnes/km2 to tonnes
+  # # get a count of fish
+  #   data_check <- readRDS(file) %>%
+  #     dplyr::filter(destruction == 'destructive',
+  #            fish_type == 'demersal') %>%
+  #     dplyr::rowwise() %>%
+  #     dplyr::mutate(catch = sum(LSF_CR, IUU_CR, Discards_CR, na.rm=TRUE)) %>%
+  #     dplyr::group_by(Seq, OceanArea) %>%
+  #     dplyr::summarize(catch_km2 = sum(catch)) %>%
+  #     dplyr::mutate(catch_tonnes = catch_km2*OceanArea)
+  # sum(data_check$catch_tonnes, na.rm=TRUE)
+  # 
+  # # Part 2: assign catch (tonnes/km2) to lat/long cells, mulitply by cell area (catch now in tonnes),
+  # # sum cells to get total
+  # rast_ll <- raster::subs(saup_rast, data_check, by = 1, which =3) 
+  #   rast_ll_tons <- area(rast_ll)*rast_ll
+  # cellStats(rast_ll_tons, sum, na.rm=TRUE)
+  # 
+  # # Part 3: convert lat/long catch (tonnes/km2) to mollweide, mulitply by cell area (catch now in tonnes),
+  # # sum cells to get total
+  # 
+  # rast_mol <- raster::projectRaster(rast_ll, crs=raster::crs(ocean), method="ngb", over = TRUE)
+  # rast_mol_tons <- area(rast_mol)/10^6 * rast_mol
+  # cellStats(rast_mol_tons, sum, na.rm=TRUE)
+  # 
+  # ## something weird with areas:
+  #   watson_rast_area <- raster::subs(saup_rast, data_check, by = 1, which = 2) 
+  # area_compare <- watson_rast_area - area(watson_rast_area)
+  # plot(area_compare)
+  # zoom(area_compare)
+  # 
+  # 
+  # ####
+  # ###### End of checking something
+  
+  
   #rasterize catch by swapping cell ids with 
 
     raster::subs(saup_rast, data, by = 1, which = 2) %>%

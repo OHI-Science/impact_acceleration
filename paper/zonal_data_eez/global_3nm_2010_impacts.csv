@@ -1,0 +1,16 @@
+"rgn_id","pressure","value","year"
+"global_3nm","pel_lb",0.00468619805063919,2010
+"global_3nm","uv",0.0143867486502938,2010
+"global_3nm","dem_nondest_lb",0.0217239414004029,2010
+"global_3nm","light",0.0248566951760387,2010
+"global_3nm","pel_hb",0.0307368460305899,2010
+"global_3nm","dem_nondest_hb",0.0320841162852677,2010
+"global_3nm","dem_dest",0.0376212123748726,2010
+"global_3nm","organic",0.0507958278272739,2010
+"global_3nm","art_fish",0.0838528275763168,2010
+"global_3nm","direct_human",0.0943402166890073,2010
+"global_3nm","shipping",0.122030466023731,2010
+"global_3nm","nutrient",0.160230731578033,2010
+"global_3nm","oa",0.202901392663232,2010
+"global_3nm","slr",0.215548276811469,2010
+"global_3nm","sst",0.319799166740291,2010

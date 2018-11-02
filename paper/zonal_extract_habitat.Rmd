@@ -1,0 +1,203 @@
+---
+title: 'Habitat data extraction'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+
+## set up
+
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE}
+
+#set options for all chunks in code
+knitr::opts_chunk$set(warning=FALSE, message=FALSE,fig.width=6, fig.height=6)
+
+#libraries
+library(dplyr)
+library(tidyr)
+
+library(googleVis)
+library(ggplot2)
+library(plotly)
+library(htmlwidgets)
+library(RColorBrewer)
+
+library(raster)
+
+library(ohicore)
+
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+
+```
+
+## Sea ice check
+Unclear how to best extract sea ice habitat data because this is on a continuous scale.  
+
+```{r}
+
+ice_habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/seaice/masks"), full=TRUE)
+
+chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), full=TRUE, pattern = "chi")
+
+chi_stack <- stack(chi)
+
+
+for(ice_hab in ice_habs) { # ice_hab = ice_habs[1]
+
+  habitat_name <- gsub(".tif", "", basename(ice_hab))
+  
+  zone <- raster::raster(ice_hab)
+  
+hab_data <- raster::zonal(chi_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("pressure", "value", -1) %>%
+  dplyr::rename("habitat" = zone) %>%
+  dplyr::mutate(year = as.numeric(substring(pressure, 5, 8))) %>%
+  dplyr::mutate(pressure = "chi") %>%
+  dplyr::mutate(habitat=habitat_name)
+
+write.csv(hab_data_df, sprintf("habitats/mask_explore/%s_chi.csv", habitat_name), row.names=FALSE)
+}
+
+
+filenames <- list.files("habitats/mask_explore", full=TRUE)
+datalist = lapply(filenames, function(x){read.csv(file=x,header=T)})
+
+ice_edge_chi <- bind_rows(datalist)
+
+```
+
+## Habitat zones
+
+```{r}
+
+habs <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitats"), full=TRUE)
+habs <- habs[-(grep(".vat.dbf|.xml|.ovr", habs))]
+habs <- habs[-(grep("ice", habs))]
+ice <- file.path(dir_M, "git-annex/impact_acceleration/seaice/masks/ice.tif")
+habs <- c(habs, ice)
+```
+
+
+
+
+## Chi data
+
+```{r}
+
+impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_impact"), full=TRUE)
+
+hab_list <- basename(habs)
+hab_list <- gsub(".tif", "", hab_list)
+
+registerDoParallel(4)
+
+foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[18]
+#for(hab in habs){
+  
+hab_impacts <- grep(hab, impact_files, value=TRUE)
+hab_impacts_stack <- raster::stack(hab_impacts)
+
+zone <- grep(hab, habs, value=TRUE)
+zone <- raster::raster(zone)
+  
+hab_data <- raster::zonal(hab_impacts_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("habitat", "impact", -1) %>%
+  dplyr::mutate(year = as.numeric(stringr::str_extract(habitat,"(\\d)+"))) %>%
+  dplyr::mutate(habitat = hab) %>%
+  dplyr::select(habitat, year, impact)
+
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_impacts.csv", hab), row.names=FALSE)
+}
+
+```
+
+# Trend data
+
+```{r}
+
+trend_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_trend"), full=TRUE)
+
+hab_list <- basename(habs)
+hab_list <- gsub(".tif", "", hab_list)
+
+registerDoParallel(4)
+
+foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[18]
+#for(hab in habs){
+  
+hab_trend <- grep(hab, trend_files, value=TRUE)
+hab_trend_stack <- raster::stack(hab_trend)
+
+zone <- grep(hab, habs, value=TRUE)
+zone <- raster::raster(zone)
+  
+hab_data <- raster::zonal(hab_trend_stack, zone, fun="mean", progress="text", na.rm=TRUE)
+
+hab_data_df <- data.frame(hab_data) %>%
+  tidyr::gather("habitat_impact", "trend", -1) %>%
+  dplyr::mutate(habitat = hab) %>%
+  dplyr::mutate(impact = gsub(paste0(hab, "_"), "", habitat_impact)) %>% 
+  dplyr::select(habitat, impact, trend)
+
+write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", hab), row.names=FALSE)
+}
+
+```
+
+# impacts data
+
+```{r}
+
+files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
+
+files <- grep("2013", files, value=TRUE)
+files <- grep("benthic_str", files, value=TRUE, invert=TRUE)
+files <- grep("ice", files, value=TRUE, invert=TRUE)
+files <- grep("uv", files, value=TRUE, invert=TRUE)
+
+
+habitat_impacts <- parallel::mclapply(files, mc.cores=10,
+                                      FUN = function(x) { # x=files[30]
+
+     hab_pres <- basename(gsub(".tif", "", x))
+     hab_pres_raster <- raster::raster(x)
+     hab_pres_mean <- raster::cellStats(hab_pres_raster, stat="mean", na.rm=TRUE)
+     hab_pres_sd <- raster::cellStats(hab_pres_raster, stat="sd", na.rm=TRUE)
+     hab_pres_df <- data.frame(pressure_hab = hab_pres,
+                               mean = hab_pres_mean,
+                               sd = hab_pres_sd)                                    
+    return(hab_pres_df)                                    
+                                      })
+
+    habitat_impacts_df <- bind_rows(habitat_impacts) %>%
+      tidyr::separate(pressure_hab, c("impact", "habitat", "year"), sep="__")
+
+write.csv(habitat_impacts_df, "impacts/zonal_data_habitat/habitat_pressure_2013.csv", row.names=FALSE)
+
+```
+
