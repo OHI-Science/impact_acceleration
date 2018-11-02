@@ -1,0 +1,106 @@
+---
+title: "CHI calculation"
+output: html_document
+---
+
+This script summarizes all impacts to calculate Cumulative Human Impacts (minus SST) for each year.
+
+
+## Loading packages
+
+```{r setup, include=FALSE}
+
+library(raster)
+library(RColorBrewer)
+library(sf)
+library(dplyr)
+library(stringr)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+
+```
+
+## Reading in data files
+```{r}
+
+# Years
+
+years <- 2003:2013
+
+years_subset <- paste(years, collapse="|")
+
+```
+
+
+## Calculation of CHI
+This sums the impact rasters to calculate CHI.
+```{r}
+
+# select stressors with all years of data to include in model
+
+stressors <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"))
+stress_all <- str_sub(stressors, 1, str_length(stressors)-9)
+stress_length <- table(stress_all)
+stressors_all_yrs <- names(stress_length[stress_length == length(years)])
+
+stressors_chi <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/stressor_impact"),
+                            full=TRUE)
+
+stressors_chi <- grep(paste(stressors_all_yrs, collapse="|"), stressors_chi, value=TRUE)
+stressors_chi_no_sst <- grep("sst", stressors_chi, invert=TRUE, value=TRUE)
+
+
+length(stressors_chi_no_sst)/length(years) # needs to be a whole number, N=13
+
+registerDoParallel(6)
+
+foreach(year = years,.packages="dplyr") %dopar%{ # year=2013
+
+  stressors_yr <- grep(year, stressors_chi_no_sst, value=TRUE)
+  
+  stress_stack <- raster::stack(stressors_yr)
+  
+  raster::calc(stress_stack, fun=sum, na.rm=TRUE,
+               filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp/summed_raster_%s.tif", year)), 
+               overwrite=TRUE)
+  
+}
+
+
+```
+
+This checks to make sure that each year has the correct number of impacts.
+```{r}
+
+chi_check <- data.frame(year=years, length=c(NA))
+
+for(year in years){ # year=2013
+  stressors_yr <- grep(year, stressors_chi_no_sst, value=TRUE)
+
+  chi_check$length[chi_check$year == year] <- length(stressors_yr)
+ 
+}
+
+## these should all have the same number and it should reflect the number of stressors
+chi_check
+```
+
+
+Final formatting of raster, masking the ocean area.
+```{r}
+years <- 2010:2013
+
+for(year in years) { # year=2013
+
+  summed_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp/summed_raster_%s.tif", year)))
+
+  raster::mask(summed_rast, ocean,
+                  filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/cumulative_impact/chi_no_sst_%s.tif", year)),
+                  overwrite=TRUE)
+  print(year)
+}
+

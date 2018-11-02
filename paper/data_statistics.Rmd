@@ -1,0 +1,319 @@
+---
+title: "Data statistics"
+output: html_document
+---
+
+The following script extracts data from maps and other sources to provide information used in the paper.
+
+
+```{r}
+library(raster)
+library(sf)
+library(dplyr)
+library(stringr)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+
+
+```
+
+
+## Trend patterns
+Nearly three-quarters (XX%) of the global ocean experienced significantly increasing CHI over the 11 year period from 2003-2013, with only XX% significantly decreasing (Fig. 1A). 
+
+The trend_pattern.tif is obtained by getting the upper and lower 95% confidence interval for the slope estimate.  For the upper and lower ci layers, negative values are converted to -1 and postitive values are converted to 1.  These are then summed.  When both are negative (sum to -2) this indicates a significant negative trend.  When both are positive (sum to 2) this indicates a significant positive trend.  When the trend is not statistically significant, the values sum to 0.  
+```{r}
+
+trend <- raster::raster(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/trend_pattern.tif"))
+
+plot(trend)
+click(trend) # make sure land and border are NA!
+
+freq(trend)
+#[1,]    -2  13911199
+#[2,]     0 165147507
+#[3,]     2 237132095
+#[4,]    NA 329175249
+
+# also need the number of ocean cells
+plot(ocean)
+
+freq(ocean)
+[1,]     1 416190801
+[2,]    NA 329175249
+
+
+## final values
+# increasing
+237132095/416190801
+
+# decreasing
+13911199/416190801
+
+```
+
+Nearly a third of the ocean (XX%) experienced relatively high rates of increase (linear regression slope >0.1 yr-1).
+
+Reclassify: intervals closed (i.e., a closed interval includes the value) on the right (and open on the left)
+
+```{r}
+
+trend <- raster::raster(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/chi_slope.tif"))
+
+# slope = 0.0
+reclassify(trend, c(-Inf,0, -1, 0,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_0.tif'), overwrite=TRUE, progress="text")
+
+trend_gt_zero <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_0.tif'))
+freq(trend_gt_zero)
+
+# [1,]    -1  79187232
+# [2,]     1 337003569
+# [3,]    NA 329175249
+337003569/416190801
+
+
+# slope = 0.05
+reclassify(trend, c(-Inf,0.05, NA, 0.05,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point05.tif'), overwrite=TRUE, progress="text")
+
+trend_gt_point05 <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point05.tif'))
+freq(trend_gt_point05)
+
+# [1,]     1 162738577
+# [2,]    NA 582627473
+162738577/416190801
+
+# slope = 0.1
+reclassify(trend, c(-Inf,0.1, NA, 0.1,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point1.tif'), overwrite=TRUE, progress="text")
+
+trend_gt_point1 <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point1.tif'))
+freq(trend_gt_point1)
+
+# [1,]     1  56388845
+# [2,]    NA 688977205
+
+56388845/416190801
+
+# slope = 0.15
+reclassify(trend, c(-Inf,0.15, NA, 0.15,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point15.tif'), overwrite=TRUE, progress="text")
+
+trend_gt_point15 <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point15.tif'))
+freq(trend_gt_point15)
+
+# [1,]     1  10123175
+# [2,]    NA 735242875
+
+10123175/416190801
+
+par(mar=c(2,2,2,2)) # bottom, left, top, and right
+par(oma=c(0,0,0,0))
+
+plot(trend_gt_point15, col="red", main="trend >0.15", legend=FALSE, box=FALSE, axes=FALSE)
+#zoom(trend_gt_point15, col="red")
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.2)
+
+
+
+# slope = 0.2
+reclassify(trend, c(-Inf,0.2, NA, 0.2,Inf,1), 
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point2.tif'), overwrite=TRUE, progress="text")
+
+trend_gt_point2 <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point2.tif'))
+freq(trend_gt_point2)
+
+# [1,]     1   1162522
+# [2,]    NA 744203528
+
+1162522/416190801
+
+plot(trend_gt_point2, col="red", main="trend >0.20", legend=FALSE, box=FALSE, axes=FALSE)
+#zoom(trend_gt_point15, col="red")
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.2)
+
+```
+
+Nearly all (XX%) of the area with extremely fast pace of change (slope >0.2; 0.3% of global ocean) was in coastal waters, particularly in X, Y and Z. 
+
+```{r}
+
+rgns_3nm <- raster::raster(file.path(dir_M, "git-annex/globalprep/spatial/v2018/rgns_3nm_offshore_mol.tif"))
+
+plot(rgns_3nm)
+
+# convert regions to 1
+rgns_3nm_global <- rgns_3nm
+rgns_3nm_global[!is.na(rgns_3nm_global)] <- 1
+freq(rgns_3nm_global)
+# 
+
+s <- stack(rgns_3nm_global,
+           raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/tmp/slope_gt_point2.tif')))
+
+# sum_narm = function(x,...){sum(x, na.rm=TRUE)}
+# overlay(s, fun=sum_narm, 
+#                     filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/slope_gt_point2_plus_3nm.tif'), overwrite=TRUE, progress="text")
+
+overlay(s, fun=sum, filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/slope_gt_point2_plus_3nm.tif'), overwrite=TRUE, progress="text")
+
+combined <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/slope_gt_point2_plus_3nm.tif'))
+
+plot(combined)
+
+# the 1s are extreme trend within 3nm of shoreline
+freq(combined)
+# N = 12709
+
+
+extreme_point2_count <- 1162522
+extreme_3nm <- 12709
+extreme_3nm/(extreme_3nm + extreme_point2_count)
+```
+
+## CHI quantiles
+
+```{r}
+chi_2013 <- raster::raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
+
+plot(chi_2013)
+click(chi_2013) # make sure land is NA
+
+quantile(chi_2013, probs = c(0.9999))
+```
+
+
+## country summaries
+```{r}
+
+chi <- read.csv("paper/zonal_data_eez/eez_chi_3nm_trend.csv")
+head(chi)
+dim(chi)
+dim(chi[chi$value>0,])
+194/220
+dim(chi[chi$value<=0,])
+
+dim(chi[chi$value>0.1,])
+
+chi %>%
+  arrange(value)
+
+```
+
+Closer look at individual impacts
+
+## get overview of each pressure
+
+```{r}
+trends <- read.csv("paper/zonal_data_eez/eez_3nm_impacts_trend.csv")
+chi <- read.csv("paper/zonal_data_eez/eez_chi_3nm_trend.csv")
+  
+trends_table <- bind_rows(trends, chi) %>%  
+  mutate(trend = ifelse(value >0, 1, -1)) %>%
+  group_by(pressure) %>%
+  summarize(positive_trend = sum(trend==1),
+            negative_trend = sum(trend==-1)) %>%
+  rowwise() %>%
+  mutate(countries_positive_trend = positive_trend/220)
+
+# merge with other values
+nm3global <- read.csv("paper/zonal_data_eez/global_3nm_impacts_trend.csv") %>%
+  dplyr::select(pressure, global_3nm_trend = value) %>%
+  mutate(global_3nm_trend = round(global_3nm_trend, 5))
+
+nm3chi <- data.frame(pressure="chi_trend", global_3nm_trend = sum(nm3global$global_3nm_trend))
+nm3global <- bind_rows(nm3global, nm3chi)
+
+global <- read.csv("paper/zonal_data_eez/global_impacts_trend.csv") %>%
+  dplyr::select(pressure=impact, global_trend = value) %>%
+  mutate(global_trend = round(global_trend, 5)) %>%
+  mutate(pressure = gsub("_trend", "", pressure)) %>%
+  mutate(pressure= gsub("_slope", "_trend", pressure))
+
+## join together
+trends_table <- left_join(trends_table, nm3global) %>%
+  left_join(global) %>%
+  arrange(global_3nm_trend)
+
+write.csv(trends_table, "paper/tables/trend_summary.csv", row.names=FALSE)
+
+```
+
+### Fishing
+```{r}
+
+all <- read.csv("paper/zonal_data_eez/eez_3nm_impacts_trend.csv") 
+table(all$pressure)
+
+fish <- read.csv("paper/zonal_data_eez/eez_3nm_impacts_trend.csv") %>%
+  filter(pressure %in% c("dem_dest", "dem_nondest_hb", "dem_nondest_lb", "pel_hb", "pel_lb")) %>%
+  mutate(decreasing = ifelse(value <=0, 1, 0)) %>%
+  group_by(rgn_id, rgn_name) %>%
+  summarize(total_decreasing = sum(decreasing)) %>%
+    arrange(-total_decreasing) %>% 
+  data.frame()
+
+table(fish$total_decreasing)
+48+58+51
+
+fish <- read.csv("paper/zonal_data_eez/eez_3nm_impacts_trend.csv") %>%
+  filter(pressure %in% c("dem_dest", "dem_nondest_hb", "dem_nondest_lb", "pel_hb", "pel_lb")) %>%
+    arrange(value) %>% 
+  data.frame()
+```
+
+
+
+#Trend with climate change pressures removed
+
+```{r}
+all <- read.csv("paper/zonal_data_eez/eez_3nm_impacts_trend.csv") 
+
+no_cc <- all %>%
+  filter(!(pressure %in% c("sst", "slr"))) %>%
+  group_by(rgn_id, rgn_name) %>%
+  summarize(chi_trend_no_cc = sum(value))
+
+dim(no_cc[no_cc$chi_trend_no_cc >=0, ])
+#N=169/220
+chi <- read.csv("paper/zonal_data_eez/eez_chi_3nm_trend.csv")
+compare <- left_join(chi, no_cc)
+
+plot(chi_trend_no_cc ~ value, data=compare, xlab="chi")
+abline(0,1, col="red")
+```
+
+
+## Global trend patterns with no SST
+
+```{r}
+trend <- raster::raster(file.path(dir_M, "git-annex/impact_acceleration/no_sst/trend/trend_pattern.tif"))
+
+plot(trend)
+click(trend) # make sure land and border are NA!
+
+freq(trend)
+
+
+# also need the number of ocean cells
+freq(ocean)
+[1,]     1 416190801
+[2,]    NA 329175249
+
+
+## final values
+# increasing
+307991647/416190801
+
+# decreasing
+3268273/416190801
+
+```
+

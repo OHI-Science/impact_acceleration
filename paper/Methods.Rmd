@@ -1,5 +1,5 @@
 ---
-title: 'Methods for cumulative impacts and their rate of change'
+title: 'Methods for cumulative impacts and their annual change'
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
@@ -13,22 +13,22 @@ output:
     toc: true
 ---
 
-We calculated and mapped global cumulative impacts on global marine ecosystems during an 11 year period from 2003 to 2013.  The cumulative impact is calculated using 14 stressors from 4 general categories: fishing (commercial and artisanal), climate change, and ocean- and land-based stressors.  
+We calculated and mapped global cumulative impacts on global marine ecosystems during an 11 year period from 2003 to 2013.  The cumulative impact is calculated using 14 impacts from 4 general categories: fishing (commercial and artisanal), climate change, and ocean- and land-based.  
 
-We also describe: (1) how cumulative impacts are changing over time; and, (2) how the 14 stressor impacts contribute to spatial patterns and trends of cumulative human impact.   
+We describe the annual change in cumulative impacts and how the 14 impacts contribute to the spatial and temporal patterns of cumulative impact.   
 
 For more information about methods see Halpern et al. [2008](http://science.sciencemag.org/content/319/5865/948) and [2015](https://www.nature.com/articles/ncomms8615). 
 
 ## General model
 We measure cumulative impact $I_{c}$ at a ~1km resolution, using the following information:
 
-1. Stressor rasters describe the magnitude of each of 14 stressors on a scale of 0-1 (1 is highest relative stress). 
+1. Stressor rasters describe the magnitude of 14 stressors on a scale of 0-1 (1 is highest relative stress). 
 2. Habitat rasters describe the location (1 if present, otherwise NA) of 21 global marine ecosystem types.
 3. Vulnerability matrix describes the vulnerability of each habitat to each stressor.  Vulnerability is a value from 1-3.
 
 Impacts are calculated as:
 
-1. For every stressor/habitat combination, multiply stressor, $D_{j}$, and habitat, $E_{i}$, rasters and  corresponding vulnerability, $mu _{ij}$.
+1. For every stressor/habitat combination stressor, $D_{j}$, and habitat, $E_{i}$, rasters are multiplied together and then multiplied by the corresponding vulnerability, $mu _{ij}$.
 2. Average impact of each stressor, $I_{s}$ is calculated by summing the stressor x habitat x vulnerability rasters for all habitats and then dividing by the number of habitats ($m$) in each cell:
 
 $$I_{s} = 
@@ -48,9 +48,8 @@ We include stressors from 4 primary categories:
 * Ocean: shipping
 * Land-based: nutrient pollution, organic chemical pollution, direct human, light
 
-Stressors are rescaled to have values between 0-1.  In most cases, this is acheived by dividing the values from the 99.99th quantile across raster cells and times (values are capped to a maximum value of 1). We rescaled data in this way to ensure comparability across time periods (that is, using the same reference point across time). Rescaling allows for direct comparison among drivers with dramatically different units of measurement.
+Stressors are rescaled to have values between 0-1.  In most cases, this is achieved by dividing the values from the 99.99th quantile across raster cells and years (values are capped to a maximum value of 1). We rescaled data in this way to ensure comparability across time periods (that is, using the same reference point across time). Rescaling allows for direct comparison among drivers with dramatically different units of measurement.
 
-#### Stressors: general description
 ##### Fishing
 
 *Commercial fishing (5 stressors)*
@@ -61,13 +60,13 @@ Catch (landings) data are only a proxy for the potential stress of fishing on ma
 
 *Artisanal fishing*
 
-The artisanal fishing stressor is based on small scale fisheries.  Small scale fisheries catch data were obtained at 0.5&deg; (Watson 2017). Otherwise, the methods are the same as those described for commercial fisheries.
+The artisanal fishing stressor is based on small scale fisheries.  Small scale fisheries catch data were obtained at 0.5&deg resolution; (Watson 2017). Otherwise, the methods are the same as those described for commercial fisheries.
 
 ##### Climate change
 
 *Sea surface temperature*
 
-The sea surface temperature (SST) stressor describes the frequency of extreme temperature events.  The data were obtained from version 5 of the Coral Reef Temperature Anomaly Database (CoRTAD) These data are a product of the NOAA National Oceanographic Data Center, produced using Advanced Very High Resolution Radiometer (AVHRR) Pathfinder Version 5.2 SST data (www.nodc.noaa.gov/SatelliteData/CoRTAD). 
+The sea surface temperature (SST) stressor describes the increased frequency of extreme temperature events.  The data were obtained from version 5 of the Coral Reef Temperature Anomaly Database (CoRTAD) These data are a product of the NOAA National Oceanographic Data Center, produced using Advanced Very High Resolution Radiometer (AVHRR) Pathfinder Version 5.2 SST data (www.nodc.noaa.gov/SatelliteData/CoRTAD). 
 
 The number of extreme SST weeks during a five year period is subtracted from the number of extreme SST weeks during a five year reference period (1985-1989). An extreme week was defined as one that exceeds the standard deviation (SD) of SSTs from the climatology for that location (i.e., grid cell) and week of the year, calculated across all years of data (1982-2012). Extreme events were calculated in only the positive (warming) direction.
 
@@ -89,7 +88,7 @@ Shipping describes intensity of shipping traffic throughout the ocean.  We used 
 
 Both datasets were resampled to ~1km grid cells (using nearest neighbor estimates of cell values).  Yearly shipping data from Tournadre is used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).  To control for stochasticity of these data we averaged 3 year time periods for each year.
 
-We then multipled the baseline shipping raster (Halpern et al. 2015) with each of the rasters describing the proportional change in shipping.  
+We then multiplied the baseline shipping raster (Halpern et al. 2015) with each of the rasters describing the proportional change in shipping.  
 
 Data were ln(x+1) transformed.
 
@@ -98,7 +97,7 @@ Data were ln(x+1) transformed.
 
 *Nutrient pollution*
 
-The nutrient pollution stresor describes the amount of nutrient pollution from land-based applications and run-off.  We used fertilizer data as a proxy for general nutrient pollution. Country level fertilizer use data is available from FAO.  We estimated missing fertilizer values using a linear regression model with pesticides as a predictor when available, and, agricultural GDP when unavailable. The country-level average fertilizer values were then dasymetrically distributed over a country’s landscape using global land cover data from 2009, derived from the Moderate Resolution imaging Spectroradiometer (MODIS) instrument at ~500m resolution. These values were then aggregated by ~140,000 global basins, and diffusive plumes were modeled from each basin’s pourpoint. The final non-zero plumes (about ~76,000) were aggregated into ~1km^2^ rasters in the Mollweide projection (WGS1984 datum) to produce a single plume aggregated pollution raster. These raw values were then ln(x+1) transformed and normalized to 0-1.
+The nutrient pollution stressor describes the amount of nutrient pollution from land-based applications and run-off.  We used fertilizer data as a proxy for general nutrient pollution. Data for country level fertilizer use is available from FAO.  We estimated missing fertilizer values using a linear regression model with pesticides as a predictor when available, and, agricultural GDP when unavailable. The country-level average fertilizer values were then dasymetrically distributed over a country’s landscape using global land cover data from 2009, derived from the Moderate Resolution imaging Spectroradiometer (MODIS) instrument at ~500m resolution. These values were then aggregated by ~140,000 global basins, and diffusive plumes were modeled from each basin’s pourpoint. The final non-zero plumes (about ~76,000) were aggregated into ~1km^2^ rasters in the Mollweide projection (WGS1984 datum) to produce a single plume aggregated pollution raster. These raw values were then ln(x+1) transformed and normalized to 0-1.
 
 *Organic chemical pollution*
 
@@ -106,7 +105,7 @@ The organic chemical pollution stressor describes the amount of organic chemical
 
 *Direct human*
 
-The direct human stressor estimates the magnitude of direct human interactions on coastal and near-coastal habitats, such as trampling.  This was estimated using human density data at 30 arc-second resolution (Gridded Population of the World Population Count Grid, v4, from the Center for International Earth Science Information) for years 2005, 2010, 2015, and 2020.  Data were resampled to ~1 km grid and intervening years of data were linearly interpolated.  We summed the coastal human population, defined as the number of people within a moving circular window around an arbitrary focal coastal cell of radius 10 km.  Data was cropped to include only cells 1km from the coast because this stressor primarily affects intertidal and very nearshore ecosystems.  Values were ln(x+1) transformed.
+The direct human stressor estimates the magnitude of direct human interactions on coastal and near-coastal habitats, such as trampling.  This was estimated using human density data at 30 arc-second resolution (Gridded Population of the World Population Count Grid, v4, from the Center for International Earth Science Information) for years 2005, 2010, 2015, and 2020.  Data were resampled to ~1 km grid and intervening years of data were linearly interpolated.  We summed the coastal human population, defined as the number of people within a moving circular window around an arbitrary focal coastal cell of radius 10 km.  Data were cropped to include only cells 1km from the coast because this stressor primarily affects intertidal and very nearshore ecosystems.  Values were ln(x+1) transformed.
 
 *Light*
 
@@ -114,15 +113,12 @@ The light stressor describes the amount of light pollution in marine environment
 
 This formula is based on the assumption that a reference area (around Sicily) has not changed much in light output in recent years. Lowest values (non-lit areas) were replaced with zeros. This technique, while not perfect, does allow for better comparison between different satellites and time periods.
 
-
-
-#### Stressors: methods
-
+### Data sources
 
 *Table 1: Data sources for stressor data*
 
-stressor  | source   | short description | spatial resolution  | temporal resolution
----------- | --------- | ---------------- | ------------------- | ----------------------
+stressor  | source               | short description | spatial resolution  | temporal resolution
+---------- | ------------------ | ---------------- | ------------------- | ------------------
 sea surface temperature  | Selig et al. 2010 | SST and SST anomalies | approximately 4.6 km at the equator    | weekly, 1982-2012
 ocean acidification | Feely et al. 2009   | aragonite saturation state | 1&deg; | monthly, 1880-2020
 sea level rise     | [Aviso](http://www.aviso.altimetry.fr/en/data/products/sea-surface-height-products/global/msla-mean-climatology.html)  | sea level anomalies (meters above mean sea level) | 0.25&deg; | monthly, 1993-2016
@@ -132,13 +128,15 @@ fishing: demersal nondestructive high bycatch |  Watson 2017 (catch data); Behre
 fishing: demersal nondestructive low bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
 fishing: pelagic high bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly, ; NPP: monthly   
 fishing: pelagic low bycatch |  Watson 2017 (catch data); Behrenfeld and Falkowski 1997 (net primary productivity); and Halpern et al. 2008 (used to classify gear types) | catch: tonnes of fish stock/fishing method; NPP: C/m2/day | catch: 0.5&deg;; NPP: 0.83&deg; | catch: yearly; NPP: monthly   
-nutrient pollution (runoff) | fertilizer use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000 (http://doi.org/10.1080/014311600210191); Plume model: Halpern et al. 2008 | modeled from FAO country fertilizer use, land-use data and elevation data | ~ 1km  | Fertilizer use: yearly; land-use: one year
-organic chemical pollution (runoff) | pesticide use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000 (http://doi.org/10.1080/014311600210191); Plume model: Halpern et al. 2008 | modeled from FAO country pesticide use, land-use data and elevation data | ~ 1km  | Pesticide data: yearly; land-use: one year
-direct human | CIESIN & CIAT 2005 | Human density from Gridded Population of the World (GPW) Population Count Grid Future Estimates (v4) | 30 arc-second | 2005, 2010, 2015, and 2020
+nutrient pollution (runoff) | fertilizer use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000 ; Plume model: Halpern et al. 2008 | modeled from FAO country fertilizer use, land-use data and elevation data | ~ 1km  | Fertilizer use: yearly; land-use: one year
+organic chemical pollution (runoff) | pesticide use: [FAO](http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E); land cover: Loveland et al. 2000; Plume model: Halpern et al. 2008 | modeled from FAO country pesticide use, land-use data and elevation data | ~ 1km  | Pesticide data: yearly; land-use: one year
+direct human | CIESIN 2016 | Human density from Gridded Population of the World (GPW) Population Count Grid Future Estimates (v4) | 30 arc-second | 2005, 2010, 2015, and 2020
 Light  | Elvidge et al. 2009 | DMSP satellite data (Image and data processing by NOAA's National Geophysical Data Center) | 30 arc-second spanning -180 to 180 degrees longitude and -65 to 75 degrees latitude | yearly
 Shipping | Halpern et al. 2015; Tournadre 2018 | Tournadre data provides yearly change estimates with coarse resolution was used to adjust high resolution shipping data | Halpern: 0.1&deg;; Tournadre: 1x2&deg; | Halpern: combined years (mostly 2011); Tournadre: yearly, 1992-2016
 
 
+
+<!-- 
 *Table 2: Methods used for stressor data*
 
 stressor  | preparing data   | gapfilling | rescaling (0 to 1) 
@@ -156,9 +154,9 @@ nutrient pollution (runoff) | Intensity of pollution from modeled plumes of land
 organic chemical pollution (runoff) | Intensity of pollution from modeled plumes of land-based pesticide pollution  [(Halpern et al. 2008)](http://ohi-science.org/ohi-global/layers.html#chemical_pollution); Data were log transformed due to the large skew in data (ln(x + 1)) |  NA | raster value corresponding to average 99.99th quantile across all years data
 direct human | Data were resampled to ~1 km grid cells (using nearest neighbor estimates cell values). Intervening years were interpolated.  Coastal human population was summed for a radius 10 km for each cell. Data cropped to include only cells 1km from the coast since this driver primarily affects intertidal and very nearshore ecosystems.  Values were ln(x+1) transformed. | NA | raster value corresponding to average 99.99th quantile across all years data
 light | Satellite data was calibrated across year/satellite because original layers contain non-calibrated radiance values (following method of Elvidge et al. 2009). | NA | 99.99th quantile across year and raster cell (excluding 0 values) 
-shipping | Both datasets were resampled to ~1km grid cells (using nearest neighbor estimates of cell values).  Yearly shipping data from Tournadre used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).  To control for stochasticity of these data we averaged 3 year time periods for each year.Multiple each raster describing the proportional change in shipping with the shipping layer used in the previous cumulative human impacts project (Halpern et al. 2015).  We only use the Tournadre data to derive the correction factor because the data has relatively low resolution and is stochastic.Data were ln(x+1) transformed. | Outer border of Halpern et al. shipping data was gapfilled using mean of nearest neighbors; NA values for yearly shipping density were estimated as the change in shipping relative to 2011 (i.e. total ships interest year/total ships 2011).  | 99.99th quantile determined for each year (1992-2016), the average of these values used to rescale data
+shipping | Both datasets were resampled to ~1km grid cells (using nearest neighbor estimates of cell values).  Yearly shipping data from Tournadre used to create yearly rasters describing the proportional change in shipping relative to 2011 (which corresponds to the year with the bulk of our shipping data).  To control for stochasticity of these data we averaged 3 year time periods for each year.Multiple each raster describing the proportional change in shipping with the shipping layer used in the previous cumulative human impacts project (Halpern et al. 2015).  We only use the Tournadre data to derive the correction factor because the data has relatively low resolution and is stochastic.Data were ln(x+1) transformed. | Outer border of Halpern et al. shipping data was gapfilled using mean of nearest neighbors; NA values for yearly shipping density were estimated as the change in shipping relative to 2011 (i.e. total ships interest year/total ships 2011).  | 99.99th quantile determined for each year (1992-2016), the average of these values used to rescale data --> 
 
-#### Stressors: gapfilling
+### Stressors: gapfilling... coming soon!
 Given that many of the habitats are only found near the coast, the stressor raster data must extend all the way to the coastline (at ~1 km resolution).  In most cases, there were gaps in the data along the coastline. In some cases this occurred because monitoring missed some regions; however, it was most often due to converting a coarser resolution raster to a finer resolution raster, resulting in zig-zags of missing data along the coast.  This made gapfilling necessary.  The methods used to gapfill each data layer are described in table 2.  The following figures describe gapfilled cells for each stressor.
 
 ```{r}
@@ -166,3 +164,29 @@ Given that many of the habitats are only found near the coast, the stressor rast
 
 
 ```
+
+## References
+
+AVISO (2016). Satellite Alimetry Data: Mean sea level rise. https://www.aviso.altimetry.fr/en/data/products/sea-surface-height-products/global/msla-mean-climatology.html
+
+Behrenfeld, M.J., and Falkowski, P.G. (1997). Photosynthetic rates derived from satellite-based chlorophyll concentration. Limnology and Oceanography 42, 1–20.
+
+Center for International Earth Science Information Network - CIESIN - Columbia University (2016). Gridded Population of the World, Version 4 (GPWv4): Administrative Unit Center Points with Population Estimates. Palisades, NY: NASA Socioeconomic Data and Applications Center (SEDAC). http://dx.doi.org/10.7927/H4F47M2C
+
+Elvidge, C.D., Ziskin, D., Baugh, K.E., Tuttle, B.T., Ghosh, T., Pack, D.W., Erwin, E.H., and Zhizhin, M. (2009). A Fifteen Year Record of Global Natural Gas Flaring Derived from Satellite Data. Energies 2, 595–622.
+
+Feely, R., Doney, S., and Cooley, S. (2009). Ocean acidification: present conditions and future changes in a high-CO2 world. Oceanography 22, 36–47.
+
+Halpern, B.S., Walbridge, S., Selkoe, K.A., Kappel, C.V., Micheli, F., D’Agrosa, C., Bruno, J.F., Casey, K.S., Ebert, C., Fox, H.E., et al. (2008). A Global Map of Human Impact on Marine Ecosystems. Science 319, 948–952.
+
+Halpern, B.S., Frazier, M., Potapenko, J., Casey, K.S., Koenig, K., Longo, C., Lowndes, J.S., Rockwood, R.C., Selig, E.R., Selkoe, K.A., et al. (2015). Spatial and temporal changes in cumulative human impacts on the world’s ocean. Nat Commun 6, 7615.
+
+Loveland, T.R., Reed, B.C., Brown, J.F., Ohlen, D.O., Zhu, Z., Yang, L., and Merchant, J.W. (2000). Development of a global land cover characteristics database and IGBP DISCover from 1 km AVHRR data. International Journal of Remote Sensing 21, 1303–1330.
+
+Selig, E.R., Casey, K.S., and Bruno, J.F. (2010). New insights into global patterns of ocean temperature anomalies: implications for coral reef health and management. Global Ecology and Biogeography 19, 397–411.
+
+Tournadre, J. (2014). Anthropogenic pressure on the open ocean: The growth of ship traffic revealed by altimeter data analysis. Geophysical Research Letters 41, 7924–7932.
+
+United Nations (2016). FAO Statistics Division - Inputs. http://faostat3.fao.org/browse/R/*/E
+
+Watson, R.A. (2017). A database of global marine commercial, small-scale, illegal and unreported fisheries catch 1950–2014. Scientific Data 4, 170039.

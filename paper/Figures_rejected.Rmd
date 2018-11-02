@@ -1,4 +1,61 @@
 
+#### Slope/CHI combo region plots
+```{r zoom_extremes}
+
+region_plot_extreme=function(raster_data=chi_slope, crop_rgn=ns, saveFile="x_ns", cols=cols,
+                    breaks=my_breaks){
+# raster_data = chi_slope
+# region_extent = africa
+# saveFile = "ext_africa"  
+# cols = cols  
+# breaks = my_breaks  
+  
+## crop region
+master_crop <- crop(raster_data, crop_rgn)
+
+png(sprintf("impacts/figures/rgn_maps/%s.png",  saveFile), 
+    res=500, width=6, height=5, units="in")  
+  par(mar=c(2,2,2,2)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+     type="n", xaxs="i", yaxs="i", axes=FALSE)
+plot(master_crop, col=cols,  
+     breaks=my_breaks, 
+     legend=FALSE, add=TRUE)
+plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+box("plot", col="gray")
+  dev.off()
+}
+
+
+
+chi_slope <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/figures/extremes_lat_long.tif"))
+
+my_breaks <- c(-2, -1, 0, 1, 3)
+cols = c("#018AC4", "#EBC915", "#550133", "#CF2154")
+
+
+region_plot_extreme(raster_data=chi_slope, crop_rgn=gomaine, saveFile="x_gomaine", cols=cols,
+                    breaks=my_breaks)
+region_plot_extreme(raster_data=chi_slope, crop_rgn=ns, saveFile="x_ns", cols=cols,
+                    breaks=my_breaks)
+region_plot_extreme(raster_data=chi_slope, crop_rgn=nz, saveFile="x_nz", cols=cols,
+                    breaks=my_breaks)
+region_plot_extreme(raster_data=chi_slope, crop_rgn=mad, saveFile="x_mad", cols=cols,
+                    breaks=my_breaks)
+x1 <- ggdraw() + draw_image("impacts/figures/rgn_maps/x_gomaine.png")
+x2 <- ggdraw() + draw_image("impacts/figures/rgn_maps/x_ns.png")
+x3 <- ggdraw() + draw_image("impacts/figures/rgn_maps/x_mad.png")
+x4 <- ggdraw() + draw_image("impacts/figures/rgn_maps/x_nz.png")
+
+extreme_plots <- plot_grid(x1, x2, x3, x4, nrow=1)
+save_plot("impacts/figures/rgn_maps/extremes.png", extreme_plots, ncol=1, base_height=1, base_width=4)
+
+```
+
+
+
 # scatterplot of global eez trend and chi
 
 ```{r}
