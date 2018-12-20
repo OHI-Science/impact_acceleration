@@ -44,14 +44,9 @@ library(gstat)
 library(stringr)
 
 # load spatial files (ocean raster and regions shapefile)
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
-
-
-# paralell processing
-cl<-makeCluster(5)
-registerDoParallel(cl)
 
 
 ```
@@ -136,28 +131,13 @@ SplitRas <- function(raster,ppside,save,plot){
 }
 
 # this will split raster into 9 blocks
-SplitRas(raster=chi_stack, ppside=3, saveLoc=file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/tmp"))
+SplitRas(raster=chi_stack, ppside=3)
 
 # check one to make sure all is well:
 tmp <- stack(file.path(dir_M, 'git-annex/impact_acceleration/impact/cumulative_impact/tmp/SplitRas1'))
 
 plot(tmp[[1]], col=cols)
           
-# check to make sure I can actually combine them:
-list2 <- list()
-for(i in 1:9){ #i=1
-  rx <- stack(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/tmp", 
-                        sprintf("SplitRas%s", i)))
-  list2[[i]] <- rx
-}
-
-list2$fun   <- max
-list2$na.rm <- TRUE
-rast.mosaic <- do.call(mosaic, list2)
-
-plot(rast.mosaic, col=cols)
-## YES!!!
-
 
 # need to run and get error
 # https://stat.ethz.ch/pipermail/r-sig-geo/2013-November/019856.html
@@ -203,8 +183,8 @@ list2$fun   <- max
 list2$na.rm <- TRUE
 rast.mosaic <- do.call(mosaic, list2)
 
-writeRaster(rast.mosaic[[1]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
-writeRaster(rast.mosaic[[2]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_se.tif'))
+writeRaster(rast.mosaic[[1]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'), overwrite=TRUE)
+writeRaster(rast.mosaic[[2]], file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_se.tif'), overwrite=TRUE)
 
 ```
 

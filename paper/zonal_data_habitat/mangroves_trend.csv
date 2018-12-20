@@ -1,8 +1,8 @@
 "habitat","impact","trend"
-"mangroves","art_fish_trend",-0.00371582322092848
+"mangroves","art_fish_trend",0.00106324703537652
 "mangroves","dem_dest_trend",0
-"mangroves","dem_nondest_hb_trend",-4.3229506085994e-05
-"mangroves","dem_nondest_lb_trend",-0.000203006611631871
+"mangroves","dem_nondest_hb_trend",0.000543443254840542
+"mangroves","dem_nondest_lb_trend",0.000140861746144921
 "mangroves","direct_human_trend",0.00395810310057196
 "mangroves","light_trend",0.00215491926120673
 "mangroves","nutrient_trend",0.00314427509364982
@@ -12,4 +12,4 @@
 "mangroves","pel_lb_trend",0
 "mangroves","shipping_trend",0.0022369755925169
 "mangroves","slr_trend",0.0469368001938201
-"mangroves","sst_trend",0.023950345102986
+"mangroves","sst_trend",0.0234193419622703

@@ -62,16 +62,16 @@ chi_data_df <- data.frame(chi_data) %>%
   mutate(pressure = "chi") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(chi_data_df, "impacts/zonal_data_eez/eez_chi.csv", row.names=FALSE)
+write.csv(chi_data_df, "paper/zonal_data_eez/eez_chi.csv", row.names=FALSE)
 
 ## Motion plot to explore data
-plot_data <- read.csv("impacts/zonal_data_eez/eez_chi.csv") %>%
+plot_data <- read.csv("paper/zonal_data_eez/eez_chi.csv") %>%
   dplyr::select(rgn_name, year, value)
 Motion=gvisMotionChart(plot_data, 
                        idvar="rgn_name", 
                        timevar="year")
 plot(Motion)
-print(Motion, file="impacts/zonal_data_eez/eez_chi.html")
+print(Motion, file="paper/zonal_data_eez/eez_chi.html")
 
 
 ```
@@ -87,7 +87,7 @@ trend_data_df <- data.frame(trend_data) %>%
   mutate(pressure = "chi_trend") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/eez_chi_trend.csv", row.names=FALSE)
 
 
 ```
@@ -107,7 +107,7 @@ trend_data_df <- data.frame(trend_data) %>%
   inner_join(rgns_global, by="rgn_id")
 
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/eez_impacts_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/eez_impacts_trend.csv", row.names=FALSE)
 
 ```
 
@@ -136,7 +136,7 @@ impact_data_df <- data.frame(impact_data) %>%
   dplyr::mutate(pressure = stringr::str_sub(pressure, 1, stringr::str_length(pressure)-5)) %>%
   dplyr::inner_join(rgns_global, by="rgn_id")
 
-write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/eez_%s_impacts.csv", year), row.names=FALSE)
+write.csv(impact_data_df, sprintf("paper/zonal_data_eez/eez_%s_impacts.csv", year), row.names=FALSE)
 
 }
 
@@ -199,17 +199,17 @@ chi_data_df <- data.frame(chi_data) %>%
   mutate(pressure = "chi") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(chi_data_df, "impacts/zonal_data_eez/eez_3nm_chi.csv", row.names=FALSE)
+write.csv(chi_data_df, "paper/zonal_data_eez/eez_3nm_chi.csv", row.names=FALSE)
 
 ## motion chart for inspection
-plot_data <- read.csv("impacts/zonal_data_eez/eez_3nm_chi.csv") %>%
+plot_data <- read.csv("paper/zonal_data_eez/eez_3nm_chi.csv") %>%
   dplyr::select(rgn_name, year, value)
 
 Motion=gvisMotionChart(plot_data, 
                        idvar="rgn_name", 
                        timevar="year")
 plot(Motion)
-print(Motion, file="impacts/zonal_data_eez/eez_3nm_chi.html")
+print(Motion, file="paper/zonal_data_eez/eez_3nm_chi.html")
 
 ```
 
@@ -227,7 +227,7 @@ trend_data_df <- data.frame(trend_data) %>%
   mutate(pressure = "chi_trend") %>%
   inner_join(rgns_global, by="rgn_id")
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/eez_chi_3nm_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/eez_chi_3nm_trend.csv", row.names=FALSE)
 
 ```
 
@@ -251,7 +251,7 @@ trend_data_df <- data.frame(trend_data) %>%
   inner_join(rgns_global, by="rgn_id")
 
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/eez_3nm_impacts_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/eez_3nm_impacts_trend.csv", row.names=FALSE)
 
 ```
 
@@ -279,7 +279,7 @@ trend_data_df <- data.frame(trend_data) %>%
   arrange(value)
 
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/global_3nm_impacts_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/global_3nm_impacts_trend.csv", row.names=FALSE)
 
 ```
 
@@ -301,7 +301,7 @@ impact_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impac
 registerDoParallel(3)
 
 foreach (year = 2003:2013) %dopar%{ # year = 2003
-for(year in 2003:2013){
+#for(year in 2003:2013){
     
 impact_year_files <- grep(year, impact_files, value=TRUE)
 
@@ -317,7 +317,7 @@ impact_data_df <- data.frame(impact_data) %>%
   dplyr::mutate(rgn_id = "global_3nm") %>%
   dplyr::arrange(value)
 
-write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/global_3nm_%s_impacts.csv", year), row.names=FALSE)
+write.csv(impact_data_df, sprintf("paper/zonal_data_eez/global_3nm_%s_impacts.csv", year), row.names=FALSE)
 
 }
 
@@ -341,7 +341,7 @@ trend_data_df <- data.frame(trend_data) %>%
   gather("impact", "value", -1) %>%
   arrange(value)
 
-write.csv(trend_data_df, "impacts/zonal_data_eez/global_impacts_trend.csv", row.names=FALSE)
+write.csv(trend_data_df, "paper/zonal_data_eez/global_impacts_trend.csv", row.names=FALSE)
 
 ```
 
@@ -361,13 +361,13 @@ impact_files <- impact_files[-(grep("benthic_str", impact_files))]
 registerDoParallel(3)
 
 foreach (year = 2003:2013) %dopar%{ # year = 2003
-for(year in 2003:2013){
+#for(year in 2003:2013){
     
 impact_year_files <- grep(year, impact_files, value=TRUE)
 
 impact_stack <- raster::stack(impact_year_files)
 
-impact_data <- raster::zonal(impact_stack, global, fun="mean", progress="text", na.rm=TRUE)
+impact_data <- raster::zonal(impact_stack, global, fun="mean", na.rm=TRUE)
 
 impact_data_df <- data.frame(impact_data) %>%
   tidyr::gather("pressure", "value", -1) %>%
@@ -377,7 +377,7 @@ impact_data_df <- data.frame(impact_data) %>%
   dplyr::mutate(rgn_id = "global") %>%
   dplyr::arrange(value)
 
-write.csv(impact_data_df, sprintf("impacts/zonal_data_eez/global_%s_impacts.csv", year), row.names=FALSE)
+write.csv(impact_data_df, sprintf("paper/zonal_data_eez/global_%s_impacts.csv", year), row.names=FALSE)
 
 }
 
@@ -403,7 +403,7 @@ chi_data_df <- data.frame(chi_data) %>%
   mutate(pressure = "chi") %>%
   mutate(rgn = "global")
 
-write.csv(chi_data_df, "impacts/zonal_data_eez/global_chi.csv", row.names=FALSE)
+write.csv(chi_data_df, "paper/zonal_data_eez/global_chi.csv", row.names=FALSE)
 
 
 ```

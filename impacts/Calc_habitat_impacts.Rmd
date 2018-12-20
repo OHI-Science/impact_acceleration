@@ -22,7 +22,7 @@ library(doParallel)
 library(foreach)
 library(parallel)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 
 ```
@@ -63,7 +63,7 @@ habs <- expand.grid(hab = basename(hab_files), year=years)
 ```
 
 ## Check stressor data
-All stressor/years should have 21 rasters, one for each habitat.
+All habitat/years should have 14 rasters, one for each stressor.
 
 ```{r}
 
@@ -110,7 +110,7 @@ foreach(row = 1:dim(habs)[1]) %dopar%{ # row=230
 
 }
 
-plot_tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_impact/cum_impact_surface_waters_2013.tif"))
+plot_tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_impact/surface_waters_2013.tif"))
 plot(plot_tmp)
 
 ```
@@ -138,8 +138,7 @@ combo_files   <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_
 
 registerDoParallel(5)
 
-
-foreach (row = 1:dim(hab_x_stress)[1]) %dopar%{ # row=1
+foreach (row = 127:dim(hab_x_stress)[1]) %dopar%{ # row=127
 
   impacts_n <- hab_x_stress$impacts[row]
   hab_n <- hab_x_stress$hab[row]
@@ -168,30 +167,3 @@ plot(raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_impact/hab_t
 
 ```
 
-
-## Ocean mask for each layer created above.
-```{r}
-rescaled_data <- list.files(file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp")), full=TRUE)
-rescaled_data <- rescaled_data[grep("rescaled", rescaled_data)]
-
-for(rescale in rescaled_data) { # rescale=rescaled_data[1]
-  
- rescaled <- raster::raster(rescale)
-
- # get stressor and year from file name
-stressor <- basename(rescale)
- stressor <- gsub("_rescaled.tif", "", stressor)
- stressor <- gsub("summed_raster_", "", stressor)
- stressor <- data.frame(combo=stressor)
- 
- combo_data <- stressor %>% 
-   tidyr::separate(combo, c("stressor", "year"), sep=-4) %>%
-   dplyr::mutate(stressor = substr(stressor, 1, nchar(stressor)-1))
- 
- # mask data and save
- raster::mask(rescaled, ocean,
-                 filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/stressor_impact/%s_%s.tif", 
-                                                   combo_data$stressor, combo_data$year)),
-                 overwrite=TRUE, progress="text")
- 
-}

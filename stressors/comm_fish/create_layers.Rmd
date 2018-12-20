@@ -24,7 +24,6 @@ This script standardizes the annual catch rasters by net primary production.  NP
 
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, eval=F, warning = FALSE)
 
-
 library(seaaroundus)
 library(raster)
 library(readr)
@@ -42,7 +41,8 @@ years_of_data <- 2003:2015
 # setwd("stressors/comm_fish")
 
 # paralell processing
-cl<-makeCluster(10)
+cl <- makeCluster(10)
+
 registerDoParallel(cl)
 
 ```
@@ -69,6 +69,7 @@ Gapfill missing NPP raster data.  This is done by averaging the neighboring cell
 
 ## Save a raster showing which areas were gapfilled
 npp_rast <- raster(npp_files[1])
+
 npp_rast[is.na(npp_rast)] <- 999
 plot(npp_rast)
 
@@ -115,10 +116,7 @@ raster::writeRaster(r, file.path(dir_M, sprintf("/git-annex/impact_acceleration/
 npp_files_gf <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/npp_annual'), full.names=TRUE, pattern = "gf")
 
 npp_files_gf <- npp_files_gf[grep(paste(years_of_data, collapse="|"), npp_files_gf)]
-
-
 ```
-
 
 # Standardize catch
 
@@ -139,7 +137,7 @@ catch_npp_fun <- function(file, layer){ # file = dem_d_files[12],  layer = 'dem_
         resample(npp, method = 'ngb') %>%
         overlay(., npp, fun=function(x,y){x/y})
   
-  writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr)), overwrite=TRUE) 
+  writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr)), overwrite=TRUE) 
   
 #  raster(file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/%s/%s_%s.tif', layer, layer, yr)))
 }
@@ -151,20 +149,20 @@ catch_npp_fun <- function(file, layer){ # file = dem_d_files[12],  layer = 'dem_
 
 years_filter <-  paste(years_of_data, collapse="|")
 
-dem_d_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_dest'), full.names=TRUE, pattern = "gf")
+dem_d_files <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_rasters/dem_dest'), full.names=TRUE, pattern = "gf")
 dem_d_files <- dem_d_files[grep(years_filter, dem_d_files)]
-dem_d_files <- dem_d_files[-grep("all_catch", dem_d_files)]
+#dem_d_files <- dem_d_files[-grep("all_catch", dem_d_files)]
 
-dem_nd_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_hb'), full.names=TRUE, pattern = "gf")
+dem_nd_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_rasters/dem_nondest_hb'), full.names=TRUE, pattern = "gf")
 dem_nd_hb <- dem_nd_hb[grep(years_filter, dem_nd_hb)]
 
-dem_nd_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/dem_nondest_lb'), full.names=TRUE, pattern = "gf")
+dem_nd_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_rasters/dem_nondest_lb'), full.names=TRUE, pattern = "gf")
 dem_nd_lb <- dem_nd_lb[grep(years_filter, dem_nd_lb)]
 
-pel_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_hb'), full.names=TRUE, pattern = "gf")
+pel_hb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_rasters/pel_hb'), full.names=TRUE, pattern = "gf")
 pel_hb <- pel_hb[grep(years_filter, pel_hb)]
 
-pel_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_rasters/pel_lb'), full.names=TRUE, pattern = "gf")
+pel_lb    <-list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_rasters/pel_lb'), full.names=TRUE, pattern = "gf")
 pel_lb <- pel_lb[grep(years_filter, pel_lb)]
 
 lapply(dem_d_files, catch_npp_fun, layer = 'dem_dest')
@@ -181,7 +179,7 @@ lapply(pel_lb, catch_npp_fun, layer = 'pel_lb')
 Create an ocean raster with same scale as the fishery/npp rasters to cut land values.
 ```{r, eval=FALSE}
 
-catch_npp <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
+catch_npp <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
 catch_npp <- raster(catch_npp[1])
 
 ocean_low_res <- ocean %>%
@@ -192,10 +190,9 @@ ocean_low_res <- ocean %>%
 
 Determine the 99.99th quantile for each type of commercial fisheries.  This value is saved in the comm_fish_ref_points.csv.
 ```{r, eval=FALSE}
-
 #list of lists
 
-all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
+all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
 
 layers <- c("dem_dest","dem_nondest_hb","dem_nondest_lb","pel_hb","pel_lb")
 
@@ -212,13 +209,12 @@ for(layer in layers){
   
   quant <-  quantile(values_vector, prob=0.9999, na.rm=TRUE)
   
-  refs <- read.csv("comm_fish_ref_points.csv") %>%
+  refs <- read.csv("github/impact_acceleration/stressors/comm_fish_v3.0/comm_fish_ref_points.csv") %>%
     dplyr::mutate(ref_point = ifelse(pressure == layer, quant, ref_point))
-  write.csv(refs, "comm_fish_ref_points.csv", row.names=FALSE)
+  write.csv(refs, "github/impact_acceleration/stressors/comm_fish_v3.0/comm_fish_ref_points.csv", row.names=FALSE)
   
 print(layer)
 }  
-
 ```
 
    
@@ -227,9 +223,9 @@ For each type of commercial fisheries, rescale each year's data according to ref
 ```{r, eval=FALSE}
 
 # relevant files
-all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
+all <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/catch_annual_npp_rasters'), full.names = TRUE, recursive = TRUE)
 
-ref_points <- read.csv("comm_fish_ref_points.csv")
+ref_points <- read.csv("github/impact_acceleration/stressors/comm_fish_v3.0/comm_fish_ref_points.csv")
 
 # function to run through the 5 categories
 scale_fun <- function(prs){ # prs <- "pel_hb"
@@ -248,9 +244,9 @@ scale_fun <- function(prs){ # prs <- "pel_hb"
                                       ifelse(x>quant, 1, x/quant))}) %>%
           raster::resample(ocean, method = 'ngb') %>%
             raster::mask(ocean,
-            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish/final/%s/%s_%s_rescaled_mol.tif', prs, prs, yr)), overwrite=TRUE)  
+                         filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/%s/%s_%s_rescaled_mol.tif', prs, prs, yr)), overwrite=TRUE)  
         # check:
-        # tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/pel_hb/pel_hb_2003_rescaled_mol.tif"))
+        # tmp <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/pel_hb/pel_hb_2003_rescaled_mol.tif"))
         # plot(tmp)
     }
 }
@@ -265,3 +261,68 @@ scale_fun(prs = layer)
 }
 
 ```
+
+Check results
+
+
+```{r}
+dem_dest <- raster(file.path(dir_M, ('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/dem_dest/dem_dest_2014_rescaled_mol.tif')))
+low_res_dem_dest <- aggregate(dem_dest, fact = 25, fun = mean, na.rm = T)
+low_res_dem_dest[low_res_dem_dest == 0] <- NA
+
+tm_shape(log(low_res_dem_dest))+
+  tm_raster(palette = "-RdYlBu",
+            legend.reverse = T, 
+            style = 'quantile',
+            legend.format = function(x){as.character(round(exp(x),3))})
+```
+
+```{r}
+dem_nondest_hb <- raster(file.path(dir_M, ('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/dem_nondest_hb/dem_nondest_hb_2014_rescaled_mol.tif')))
+low_res_dem_nondest_hb <- aggregate(dem_nondest_hb, fact = 25, fun = mean, na.rm = T)
+low_res_dem_nondest_hb[low_res_dem_nondest_hb == 0] <- NA
+
+tm_shape(log(low_res_dem_nondest_hb))+
+  tm_raster(palette = "-RdYlBu",
+            legend.reverse = T, 
+            style = 'quantile',
+            legend.format = function(x){as.character(round(exp(x),3))})
+```
+
+```{r}
+dem_nondest_lb <- raster(file.path(dir_M, ('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/dem_nondest_lb/dem_nondest_lb_2014_rescaled_mol.tif')))
+low_res_dem_nondest_lb <- aggregate(dem_nondest_lb, fact = 25, fun = mean, na.rm = T)
+low_res_dem_nondest_lb[low_res_dem_nondest_lb == 0] <- NA
+
+tm_shape(log(low_res_dem_nondest_lb))+
+  tm_raster(palette = "-RdYlBu",
+            legend.reverse = T, 
+            style = 'quantile',
+            legend.format = function(x){as.character(round(exp(x),3))})
+```
+
+```{r}
+pel_hb <- raster(file.path(dir_M, ('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/pel_hb/pel_hb_2014_rescaled_mol.tif')))
+low_res_pel_hb <- aggregate(pel_hb, fact = 25, fun = mean, na.rm = T)
+low_res_pel_hb[low_res_pel_hb == 0] <- NA
+
+tm_shape(log(low_res_pel_hb))+
+  tm_raster(palette = "-RdYlBu",
+            legend.reverse = T, 
+            style = 'quantile',
+            legend.format = function(x){as.character(round(exp(x),3))})
+```
+
+```{r}
+pel_lb <- raster(file.path(dir_M, ('git-annex/impact_acceleration/stressors/comm_fish_v3.0/final/pel_lb/pel_lb_2014_rescaled_mol.tif')))
+low_res_pel_lb <- aggregate(pel_lb, fact = 25, fun = mean, na.rm = T)
+low_res_pel_lb[low_res_pel_lb == 0] <- NA
+
+tm_shape(log(low_res_pel_lb))+
+  tm_raster(palette = "-RdYlBu",
+            legend.reverse = T, 
+            style = 'quantile',
+            legend.format = function(x){as.character(round(exp(x),3))})
+```
+
+

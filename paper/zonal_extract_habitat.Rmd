@@ -44,7 +44,7 @@ library(doParallel)
 library(foreach)
 library(parallel)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
 
@@ -114,7 +114,7 @@ hab_list <- gsub(".tif", "", hab_list)
 
 registerDoParallel(4)
 
-foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[18]
+foreach(hab = hab_list,.packages="dplyr")%dopar% { # hab = hab_list[21]
 #for(hab in habs){
   
 hab_impacts <- grep(hab, impact_files, value=TRUE)
@@ -131,7 +131,7 @@ hab_data_df <- data.frame(hab_data) %>%
   dplyr::mutate(habitat = hab) %>%
   dplyr::select(habitat, year, impact)
 
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_impacts.csv", hab), row.names=FALSE)
+write.csv(hab_data_df, sprintf("paper/zonal_data_habitat/%s_impacts.csv", hab), row.names=FALSE)
 }
 
 ```
@@ -164,7 +164,7 @@ hab_data_df <- data.frame(hab_data) %>%
   dplyr::mutate(impact = gsub(paste0(hab, "_"), "", habitat_impact)) %>% 
   dplyr::select(habitat, impact, trend)
 
-write.csv(hab_data_df, sprintf("impacts/zonal_data_habitat/%s_trend.csv", hab), row.names=FALSE)
+write.csv(hab_data_df, sprintf("paper/zonal_data_habitat/%s_trend.csv", hab), row.names=FALSE)
 }
 
 ```
@@ -197,7 +197,7 @@ habitat_impacts <- parallel::mclapply(files, mc.cores=10,
     habitat_impacts_df <- bind_rows(habitat_impacts) %>%
       tidyr::separate(pressure_hab, c("impact", "habitat", "year"), sep="__")
 
-write.csv(habitat_impacts_df, "impacts/zonal_data_habitat/habitat_pressure_2013.csv", row.names=FALSE)
+write.csv(habitat_impacts_df, "paper/zonal_data_habitat/habitat_pressure_2013.csv", row.names=FALSE)
 
 ```
 

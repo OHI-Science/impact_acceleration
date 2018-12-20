@@ -1,8 +1,8 @@
 "habitat","impact","trend"
-"seagrass","art_fish_trend",-0.000673927005014564
-"seagrass","dem_dest_trend",-3.70738453297869e-05
-"seagrass","dem_nondest_hb_trend",9.16420810072584e-05
-"seagrass","dem_nondest_lb_trend",-0.000153198699033861
+"seagrass","art_fish_trend",0.000672859657274455
+"seagrass","dem_dest_trend",4.98017664275025e-05
+"seagrass","dem_nondest_hb_trend",-0.000144129859149913
+"seagrass","dem_nondest_lb_trend",0.000144533727103551
 "seagrass","direct_human_trend",0.000647370961041773
 "seagrass","light_trend",0.000969547164620035
 "seagrass","nutrient_trend",0.00173555998092726
@@ -12,4 +12,4 @@
 "seagrass","pel_lb_trend",0
 "seagrass","shipping_trend",0.00367344240666326
 "seagrass","slr_trend",0.042691745020547
-"seagrass","sst_trend",0.0371867348922332
+"seagrass","sst_trend",0.0366863300675547

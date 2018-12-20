@@ -1,6 +1,6 @@
 "habitat","impact","trend"
-"seamounts","art_fish_trend",-6.56437840763902e-05
-"seamounts","dem_dest_trend",1.10190907950058e-05
+"seamounts","art_fish_trend",-9.22703536062192e-06
+"seamounts","dem_dest_trend",1.11792187576762e-05
 "seamounts","dem_nondest_hb_trend",0
 "seamounts","dem_nondest_lb_trend",0
 "seamounts","direct_human_trend",0
@@ -12,4 +12,4 @@
 "seamounts","pel_lb_trend",0
 "seamounts","shipping_trend",0
 "seamounts","slr_trend",0
-"seamounts","sst_trend",0.0242383886778037
+"seamounts","sst_trend",0.0242049353752415

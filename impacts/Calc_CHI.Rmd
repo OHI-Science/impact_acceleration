@@ -19,12 +19,7 @@ library(doParallel)
 library(foreach)
 library(parallel)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
-
-# parallel processing
-
-registerDoSEQ()
-registerDoParallel(4)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 ```
 
@@ -58,15 +53,19 @@ stressors_chi <- grep(paste(stressors_all_yrs, collapse="|"), stressors_chi, val
 
 length(stressors_chi)/length(years) # needs to be a whole number
 
+registerDoParallel(4)
 foreach(year = years,.packages="dplyr") %dopar%{ # year=2013
+  
+#for(year in years){ # year=2013
 
   stressors_yr <- grep(year, stressors_chi, value=TRUE)
+  print(length(stressors_yr))
   
   stress_stack <- raster::stack(stressors_yr)
   
   raster::calc(stress_stack, fun=sum, na.rm=TRUE,
                filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s.tif", year)), 
-               overwrite=TRUE, progrss="text")
+               overwrite=TRUE, progress="text")
   
 }
 
@@ -81,7 +80,7 @@ chi_check <- data.frame(year=years, length=c(NA))
 for(year in years){ # year=2013
   stressors_yr <- grep(year, stressors_chi, value=TRUE)
 
-  chi_check$length[tmp$year == year] <- length(stressors_yr)
+  chi_check$length[chi_check$year == year] <- length(stressors_yr)
  
 }
 

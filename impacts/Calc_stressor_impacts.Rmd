@@ -17,12 +17,8 @@ library(doParallel)
 library(foreach)
 library(parallel)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
-# parallel processing
-
-registerDoSEQ()
-registerDoParallel(4)
 
 ```
 
@@ -51,6 +47,7 @@ years_subset <- paste(years, collapse="|")
 stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
                            pattern = ".tif", full="TRUE")
 stress_files <- grep("/final/", stress_files, value=TRUE)
+stress_files <- grep("/archive/", stress_files, value=TRUE, invert=TRUE)
 
 stress_files <- basename(stress_files)
 stress_files <- gsub("_rescaled_mol.tif", "", stress_files)
@@ -58,7 +55,7 @@ stress_files <- gsub("_rescaled_mol.tif", "", stress_files)
 
 #filter to relevant years
 stress_files <- grep(years_subset, stress_files, value=TRUE)
-
+sum(duplicated(stress_files)) # should be zero
 
 stress_combos <- data.frame(files = stress_files) %>%
   tidyr::separate(files, c("stressor", "year"), sep=-4) %>%
@@ -77,7 +74,7 @@ combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stresso
 
 check_hab_count <- data.frame(N=rep(NA, dim(stress_combos)[1]), pressure_year=rep(NA, dim(stress_combos)[1]))
 
-for(row in 1:dim(stress_combos)[1]){ # row=2
+for(row in 1:dim(stress_combos)[1]){ # row=1
 
   year <- stress_combos$year[row]
   stress <- stress_combos$stressor[row]
@@ -91,7 +88,8 @@ for(row in 1:dim(stress_combos)[1]){ # row=2
 }
 
 check_hab_count
-table(check_hab_count$pressure_year)
+summary(check_hab_count)# should all have 21
+table(check_hab_count$pressure_year) #should all have 1 record
 
 ```
 
@@ -121,14 +119,14 @@ foreach(row = 1:dim(stress_combos)[1]) %dopar%{ # row=1
   summed_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s.tif", stress, year)))
   
   raster::overlay(summed_rast, hab_num, fun=function(x,y){x/y}, 
-                  filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s_rescaled.tif", stress, year)))
+                  filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s_rescaled.tif", stress, year)), overwrite=TRUE)
 
 }
 
 ```
 
-## Round 2
-This process is very very slow and eventually, I seem to be kicked off Mazu cores and have to start over.  The following tracks which impact rasters have not been created and then resumes running the data. This is repeated until all rasters have been created.
+## Check
+Were all the rasters created?
 
 ```{r}
 # identify rasters that have been created:
@@ -147,31 +145,6 @@ not_done <- not_done %>%
   tidyr::separate(combo, c("stressor", "year"), sep=-4) %>%
   dplyr::mutate(stressor = substr(stressor, 1, nchar(stressor)-1))
 
-combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/hab_stressor_combo"), full=TRUE)
-
-hab_num <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_number/habitat_num.tif"))
-
-registerDoParallel(4)
-foreach(row = 1:dim(not_done)[1]) %dopar%{ # row=1
-
-  year <- not_done$year[row]
-  stress <- not_done$stressor[row]
-  
-  tmp <- grep(year, combos, value=TRUE)
-  tmp <- grep(stress, tmp, value =TRUE)
-  
-  stress_stack <- raster::stack(tmp)
-  
-  raster::calc(stress_stack, fun=sum, na.rm=TRUE,
-               filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s.tif", stress, year)), 
-               overwrite=TRUE)
-  
-  summed_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s.tif", stress, year)))
-  
-  raster::overlay(summed_rast, hab_num, fun=function(x,y){x/y}, 
-                  filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/tmp/summed_raster_%s_%s_rescaled.tif", stress, year)))
-  
-}
 
 ```
 

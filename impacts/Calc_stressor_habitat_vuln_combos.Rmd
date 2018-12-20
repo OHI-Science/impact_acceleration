@@ -3,7 +3,7 @@ title: "Calc_stressor_habitat"
 output: html_document
 ---
 
-This script stressor x habitat x vulnerability rasters for each pressure/habitat/year.
+This script creates stressor x habitat x vulnerability rasters for each pressure/habitat/year.
 
 ## Loading packages
 
@@ -16,13 +16,10 @@ library(dplyr)
 library(doParallel)
 library(foreach)
 library(parallel)
+library(here)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
-# parallel processing
-
-registerDoSEQ()
-registerDoParallel(4)
 
 ```
 
@@ -35,7 +32,7 @@ years <- 2003:2013
 years_subset <- paste(years, collapse="|")
 
 # Vulnerability matrix
-vulnerability <- read.csv("vulnerability_weighting_matrix.csv") %>%
+vulnerability <- read.csv(here("vulnerability_weighting_matrix.csv")) %>%
   filter(pressure != "pressure")
 
 
@@ -64,6 +61,7 @@ xtra_vul_habs
 stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
            pattern = ".tif", full="TRUE")
 stress_files <- grep("/final/", stress_files, value=TRUE)
+stress_files <- grep("/archive/", stress_files, value=TRUE, invert=TRUE)
 
 #filter to relevant years 
 # (this includes uv and benthic structures...which are not included due to not having enough years data)
@@ -103,11 +101,12 @@ vulnerability_clean <- vulnerability %>%
 stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
                            pattern = ".tif", full="TRUE")
 stress_files <- grep("/final/", stress_files, value=TRUE)
+stress_files <- grep("/archive/", stress_files, value=TRUE, invert=TRUE)
 
 #filter to relevant years
 stress_files <- grep(years_subset, stress_files, value=TRUE)
 
-
+registerDoParallel(5)
 foreach(row = 1:dim(vulnerability_clean)[1], .packages="dplyr") %dopar%{ # row=1
 
   combo_data <- vulnerability_clean[row, ]

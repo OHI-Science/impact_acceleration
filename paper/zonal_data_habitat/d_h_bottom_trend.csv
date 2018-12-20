@@ -1,6 +1,6 @@
 "habitat","impact","trend"
 "d_h_bottom","art_fish_trend",0
-"d_h_bottom","dem_dest_trend",3.26580373909353e-05
+"d_h_bottom","dem_dest_trend",5.06825560220397e-06
 "d_h_bottom","dem_nondest_hb_trend",0
 "d_h_bottom","dem_nondest_lb_trend",0
 "d_h_bottom","direct_human_trend",0
@@ -12,4 +12,4 @@
 "d_h_bottom","pel_lb_trend",0
 "d_h_bottom","shipping_trend",0
 "d_h_bottom","slr_trend",0
-"d_h_bottom","sst_trend",0.019147810671983
+"d_h_bottom","sst_trend",0.0199559432353612

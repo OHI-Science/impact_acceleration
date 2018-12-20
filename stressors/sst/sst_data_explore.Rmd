@@ -1,0 +1,134 @@
+---
+title: 'OHI 2018: Sea Surface Temperature Data Explore'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+## Setup
+
+```{r setup, message=F,warning=F, eval = FALSE}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/', message = FALSE, warning = FALSE)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
+
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(ncdf4)
+library(httr)
+library(lubridate)
+library(animation)
+library(ggplot2)
+library(plotly)
+library(here)
+library(stringr)
+
+cols <- rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+land <- regions %>% subset(rgn_type %in% c("land", "land-disputed", "land-noeez"))
+
+yrs_data=1982:2017
+
+
+global_plot_function <- function(plotRast, cols=cols, title = "", include_legend=TRUE){
+
+  par(mar=c(0.1,1,1,1)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+
+plot(plotRast, col=cols,  
+     breaks=c(-.1, seq(0,
+                  200, length.out=254)), 
+     legend=FALSE, axes=FALSE, box=FALSE)
+
+  title(main=list(title, cex=1.2), line=0)
+
+
+  if(include_legend){
+par(mfrow=c(1, 1), mar=c(2, 0, 1, 0), new=FALSE)
+plot(plotRast, legend.only=TRUE, legend.shrink=.8, legend.width=.5, col=cols, breaks=c(-.1, seq(0,
+                  200, length.out=254)), axis.args = list(cex.axis = 0.6, at=c(0, 50, 100, 150, 200), labels=c(0, 50, 100, 150, 200)))
+}
+}
+
+
+```
+
+
+## Baseline raster
+
+Cumulative number of weekly extreme temperature events during a 5 year period from 1985-1989.  Extreme events are the number of weeks in a year in which the weekly temperature exceeds the mean + 1 SD.    
+
+```{r}
+
+# make mask
+org_data         <- stack(list.files(file.path(dir_M, "git-annex/globalprep/_raw_data/CoRTAD_sst/d2018/"),
+                                 pattern = "SSTA.nc",
+                                 full.names = TRUE), varname = "SSTA")
+
+
+mask_data <- org_data[[1]] %>%
+  projectRaster(crs=raster::crs(ocean), method="ngb", over=TRUE)
+
+# data
+l   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_anom', full.names=TRUE)
+  
+
+# Get baseline 5 year aggregates
+baseline_years <- grep(c('1985|1986|1987|1988|1989'), l, value=TRUE)
+
+baseline <- stack(ref_years) %>% 
+    sum(.) %>%
+    mask(mask_data)
+
+
+global_plot_function(plotRast=baseline, col=cols)
+
+  
+  
+```
+
+### Cumulative extreme temperature events
+The cumulative number of extreme temperature events is calculated for the year of interest and the 4 years previous.  We use a 5 year window to help smooth variation not due to longer term climate patterns.  
+
+```{r}
+
+sst <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/sst_5_yr_2009-2013.tif')) %>%
+  mask(mask_data)
+
+global_plot_function(plotRast=sst, col=cols)
+
+```
+
+### Increase in cumulative extreme temperature events relative to baseline
+We determine the increase in cumulative extreme temperature events relative to the baseline period.  This is calculated by subtracting the current number of extreme events from the baseline period.  
+```{r}
+
+sst <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/sst_diff_2009-2013.tif')) %>%
+  mask(mask_data)
+
+plot(sst, col=cols)
+global_plot_function(plotRast=sst, col=cols)
+
+sst <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/sst_diff_2013-2017.tif')) %>%
+  mask(mask_data)
+
+plot(sst, col=cols)
+global_plot_function(plotRast=sst, col=cols)
+
+```

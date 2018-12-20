@@ -19,7 +19,7 @@ library(doParallel)
 library(foreach)
 library(parallel)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 
 ```
@@ -92,7 +92,7 @@ chi_check
 
 Final formatting of raster, masking the ocean area.
 ```{r}
-years <- 2010:2013
+years <- 2003:2013
 
 for(year in years) { # year=2013
 

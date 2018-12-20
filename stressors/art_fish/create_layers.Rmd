@@ -70,7 +70,7 @@ npp_files_mol <- npp_files_mol[grep(paste(years_of_data, collapse="|"), npp_file
 #grab years 2003 - 2014
 years_filter <-  paste(years_of_data, collapse="|")
 
-art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_rasters'), full.names=TRUE, pattern = "gf")
+art_catch_rasts <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish_v3.0/int/catch_annual_rasters'), full.names=TRUE, pattern = "gf")
 art_catch_rasts <- art_catch_rasts[grep(years_filter, art_catch_rasts)]
 
 
@@ -87,7 +87,7 @@ for(file in art_catch_rasts) { # file = art_catch_rasts[1]
         resample(npp, method = 'ngb') %>%
        overlay(., npp, fun=function(x,y){x/y})
 
-writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters/art_fish_%s.tif', yr)), overwrite=TRUE) 
+writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish_v3.0/int/catch_annual_npp_rasters/art_fish_%s.tif', yr)), overwrite=TRUE) 
    
 }
 
@@ -99,7 +99,7 @@ writeRaster(c, filename = file.path(dir_M, sprintf('git-annex/impact_acceleratio
 Create an ocean raster with same scale as the fishery/npp rasters to cut land values.
 ```{r, eval=FALSE}
 
-catch_npp <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'), full.names = TRUE)
+catch_npp <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish_v3.0/int/catch_annual_npp_rasters'), full.names = TRUE)
 catch_npp <- raster(catch_npp[1])
 
 ocean_low_res <- ocean %>%
@@ -111,10 +111,10 @@ ocean_low_res <- ocean %>%
 ```{r,eval=F}
 
 #list of lists
-all_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'), full.names=TRUE)
+all_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish_v3.0/int/catch_annual_npp_rasters'), full.names=TRUE)
 
 values = stack(all_files) %>%
-      mask(ocean_low_res)
+      mask(ocean_low_res) %>% 
       getValues()
 
 values_vector <- as.vector(as.matrix(values))
@@ -123,7 +123,7 @@ values_vector <- na.omit(values_vector)
 quant <-  quantile(values_vector, prob=0.9999, na.rm=TRUE)
 
 tmp <- data.frame(cat="art_fishing", quant_9999=quant)
-write.csv(tmp, file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/quantile_9999.csv'))
+write.csv(tmp, file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish_v3.0/int/quantile_9999.csv'))
 
 ```
 
@@ -131,10 +131,10 @@ write.csv(tmp, file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fis
 Rescale the catch/npp data by the reference point and save.
 ```{r rescale, eval=FALSE}
 
-quant <- read.csv(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/quantile_9999.csv'))[["quant_9999"]]
+quant <- read.csv(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish_v3.0/int/quantile_9999.csv'))[["quant_9999"]]
 
-for(file in all_files[11:12]){
-#foreach(file = all_files,.packages="dplyr") %dopar% {    # file = all_files[1]
+#for(file in all_files[11:12]){
+foreach(file = all_files,.packages="dplyr") %dopar% {    # file = all_files[1]
   
     yr = substr(file, nchar(file)-7, nchar(file)-4)
     
@@ -144,7 +144,7 @@ for(file in all_files[11:12]){
                                    ifelse(x>quant, 1, x/quant))}) %>%
           raster::resample(ocean, method = 'ngb') %>%
             raster::mask(ocean,
-            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish/final/art_fish_%s_rescaled_mol.tif', yr)),                       
+            filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/art_fish_v3.0/final/art_fish_%s_rescaled_mol.tif', yr)),                       
             overwrite=TRUE)  
 
 # check:
@@ -158,7 +158,7 @@ for(file in all_files[11:12]){
 
 ```{r}
 
-results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish/final'), full.names = TRUE)[12]
+results <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/art_fish_v3.0/final'), full.names = TRUE)[12]
 tmp <- raster::raster(results)
 
 plot(tmp, col=cols, axes=FALSE)

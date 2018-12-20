@@ -1,6 +1,6 @@
 "habitat","impact","trend"
 "deep_waters","art_fish_trend",0
-"deep_waters","dem_dest_trend",-4.07783944411181e-05
+"deep_waters","dem_dest_trend",-1.06453497914573e-05
 "deep_waters","dem_nondest_hb_trend",0
 "deep_waters","dem_nondest_lb_trend",0
 "deep_waters","direct_human_trend",0
@@ -8,8 +8,8 @@
 "deep_waters","nutrient_trend",0
 "deep_waters","oa_trend",0
 "deep_waters","organic_trend",2.6844860389347e-06
-"deep_waters","pel_hb_trend",-4.27734697039215e-05
-"deep_waters","pel_lb_trend",-4.00359867864874e-06
+"deep_waters","pel_hb_trend",1.92320415314914e-05
+"deep_waters","pel_lb_trend",-1.17430201419581e-06
 "deep_waters","shipping_trend",0
 "deep_waters","slr_trend",0
-"deep_waters","sst_trend",0.0267790354102734
+"deep_waters","sst_trend",0.0285858023272649

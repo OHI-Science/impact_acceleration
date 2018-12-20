@@ -1,0 +1,434 @@
+---
+title: 'OHI 2017: Sea Surface Temperature stressor layer'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+    toc_float: yes
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '../../../ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+
+
+#Summary
+
+This script creates the Sea Surface Temperature (SST) layer for the 2018 Rate of Change project. The methods are nearly the same as those for the 2017 global Ocean Health Index assessment, but there were some small changes to the methods that make the data more suitable for the Rate of Change project, mostly by gapfilling and preserving near coastal cells. 
+
+
+***  
+
+
+#Data Source
+
+Data comes from [CoRTAD version 5](http://www.nodc.noaa.gov/sog/cortad/)
+
+See prs_sst/v2015/dataprep.R for preparation of the "annual_pos_anomalies" data.  
+
+**Native Data Resolution**: 4km   
+**Description**: 
+Cortadv5_SSTA.nc = SST anomalies (weekly SST minus weekly climatological SST), weekly data for all years, degrees Kelvin
+Cortadv5_weeklySST.nc =  SST, weekly data for all years, degrees Kelvin  
+**Time Range**: 1982 - 2012 (weekly averages across all years)  
+**Format**: NetCDF  
+
+***  
+
+#Methods
+1. Extreme events per year based calculated as number of times SST anomoly exceeds SST Standard Deviation based on weekly values (annual_pos_anomalies data, see v2015/dataprep.R for analysis).
+2. Sum extreme events for five year periods to control for yearly variation.
+3. Change in extreme events: Subtract number of extreme events for each five year period from control period (1985-1989).
+4. Rescale "Change in extreme events" data to values between 0 and 1 by dividing by the 99.99th quantile among all years of data.
+
+## Setup
+```{r setup, message=FALSE, warning=FALSE, error=FALSE}
+
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = 'figs/',message = FALSE, warning = FALSE)
+
+# setwd("stressors/sst")
+
+library(raster)
+library(RColorBrewer)
+library(tidyverse)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(sf)
+library(gstat)
+library(stringr)
+
+# load spatial files (ocean raster and regions shapefile)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+
+
+# paralell processing
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+
+```
+
+***
+
+### Calculate reference value
+
+Reference values are the 99.99th quantile of the total positive anomolies across five years subtracted from the total positive anomolies for a five year reference period (1985-1989).  
+```{r ref point, eval=FALSE}
+
+l   <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern='annual_pos_anomalies', full.names=TRUE)
+
+# use the original data as mask at this spatial scale
+# the files have land as zero (but there are also legitimate zeros, 
+# so these need to be masked)
+org_data <- stack(file.path(dir_M,'git-annex/globalprep/prs_sst/data/cortadv5_SSTA.nc'), varname='SSTA')
+mask_data <- org_data[[1]]
+
+ref <- stack(grep(c('1985|1986|1987|1988|1989'), l, value=TRUE)) %>%  # Time period we are using for historical comparison (1985 - 1989)
+  mask(mask_data) %>%
+  sum(.)
+
+
+vals <- c()
+
+for (i in 1986:2008){ #i=2005
+  
+  yrs <- c(i:(i+4))
+  
+  s   <- stack(l[substr(l, 81, 84) %in% yrs]) %>% 
+    sum(.)
+
+  diff <-  overlay(s, ref, fun=function(x,y){x-y}) #calculate difference between recent 5 year cumulative sum and historical (1985-1989)
+
+  diff_vals <- getValues(diff)
+    
+  vals <- c(vals, diff_vals)
+  print(i)
+}
+
+    
+# 99.99th quantile
+
+resc_num  <- quantile(vals, prob=0.9999, na.rm=TRUE) ### 128
+resc_num
+
+hist(vals, main="SST extreme events across all years/cells")
+abline(v = resc_num, col="red")
+
+ref_value <- data.frame(pressure = "sst", quant_9999 = resc_num)
+
+write.csv(ref_value, 
+          file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rescale_val.csv"),
+          row.names=FALSE)
+
+```
+
+## Identify gapfilled cells
+```{r, eval=FALSE}
+
+# number of positive anomalies
+l   <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern='annual_pos_anomalies', full.names=TRUE)
+
+# use the original data as mask at this spatial scale
+org_data <- stack(file.path(dir_M,'git-annex/globalprep/prs_sst/data/cortadv5_SSTA.nc'), varname='SSTA')
+mask_data <- org_data[[1]]
+
+# identify cells that need to be gapfilled
+file_gf <- raster(l[1]) %>%
+  mask(mask_data)
+
+file_gf[is.na(file_gf)] <- 999
+
+projectRaster(file_gf, ocean, method = "ngb", over=TRUE) %>%
+  mask(ocean, filename=file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif"),
+       overwrite = TRUE)
+
+file_gf <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/sst_gf.tif"))
+
+plot(file_gf)
+
+# get count of gapfilled cells
+file_gf_count <- getValues(file_gf)
+gf_count <- sum(file_gf_count==999, na.rm=TRUE)
+gf_count # 904099
+ocean_vals <- getValues(ocean)
+ocean_size <- sum(ocean_vals == 1, na.rm=TRUE)
+ocean_size
+904099/416190801 # 0.2% gapfilled
+
+
+```
+
+## interpolate each year of sst raster data, crs to mollweide/1km, mask, and save
+```{r interpolate, eval=FALSE}
+
+l   <- list.files(file.path(dir_M,'git-annex/globalprep/prs_sst/v2015/tmp'), pattern='annual_pos_anomalies', full.names=TRUE)
+  
+plot(raster(l[1]))
+#click(raster(l[1])) # unfortunately, land areas are 0 and not NA, need to mask prior to gapfilling
+
+# use the original data as mask at this spatial scale
+org_data <- stack(file.path(dir_M,'git-annex/globalprep/prs_sst/data/cortadv5_SSTA.nc'), varname='SSTA')
+mask_data <- org_data[[1]]
+
+## Gapfill using mean of surrounding cells that are NA
+gf_raster <- function(x){raster::focal(x, w = matrix(1,3,3), fun = mean, na.rm=TRUE, pad = TRUE, NAonly=TRUE)}
+
+foreach(file_name = l,.packages="dplyr") %dopar%{ # file_name = l[1]
+  
+  yr <- substr(file_name, nchar(file_name)-7, nchar(file_name)-4)
+  
+  r = raster::raster(file_name) %>%
+    raster::mask(mask_data) %>%
+    raster::projectRaster(crs=raster::crs(ocean), method="ngb", over=TRUE)
+  
+
+## Repeat 400 times (I found this was enough iterations to gapfill all missing values)
+i <- 0
+while (i <= 400){
+r <- gf_raster(r)
+i <- i + 1
+print(i)
+}
+
+# plot(r_proj_mask)
+raster::writeRaster(r, file.path(dir_M, sprintf("git-annex/impact_acceleration/stressors/sst/int/sst_anom_interpolated_%s.tif", yr)), overwrite=TRUE)
+
+}
+
+
+```
+
+
+
+
+## Create 5 year cumulative sum of extreme events and calculate difference from historical
+```{r, eval=FALSE}
+
+l   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_anom', full.names=TRUE)
+  
+plot(raster(l[1]))
+
+# Get 5 year aggregates
+ref_years <- grep(c('1985|1986|1987|1988|1989'), l, value=TRUE)
+
+  ref <- stack(ref_years) %>% 
+    sum(.) # This is the time period we are using for historical comparison (1985 - 1989)
+
+  
+for (i in 1986:2008){ #i=2005
+  print(i)
+  yrs <- c(i:(i+4))
+  yrs_comb <- paste(yrs, collapse="|")
+  s   <- stack(grep(yrs_comb, l, value=TRUE)) %>% 
+    sum(.)
+
+    writeRaster(s,
+              filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/sst/int/sst_5_yr_%s-%s.tif', yrs[1], yrs[5])), overwrite=TRUE)
+    
+  diff = overlay(s, ref, fun=function(x,y){x-y}) #calculate difference between recent 5 year cumulative sum and historical (1985-1989)
+
+  writeRaster(diff,
+              filename = file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/sst/int/sst_diff_%s-%s.tif', yrs[1], yrs[5])), overwrite=TRUE)
+}
+
+```
+
+## Gapfill year 2013
+
+The purpose of this is to determine whether the change in SST is predictable enough over time that we can reasonably estimate the 2013 year.  Here I am exploring when during processing the 2013 data is best estimated.
+
+anomolies (rawest data): data was very bouncy, but it seemed reasonable
+5 year total anomolies: data had clear 10 year or so patterns
+5 year diff: looked similar to above, will go with this one for estimating 2013.
+
+```{r est_2013, eval=FALSE}
+
+
+## first the anomolies: 
+files   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_anom', full.names=TRUE)
+
+sst_stack <- stack(files)
+
+samp_n <- 100
+
+rand_samp <- sampleRandom(sst_stack, size=samp_n) %>%
+  data.frame()
+
+rand_samp$sample_id <- 1:samp_n
+
+rand_samp_data <- rand_samp %>%
+  gather("year", "sst_anom", starts_with("sst")) %>%
+  mutate(year = substr(year, 23, 26)) %>%
+  mutate(year = as.numeric(year))
+   
+# check that everything went well
+summary(rand_samp_data)        
+table(rand_samp_data$sample_id)  
+
+write.csv(rand_samp_data, file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rand_sample_anom.csv"), row.names=FALSE)
+
+## plots of these data are generated in "sst_random_sample.rmd"
+
+
+## second the 5 year total anomolies: 
+files   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_5_yr', full.names=TRUE)
+
+sst_stack <- stack(files)
+
+samp_n <- 100
+
+rand_samp <- sampleRandom(sst_stack, size=samp_n) %>%
+  data.frame()
+
+rand_samp$sample_id <- 1:samp_n
+
+rand_samp_data <- rand_samp %>%
+  gather("year", "sst_anom", starts_with("sst")) %>%
+  mutate(year = substr(year, 15, 18)) %>%
+  mutate(year = as.numeric(year))
+   
+# check that everything went well
+summary(rand_samp_data)        
+table(rand_samp_data$sample_id)  
+
+write.csv(rand_samp_data, file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rand_sample_5yr.csv"), row.names=FALSE)
+
+## plots of these data are generated in "sst_random_sample_5yr.rmd"
+
+
+## third the 5 year difference: 
+files   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_diff', full.names=TRUE)
+
+sst_stack <- stack(files)
+
+samp_n <- 100
+
+rand_samp <- sampleRandom(sst_stack, size=samp_n) %>%
+  data.frame()
+
+rand_samp$sample_id <- 1:samp_n
+
+rand_samp_data <- rand_samp %>%
+  gather("year", "sst_anom", starts_with("sst")) %>%
+  mutate(year = substr(year, 15, 18)) %>%
+  mutate(year = as.numeric(year))
+   
+# check that everything went well
+summary(rand_samp_data)        
+table(rand_samp_data$sample_id)  
+
+write.csv(rand_samp_data, file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rand_sample_diff.csv"), row.names=FALSE)
+
+## plots of these data are generated in "sst_random_sample_diff.rmd"
+
+
+```
+
+## Gapfill year 2013 with lm of previous years of data
+I explored 3 different points for estimating the 2013 data and decided to go with the difference in anomolies.
+
+A regression model will be applied to each cell across all years of data, and the slope and intercept will be used to estimate 2013. 
+
+```{r estimate_2013, eval=FALSE}
+
+files   <- list.files(file.path(dir_M,'git-annex/impact_acceleration/stressors/sst/int'), pattern='sst_diff', full.names=TRUE)
+
+sst_diff_stack <- stack(files)
+years <-   as.numeric(substr(basename(files), 15, 18))
+
+funa <- function(x) { 
+  if(all(is.na(x))) {
+    c(NA, NA)
+  } else {
+    lm(x ~ years)$coefficients 
+  }
+}
+
+r <- raster::calc(sst_diff_stack, fun=funa, progress="text")
+
+writeRaster(r[[1]], file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/coef_intercept.tif'))
+writeRaster(r[[2]], file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/coef_slope.tif'))
+
+
+# create a 2013 raster
+rast_pred <- raster(l[1])
+rast_pred[] <- 2013
+
+coef_stack <- stack(r, rast_pred)
+
+pred_sst_anom <- overlay(coef_stack, fun=function(x,y,z) x + y*z, progress="text")
+pred_sst_anom
+plot(pred_sst_anom)
+plot(raster(files[[23]]))
+
+writeRaster(pred_sst_anom, file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int/sst_diff_2009-2013.tif'))
+```
+
+## Rescaling
+
+```{r rescale, eval=FALSE}
+
+diffs <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int'), pattern = 'sst_diff', full.names=TRUE)
+
+
+resc_num <- read.csv( 
+          file.path(dir_M, "git-annex/impact_acceleration/stressors/sst/int/rescale_val.csv")) %>%
+  .$quant_9999
+
+
+for (diff_rast in diffs){ # diff_rast <- diffs[23]
+
+  print(diff_rast)
+
+  r <- raster(diff_rast)
+
+  yrs <- str_sub(diff_rast, -8, -5)
+  
+  out = raster::calc(r, fun=function(x){ifelse(x>0, 
+                                       ifelse(x>resc_num, 1, x/resc_num), 
+                                       0)}) %>%
+  raster::resample(ocean, method = "ngb") %>%
+  raster::mask(ocean)
+  
+    
+  writeRaster(out, file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/sst/final/sst_%s_rescaled_mol.tif', yrs)), overwrite=TRUE)
+
+}
+
+```
+
+***
+
+#Results
+
+```{r results}
+## compare with previous efforts to generate these data.  Methods are only slightly modified so 
+## these should basically look the same...and they do.
+new <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/final/sst_2012_rescaled_mol.tif'))
+plot(new, col=cols, main = "Sea Surface Temperature Pressure Layer \n modified for impacts")
+
+res <- list.files(file.path(dir_M, 'git-annex/globalprep/prs_sst/v2016/output'), full.names = TRUE)
+
+plot(raster(res[24]), col=cols, axes=F, main = 'Sea Surface Temperature Pressure Layer \n OHI 2016')
+
+
+## now check out the 2013 estimated data to see if it makes sense
+new <- raster(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/final/sst_2013_rescaled_mol.tif'))
+plot(new, col=cols, main="2013 estimation")
+
+```
+
+***
+
+# Citation information  
+
+Selig, E.R., K.S. Casey, and J.F. Bruno (2010), New insights into global patterns of ocean temperature anomalies: implications for coral reef health and management, Global Ecology and Biogeography, DOI: 10.1111/j.1466-8238.2009.00522.x.
+

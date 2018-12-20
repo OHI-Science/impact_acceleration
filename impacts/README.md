@@ -1,7 +1,7 @@
 After stressor rasters are created (impact_acceleration/stressors) that describe stressor on a scale of 0-1,
 the following is run:
   
-Calc_stressor_habitats.Rmd: Multiplies the stressor x habitat x vulnerability layers to get the 
+Calc_stressor_habita_vuln_combos.Rmd: Multiplies the stressor x habitat x vulnerability layers to get the 
   stressor/habitat combos for each year.
   
 Calc_stressor_impacts.Rmd: For each pressure/year sums the relevant stressor x habitat x vulnerability rasters and then 
