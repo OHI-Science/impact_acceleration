@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Compiled on Thu Dec 20 22:00:27 2018 by Melanie" />
+<meta name="author" content="Compiled on Fri Dec 21 16:08:24 2018 by Melanie" />
 
 
 <title>Methods for cumulative impacts and their annual change</title>
@@ -109,7 +109,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Methods for cumulative impacts and their annual change</h1>
-<h4 class="author"><em><em>Compiled on Thu Dec 20 22:00:27 2018 by Melanie</em></em></h4>
+<h4 class="author"><em><em>Compiled on Fri Dec 21 16:08:24 2018 by Melanie</em></em></h4>
 
 </div>
 
@@ -118,9 +118,10 @@ $(document).ready(function () {
 <li><a href="#general-model"><span class="toc-section-number">0.1</span> General model</a></li>
 <li><a href="#data-representation"><span class="toc-section-number">0.2</span> Data representation</a></li>
 <li><a href="#stressors"><span class="toc-section-number">0.3</span> Stressors</a><ul>
-<li><a href="#data-sources"><span class="toc-section-number">0.3.1</span> Data sources</a></li>
+<li><a href="#general-stressor-methods"><span class="toc-section-number">0.3.1</span> General stressor methods</a></li>
+<li><a href="#data-sources"><span class="toc-section-number">0.3.2</span> Data sources</a></li>
 </ul></li>
-<li><a href="#vulnerability-matrix"><span class="toc-section-number">0.4</span> Vulnerability matrix</a></li>
+<li><a href="#marine-ecosystems"><span class="toc-section-number">0.4</span> Marine ecosystems</a></li>
 <li><a href="#ecosystem-maps"><span class="toc-section-number">0.5</span> Ecosystem maps</a></li>
 <li><a href="#references"><span class="toc-section-number">0.6</span> References</a></li>
 </ul>
@@ -156,8 +157,8 @@ $(document).ready(function () {
 </div>
 <div id="data-representation" class="section level2">
 <h2><span class="header-section-number">0.2</span> Data representation</h2>
-<p>All data are represented at ~1km2 resolution with a WGS84 Mollweide projection. All data were resampled/reprojected using nearest neighbor estimates of cell values. Nearly all of the source data used to derive the stressor layers had native coarser resolution (Table 2) than our representation. Using the nearest neighbor approach preserves the values of the original data, and assumes the coarse-scale value is evenly distributed across all 1km2 cells within that region. The coarser scale pattern is essentially recreated while the finer resolution information is preserved where and when it is appropriate.</p>
-<p>We use the WGS84 Mollweide projection because it preserves area, and data towards the poles are not visually over-represented.</p>
+<p>All data are represented at ~1 km resolution with a WGS84 Mollweide projection. Nearly all of the source data used to derive the stressor layers had native coarser resolution (Table 2), and were therefore resampled/reprojected using nearest neighbor estimates of cell values. Using the nearest neighbor approach preserves the values of the original data, and assumes the coarse-scale value is evenly distributed across all 1km2 cells within that region. The coarser scale pattern is essentially recreated and finer resolution information is preserved where and when it is appropriate.</p>
+<p>We use the WGS84 Mollweide projection because it preserves area so data towards the poles are not visually over-represented.</p>
 </div>
 <div id="stressors" class="section level2">
 <h2><span class="header-section-number">0.3</span> Stressors</h2>
@@ -168,13 +169,18 @@ $(document).ready(function () {
 <li>Ocean: shipping</li>
 <li>Land-based: nutrient pollution, organic chemical pollution, direct human, light</li>
 </ul>
-<p>Given that many of the habitats are only found near the coast, the stressor raster data must extend all the way to the coastline (at ~1 km resolution). In most cases, there were gaps in the data along the coastline. In some cases this occurred because monitoring missed some regions; however, it was most often due to converting a coarser resolution raster to a finer resolution raster, resulting in zig-zags of missing data along the coast. This made gapfilling necessary. We describe the methods used to gapfill each stressor.</p>
+<p>Stresors included in our analyses are listed in Table S2 and S3 and described in detail below.</p>
+<p>Given our focus of describing <em>trends</em> in human impact on marine ecosystems, global datasets reporting results at regular intervals were critical. Given this constraint, we were unable to include some stressors from previous impact analyses (Halpern et al. 2008, 2015) because they did not include enough information for us to estimate annual change from 2003 to 2013. These include pressures requiring port traffic data (invasive species and ocean pollution), UV intensity, and benthic structures.</p>
+<p>Other anthropogenic drivers we considered, but could not include due to incomplete spatial or temporal coverage, were: hypoxic zones, coastal engineering (piers, rock walls, etc.), non-cargo shipping (ferries, cruise ships, etc), aquaculture, disease, changes in sedimentation and freshwater input, and tourism.</p>
+<div id="general-stressor-methods" class="section level3">
+<h3><span class="header-section-number">0.3.1</span> General stressor methods</h3>
+<p>Given that many of the habitats are only found near the coast, the stressor raster data must extend all the way to the coastline (at ~1 km resolution) to avoid biasing the data (Frazier et al. 2016). In most cases, there were gaps in the data along the coastline. In some cases this occurred because monitoring missed some regions; however, it was most often due to converting a coarser resolution raster to a finer resolution raster, resulting in zig-zags of missing data along the coast. This made gapfilling necessary. We describe the methods used to gapfill each stressor.</p>
 <p>Stressors are rescaled to have values between 0-1. Rescaling allows for direct comparison among drivers with dramatically different units of measurement. With the exception of ocean acidification, we rescaled the data by dividing by the 99.99th quantile across all global raster cells and years (values are capped to a maximum value of 1). We used all years of data to rescale the data to ensure comparability across time periods. The 99.99th quantile was used to minimize the influence of outliers. This approach assumes a linear relationship between the magnitude of the stressor and the impact on the ecosystem. This assumption ignores thresholds that likely exist but are known for very few stressors. For the ocean acidification stressor we were able to apply information about biological thresholds to rescale the data.</p>
 <p>For many stressors, the distribution of values was highly skewed such that the highest, most extreme, values dictated the rescaling value. The result was that magnitude of intermediate values of the stressor were underestimated after rescaling. In these cases, we log transformed stressor values prior to rescaling. We indicate when data were transformed in descriptions of each stressor.</p>
 <p>All scripts used to calculate stressors are available: <a href="https://github.com/OHI-Science/impact_acceleration/tree/master/stressors" class="uri">https://github.com/OHI-Science/impact_acceleration/tree/master/stressors</a></p>
 <p></br></p>
 <div id="fishing" class="section level5">
-<h5><span class="header-section-number">0.3.0.0.1</span> Fishing</h5>
+<h5><span class="header-section-number">0.3.1.0.1</span> Fishing</h5>
 <p><em>Commercial fishing (5 stressors)</em></p>
 <p>There are 5 commercial fishing stressors that describe different impacts on marine ecosystems:</p>
 <ul>
@@ -185,15 +191,12 @@ $(document).ready(function () {
 <li>pelagic low bycatch</li>
 </ul>
 <p>The stressors were calculated using annual wild caught industrial fisheries catch (tonnes) by taxa and gear type at 0.5° resolution (Watson 2018, Global Fisheries Landings V3.0; Watson and Tidd 2018). For each stressor, we summed the relevant industrial tonnes of catch (Watson 2018) for each raster cell based on gear type and, in some cases, taxonomic information.</p>
-<p>Table 1. Gear types provided by Watson (2018) used to assign catch to each commercial fisheries pressure</p>
+<p></br> <em>Table S1. Gear types provided by Watson (2018) used to assign catch to each commercial fisheries pressure.</em></p>
 <table>
 <thead>
 <tr>
-<th style="text-align:right;">
-Gear
-</th>
 <th style="text-align:left;">
-GearName
+FleetGearName
 </th>
 <th style="text-align:left;">
 bycatch
@@ -208,240 +211,8 @@ destruction
 </thead>
 <tbody>
 <tr>
-<td style="text-align:right;">
-450
-</td>
 <td style="text-align:left;">
-longline tuna
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1000
-</td>
-<td style="text-align:left;">
-surrounding nets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-424
-</td>
-<td style="text-align:left;">
-troll lines
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-421
-</td>
-<td style="text-align:left;">
-handlines
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-440
-</td>
-<td style="text-align:left;">
-pole line tuna
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1400
-</td>
-<td style="text-align:left;">
-gillnets
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-420
-</td>
-<td style="text-align:left;">
-with gorges or hooks
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1050
-</td>
-<td style="text-align:left;">
-purse seine tuna
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-900
-</td>
-<td style="text-align:left;">
-seine nets
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-920
-</td>
-<td style="text-align:left;">
-genuine seine net
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1540
-</td>
-<td style="text-align:left;">
-trammel nets
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-225
-</td>
-<td style="text-align:left;">
-harpoons
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1410
-</td>
-<td style="text-align:left;">
-set gillnets
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1020
-</td>
-<td style="text-align:left;">
-purse seines
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-840
-</td>
-<td style="text-align:left;">
-bottom trawls
+Trawl
 </td>
 <td style="text-align:left;">
 high
@@ -454,44 +225,8 @@ destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-110
-</td>
 <td style="text-align:left;">
-grasping with hand
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-850
-</td>
-<td style="text-align:left;">
-mid-water trawls
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1420
-</td>
-<td style="text-align:left;">
-driftnets
+Gillnet
 </td>
 <td style="text-align:left;">
 high
@@ -503,11 +238,8 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-433
-</td>
 <td style="text-align:left;">
-squid hooks
+Purse seine Non-tuna
 </td>
 <td style="text-align:left;">
 low
@@ -520,14 +252,24 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-1010
-</td>
 <td style="text-align:left;">
-lampara-like nets
+Lines Non-tuna
 </td>
 <td style="text-align:left;">
 low
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+non-destructive
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Trawl midwater
+</td>
+<td style="text-align:left;">
+high
 </td>
 <td style="text-align:left;">
 pelagic
@@ -537,78 +279,8 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-500
-</td>
 <td style="text-align:left;">
-traps
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-922
-</td>
-<td style="text-align:left;">
-boat seines
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1320
-</td>
-<td style="text-align:left;">
-cast nets with or without pockets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-563
-</td>
-<td style="text-align:left;">
-pound nets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-432
-</td>
-<td style="text-align:left;">
-pilks or jigs
+Other
 </td>
 <td style="text-align:left;">
 low
@@ -620,11 +292,8 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-1400
-</td>
 <td style="text-align:left;">
-bottom trawls
+Dredge
 </td>
 <td style="text-align:left;">
 high
@@ -637,11 +306,35 @@ destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-1400
+<td style="text-align:left;">
+Trap
 </td>
 <td style="text-align:left;">
-mid-water trawls
+high
+</td>
+<td style="text-align:left;">
+demersal
+</td>
+<td style="text-align:left;">
+non-destructive
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Seine
+</td>
+<td style="text-align:left;">
+high
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+non-destructive
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LonglineTuna
 </td>
 <td style="text-align:left;">
 high
@@ -654,58 +347,8 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-400
-</td>
 <td style="text-align:left;">
-Lines
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-100
-</td>
-<td style="text-align:left;">
-without gear
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-921
-</td>
-<td style="text-align:left;">
-beach seines
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1210
-</td>
-<td style="text-align:left;">
-hand liftnets
+Pole and Line Tuna
 </td>
 <td style="text-align:left;">
 low
@@ -718,79 +361,8 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-422
-</td>
 <td style="text-align:left;">
-set lines
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-830
-</td>
-<td style="text-align:left;">
-dredges
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-214
-</td>
-<td style="text-align:left;">
-tongs
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-221
-</td>
-<td style="text-align:left;">
-spears and lances
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-700
-</td>
-<td style="text-align:left;">
-bagnets
+Purse seine Tuna
 </td>
 <td style="text-align:left;">
 low
@@ -803,253 +375,16 @@ non-destructive
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
-1500
-</td>
 <td style="text-align:left;">
-tangle nets
+Longline Non-tuna
 </td>
 <td style="text-align:left;">
 high
 </td>
 <td style="text-align:left;">
-demersal
 </td>
 <td style="text-align:left;">
 non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-213
-</td>
-<td style="text-align:left;">
-raking devices
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-551
-</td>
-<td style="text-align:left;">
-pots
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1030
-</td>
-<td style="text-align:left;">
-ring nets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-540
-</td>
-<td style="text-align:left;">
-tubular traps
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-120
-</td>
-<td style="text-align:left;">
-by diving
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-831
-</td>
-<td style="text-align:left;">
-hand dredges
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-423
-</td>
-<td style="text-align:left;">
-drift lines
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1100
-</td>
-<td style="text-align:left;">
-drive-in nets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-560
-</td>
-<td style="text-align:left;">
-trapping gear
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-312
-</td>
-<td style="text-align:left;">
-explosives
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-1200
-</td>
-<td style="text-align:left;">
-liftnets or dipnets
-</td>
-<td style="text-align:left;">
-low
-</td>
-<td style="text-align:left;">
-pelagic
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-553
-</td>
-<td style="text-align:left;">
-box-like traps
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-552
-</td>
-<td style="text-align:left;">
-conical and drum-like traps
-</td>
-<td style="text-align:left;">
-high
-</td>
-<td style="text-align:left;">
-demersal
-</td>
-<td style="text-align:left;">
-non-destructive
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-NA
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 </tbody>
@@ -1064,7 +399,7 @@ NA
 <p></br></p>
 </div>
 <div id="climate-change" class="section level5">
-<h5><span class="header-section-number">0.3.0.0.2</span> Climate change</h5>
+<h5><span class="header-section-number">0.3.1.0.2</span> Climate change</h5>
 <p><em>Sea surface temperature</em></p>
 <p>The sea surface temperature (SST) stressor describes the increased frequency of extreme temperature events relative to a historical baseline period. We used weekly SST anomoly data from version 6 of the Coral Reef Temperature Anomaly Database (CoRTAD) These data are a product of the NOAA National Oceanographic Data Center, produced using Advanced Very High Resolution Radiometer (AVHRR) Pathfinder SST data (<a href="https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.nodc:NCEI-CoRTADv6" class="uri">https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.nodc:NCEI-CoRTADv6</a>). SST anomolies are defined as the weekly SST minus weekly climatological SST, as calculated across all years of data (1982-2017).</p>
 <p>The number of weeks, during a five year period, with extremely warm SST was subtracted from the number of extreme SST weeks during a five year baseline period (1985-1989). An extreme SST event was defined as a week when the SST anomoly exceeded the standard deviation of SST anomolies for that location (i.e., grid cell) and week of the year. Extreme events included only high (i.e., warming) SST events.</p>
@@ -1087,7 +422,7 @@ NA
 <p></br></p>
 </div>
 <div id="ocean-based" class="section level5">
-<h5><span class="header-section-number">0.3.0.0.3</span> Ocean-based</h5>
+<h5><span class="header-section-number">0.3.1.0.3</span> Ocean-based</h5>
 <p><em>Shipping</em></p>
 <p>This pressure describes intensity of global shipping traffic. High quality, freely available, annual shipping data are currently unavailable. Consequently, we combined two sources of data to describe spatial and temporal shipping patterns.</p>
 <p>The first data source was a high resolution (0.1°) map of global vessel traffic based on data from the Volunteer Observing System (VOS) and Automatic Identification System (AIS) (data from Halpern et al. 2015; Wallbridge 2013). These data combine several years of shipping data but are mostly a static description of shipping during 2011. The outer border of these shipping data was gapfilled using mean of nearest neighbors.</p>
@@ -1097,7 +432,7 @@ NA
 <p></br></p>
 </div>
 <div id="land-based" class="section level5">
-<h5><span class="header-section-number">0.3.0.0.4</span> Land-based</h5>
+<h5><span class="header-section-number">0.3.1.0.4</span> Land-based</h5>
 <p><em>Nutrient pollution</em></p>
 <p>The nutrient pollution stressor describes relative intensity of nutrient pollution due to run-off from land-based applications. These data represent modeled nutrient plumes resulting from land-based nitrogen application at ~1km resolution. A brief overview of the methods are provided below, but see Halpern et al. (2008, 2015) for more information.</p>
 <p>The plume model uses country-level average annual fertilizer use (as a proxy for nutrient pollution) from FAO (<a href="http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E" class="uri">http://faostat3.fao.org/faostat-gateway/go/to/browse/R/*/E</a>). Missing values were estimated using a linear regression model between fertilizer and pesticides when possible, and otherwise with agricultural GDP. Data were summed across all fertilizer compounds and reported in metric tons. Upon inspection the data included multiple 0 values that are most likely data gaps in the time-series, so they were treated as such and replaced with NA. Uninhabited countries were assumed to have no fertilizer use and thus excluded.</p>
@@ -1116,9 +451,9 @@ NA
 <p></br></p>
 <p><em>Light</em></p>
 <p>The light stressor describes the amount of light pollution in marine environments. We used annual DMSP stable night lights satellite data (Elvidge et al. 2009; <a href="https://ngdc.noaa.gov/eog/data/web_data/v4composites/%s.v4.tar" class="uri">https://ngdc.noaa.gov/eog/data/web_data/v4composites/%s.v4.tar</a>, image and data processing by NOAA’s National Geophysical Data Center; DMSP satellite data collected by US Air Force Weather Agency) with resolution of 30 arc-seconds spanning -65 to 75 degrees latitude and -180 to 180 degrees longitude. The original data contained non-calibrated radiance values, ranging from 0-63, with different satellites used to collect the data across years.</p>
-<p>For each year, the original raster values of 0-63 (<span class="math inline">\(DNo\)</span>) were calibrated using data only from the Sicily region (which has had a fairly stable population during this period) to produce adjusted, <span class="math inline">\(DNa\)</span>, values using the following formula:</p>
+<p>For each year, the original raster values of 0-63 (<span class="math inline">\(DNo\)</span>) were calibrated to produce adjusted, <span class="math inline">\(DNa\)</span>, values, using the following formula:</p>
 <p><span class="math display">\[DNa = C0 + C1*DNo + C2*DNo^2\]</span></p>
-<p>C0, C1 and C1 coefficients used to calibrate the data were estimated for each year using a 2nd degree polynomial regression model, with the F121999 satellite as a predictor variable, with the model coded in R as:</p>
+<p>C0, C1 and C1 coefficients used to calibrate the data were estimated using data only from the Sicily region which was selected becasue it is not light saturated and is thought to have remained fairly constant over the years. Coefficients for each year were estimated using a 2nd degree polynomial regression model, with the F121999 satellite as a predictor variable, with the model coded in R as:</p>
 <p><span class="math inline">\(DNo_{year}\)</span> ~ 0 + poly(<span class="math inline">\(DNo_{F121999}\)</span>, 2, raw=TRUE)</p>
 <p>The intercept was forced through the origin, so cells with zero light were estimated as zero values (indicated by the 0 value in the regression model).</p>
 <p>We followed Elvidge et al. (2009) and used the F121999 satellite as the reference based on their assessment, that:</p>
@@ -1126,11 +461,13 @@ NA
 <p>In reviewing the data it was found that the data from satellite year F121999 had the highest digital values. Because there is saturation (DN = 63) in the bright cores of urban centers and large gas flares, F121999 was used as the reference and the data from all other satellite years were adjusted to match the F121999 data range.</p>
 </blockquote>
 <p>This approach assumes the reference area of Sicily has had little change in light output during this period. This technique, while not perfect, does allow for better comparison between different satellites and time periods.</p>
+<p>There is the possibility of missing cells due to cloud cover. These have a value of 255 in the data. For the most part, these cells do not appear in the ocean. In case there were a few of these scattered about, these values were replaced with zero. Also the data does not fully cover the north and south pole regions, and these were estimated as zero values.</p>
 <p></br></p>
 </div>
+</div>
 <div id="data-sources" class="section level3">
-<h3><span class="header-section-number">0.3.1</span> Data sources</h3>
-<p><em>Table 2: Data sources for stressor data</em></p>
+<h3><span class="header-section-number">0.3.2</span> Data sources</h3>
+<p><em>Table S2: Data sources for stressor data</em></p>
 <table>
 <colgroup>
 <col width="12%"></col>
@@ -1249,7 +586,8 @@ NA
 </tr>
 </tbody>
 </table>
-<p><em>Table 3: Methods used for stressor data</em></p>
+<p></br></p>
+<p><em>Table S3: Methods used for stressor data</em></p>
 <table>
 <colgroup>
 <col width="11%"></col>
@@ -1355,7 +693,7 @@ NA
 <tr class="odd">
 <td>light</td>
 <td>Non-calibrated radiance values from satellite data calibrated across year/satellite following methods of Elvidge et al. 2009.</td>
-<td>NA</td>
+<td>The dataset does not include the north and south pole regions, and these were estimated as zero</td>
 <td>raster value corresponding 99.99th quantile across all years (excluding 0 values)</td>
 <td>NA</td>
 </tr>
@@ -1371,9 +709,12 @@ NA
 <p></br></p>
 </div>
 </div>
-<div id="vulnerability-matrix" class="section level2">
-<h2><span class="header-section-number">0.4</span> Vulnerability matrix</h2>
-<p>The vulnerability matrix is used to translate stressor data into impact data. This table describes the impact of each stressor on each marine ecosystem, using integers ranging from 0 (no impact) to 3 (highest impact). These weighting variables are from an expert survey that assessed the vulnerabiliyt of each ecosystem to each stressor on the basis of 5 ecological traits (Halpern et al. 2008). The vulnerability matrix has remained unchanged from the 2015 cumulative impact analysis (Halpern et al. 2015).</p>
+<div id="marine-ecosystems" class="section level2">
+<h2><span class="header-section-number">0.4</span> Marine ecosystems</h2>
+<p>20 of the 21 marine ecosystems used to estimate impacts remain unchanged from previous impact assessments (Halpern et al. 2008, 2015). This year we added a sea ice edge ecosystem, which currently functions as more of a placeholder because the pressures included in the assessment have limited effected on seaice habitat, which is known to be rapidly changing. We currently do not include UV or air temperature data. We do include SST, but these data are innacurate in the presence of sea ice. For this reason, we do not include this habitat in our summaries.</p>
+<p>The marine ecosystem data is represented as rasters with areas with the habitat indicated by values of 1 (otherwise values are NA). However, because sea ice is so temporally variable, sea ice edge values range from 0-1 based on the proportion of the year that sea ice edge is present.</p>
+<p>We use monthly Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS Passive Microwave Data collected from 1981 to 2010. We identified sea ice edge cells as those with concentrations between 15-80% (based on: <a href="http://seaiceatlas.snap.uaf.edu/glossary" class="uri">http://seaiceatlas.snap.uaf.edu/glossary</a>), and assigned them a value of 1 (otherwise 0). Using the classified sea ice edge data, monthly rasters across all years were averaged to determine the proportion of time the raster is classified as sea ice edge habitat. There is a “hole” of missing data at the northern most part of globe due to satellite coverage, this area was classified as 0, indicating solid ice. We estimated shoreline cells without data using the average of nearest neighbors.</p>
+<p></br> ## Vulnerability matrix The vulnerability matrix is used to translate stressor data into impact data. This table describes the impact of each stressor on each marine ecosystem, using integers ranging from 0 (no impact) to 3 (highest impact). These weighting variables are from an expert survey that assessed the vulnerabiliyt of each ecosystem to each stressor on the basis of 5 ecological traits (Halpern et al. 2008). The vulnerability matrix has remained unchanged from the 2015 cumulative impact analysis (Halpern et al. 2015).</p>
 <table class="table table-striped" style="font-size: 10px; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -2415,6 +1756,7 @@ sst
 <p>Channan, S., K. Collins, and W. R. Emanuel (2014). Global mosaics of the standard MODIS land cover type data. University of Maryland and the Pacific Northwest National Laboratory, College Park, Maryland, USA.</p>
 <p>Elvidge, C.D., Ziskin, D., Baugh, K.E., Tuttle, B.T., Ghosh, T., Pack, D.W., Erwin, E.H., and Zhizhin, M. (2009). A Fifteen Year Record of Global Natural Gas Flaring Derived from Satellite Data. Energies 2, 595–622.</p>
 <p>Feely, R., Doney, S., and Cooley, S. (2009). Ocean acidification: present conditions and future changes in a high-CO2 world. Oceanography 22, 36–47.</p>
+<p>Frazier, M., Longo, C., and Halpern, B.S. (2016). Mapping uncertainty due to missing data in the global Ocean Health Index. PLOS ONE 11, e0160377.</p>
 <p>Friedl, M.A., D. Sulla-Menashe, B. Tan, A. Schneider, N. Ramankutty, A. Sibley and X. Huang (2010), MODIS Collection 5 global land cover: Algorithm refinements and characterization of new datasets, 2001-2012, Collection 5.1 IGBP Land Cover, Boston University, Boston, MA, USA. <a href="http://www.landcover.org/data/lc/" class="uri">http://www.landcover.org/data/lc/</a></p>
 <p>Halpern, B.S., Walbridge, S., Selkoe, K.A., Kappel, C.V., Micheli, F., D’Agrosa, C., Bruno, J.F., Casey, K.S., Ebert, C., Fox, H.E., et al. (2008). A Global Map of Human Impact on Marine Ecosystems. Science 319, 948–952.</p>
 <p>Halpern, B.S., Frazier, M., Potapenko, J., Casey, K.S., Koenig, K., Longo, C., Lowndes, J.S., Rockwood, R.C., Selig, E.R., Selkoe, K.A., et al. (2015). Spatial and temporal changes in cumulative human impacts on the world’s ocean. Nat Commun 6, 7615.</p>
