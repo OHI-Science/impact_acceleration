@@ -389,7 +389,7 @@ Nutrient pollution (runoff) | Halpern et al. 2008 | Relative intensity of pollut
 Organic chemical pollution (runoff) | Halpern et al. 2008 | Relative intensity of pollution from modeled plumes of land-based organic chemical pollution | ~ 1km  | yearly, 2002-2016
 Direct human | CIESIN 2017 | Human density, number of persons per square kilometer | 30 arc-second | 2005, 2010, 2015, and 2020
 Light  | Elvidge et al. 2009; image and data processing by NOAA's National Geophysical Data Center | non-calibrated radiance values from 0-63 | 30 arc-second spanning -180 to 180 degrees longitude and -65 to 75 degrees latitude | yearly, 1992-2013
-Shipping | Halpern et al. 2015 (high resolution shipping data); Tournadre 2018 (low resolution annual shipping data) | Tournadre, ships per cell, such that sum of cells represents all ships at sea in given year; Halpern et al., vessel track density | Halpern: 0.1&deg;; Tournadre: 1x2&deg; | Halpern: combined years (1991-2011, but mostly 2011); Tournadre: yearly, 1992-2016
+Shipping | Wallbridge 2013, Halpern et al. 2015 (high resolution shipping data); Tournadre 2018 (low resolution annual shipping data) | Tournadre, ships per cell, such that sum of cells represents all ships at sea in given year; Wallbridge/Halpern et al., vessel track density | Wallbridge/Halpern: 0.1&deg;; Tournadre: 1x2&deg; | Wallbridge/Halpern: combined years (1991-2011, but mostly 2011); Tournadre: yearly, 1992-2016
 
 
 
