@@ -1,0 +1,96 @@
+---
+title: "Calc_impacts"
+output: html_document
+---
+
+Caculate impact for each stressor by summing the stressor x habitat x vulnerability rasters for each stressor, and then dividing by the number of habitats.  This is only for the additional years of SST data.
+
+## Loading packages
+
+```{r}
+#libraries
+library(raster)
+library(RColorBrewer)
+library(sf)
+library(dplyr)
+library(doParallel)
+library(foreach)
+library(parallel)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
+
+
+```
+
+
+## Check stressor data
+All stressor/years should have 21 rasters, one for each habitat.
+
+```{r}
+
+hab_num <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_number/habitat_num.tif"))
+
+combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/no_sst/hab_stressor_combo"), full=TRUE)
+
+length(combos)/length(2014:2017) # should equal 21
+
+```
+
+## Create raster that sums all habitat x impacts for a stressor/year
+For each stressor and year, identify the stressor x habitat x vulnerability rasters.  Sum these and then divide by the number of habitats.  
+
+```{r}
+hab_num <- raster(file.path(dir_M, "git-annex/impact_acceleration/habitat_number/habitat_num.tif"))
+
+combos <- list.files(file.path(dir_M, "git-annex/impact_acceleration/no_sst/hab_stressor_combo"), full=TRUE)
+
+registerDoParallel(4)
+foreach(years = 2014:2017) %dopar%{ # years=2014
+
+  year <- years
+  tmp <- grep(year, combos, value=TRUE)
+  
+  stress_stack <- raster::stack(tmp)
+  
+  raster::calc(stress_stack, fun=sum, na.rm=TRUE,
+      filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp/summed_raster_sst_%s.tif", year)), 
+      overwrite=TRUE)
+  
+  summed_rast <- raster::raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp/summed_raster_sst_%s.tif", year)))
+  
+  raster::overlay(summed_rast, hab_num, fun=function(x,y){x/y}, 
+                  filename = file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp/summed_raster_sst_%s_rescaled.tif", year)), overwrite=TRUE)
+
+}
+
+```
+
+
+## Ocean mask for each layer created above.
+```{r}
+rescaled_data <- list.files(file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/tmp")), full=TRUE)
+rescaled_data <- rescaled_data[grep("rescaled", rescaled_data)]
+
+for(rescale in rescaled_data) { # rescale=rescaled_data[1]
+  
+ rescaled <- raster::raster(rescale)
+
+ # get stressor and year from file name
+stressor <- basename(rescale)
+ stressor <- gsub("_rescaled.tif", "", stressor)
+ stressor <- gsub("summed_raster_", "", stressor)
+ stressor <- data.frame(combo=stressor)
+ 
+ combo_data <- stressor %>% 
+   tidyr::separate(combo, c("stressor", "year"), sep=-4) %>%
+   dplyr::mutate(stressor = substr(stressor, 1, nchar(stressor)-1))
+ 
+ # mask data and save
+ raster::mask(rescaled, ocean,
+                 filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/no_sst/stressor_impact/%s_%s.tif", 
+                                                   combo_data$stressor, combo_data$year)),
+                 overwrite=TRUE, progress="text")
+ 
+}
+
+```

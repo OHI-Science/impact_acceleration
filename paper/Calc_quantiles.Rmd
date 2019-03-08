@@ -51,16 +51,16 @@ foreach(stress = stressors,.packages="dplyr") %dopar%{ # stress = stressors[1]
 stressors <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact"), 
                           full=TRUE, pattern="chi")
   
-registerDoParallel(4)
+registerDoParallel(11)
   foreach(stress = stressors,.packages="dplyr") %dopar%{
-  #  for(stress in stressors){ # stress = stressors[1]
+  #  for(stress in stressors){ # stress = stressors[10]
       st_tmp <- raster::raster(stress) 
-      quants <- raster::quantile(st_tmp, c(0.01, 0.05, 0.5, 0.95, 0.99))
+      quants <- raster::quantile(st_tmp, c(0.01, 0.05, 0.5, 0.95, 0.99, 0.9999))
       quants_df <- data.frame(quants)
       quants_df$quant <- row.names(quants_df)
       quants_df$impact <- basename(stress)
       fn <- gsub(".tif", "", basename(stress))
-      write.csv(quants_df, sprintf("impacts/quantiles/%s.csv", fn), row.names=FALSE)
+      write.csv(quants_df, sprintf("paper/quantiles/%s.csv", fn), row.names=FALSE)
     }
     
 ```  

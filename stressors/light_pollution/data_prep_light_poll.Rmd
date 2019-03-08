@@ -216,7 +216,7 @@ for(file in data_files){ #file = data_files[1]
 calibrate_csv[calibrate_csv$file == "F121999", "C0"] <- 0
 calibrate_csv[calibrate_csv$file == "F121999", "C2"] <- 0
 
-write.csv(calibrate_csv, file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_coeff.csv"), row.names= FALSE)
+write.csv(calibrate_csv, "stressors/light_pollution/calibrate_coeff.csv", row.names= FALSE)
 
 ```
 
@@ -231,7 +231,7 @@ Using the exponents from above, calibrate each year's raster data.
 
 ```{r calibrate raster, eval=FALSE}
 
-cal_data <- read.csv(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrate_coeff.csv"), stringsAsFactors = FALSE)
+cal_data <- read.csv("stressors/light_pollution/calibrate_coeff.csv", stringsAsFactors = FALSE)
 
 cal_data <- cal_data %>%
   filter(file != "F121999")

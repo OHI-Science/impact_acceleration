@@ -214,6 +214,7 @@ catch_gf_mol <- resample(coastal_catch_gf, ocean, method="ngb")
 catch_gf_mol_mask <- mask(catch_gf_mol, ocean)  
 
 writeRaster(catch_gf_mol_mask, file.path(dir_M,'/git-annex/impact_acceleration/stressors/comm_fish_v3.0/int/comm_fish_gf.tif'), overwrite=TRUE)
+
 ```
 
 #### Create a function to gapfill missing catch data located along the coastline

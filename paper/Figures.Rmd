@@ -1,21 +1,21 @@
 ---
-title: 'Figures'
+  title: 'Figures'
 author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
 output: 
   html_document:
-    code_folding: show
-    toc: true
-    toc_depth: 3
-    toc_float: yes
-    number_sections: false
-    theme: cerulean
-    highlight: haddock
-    includes: 
-      in_header: '../../ohiprep_v2018/src/templates/ohi_hdr.html'
-  pdf_document:
-    toc: true
+  code_folding: show
+toc: true
+toc_depth: 3
+toc_float: yes
+number_sections: false
+theme: cerulean
+highlight: haddock
+includes: 
+  in_header: '../../ohiprep_v2018/src/templates/ohi_hdr.html'
+pdf_document:
+  toc: true
 ---
-
+  
 ```{r}
 library(tidyr)
 library(dplyr)
@@ -27,14 +27,21 @@ library(gstat)
 library(stringr)
 library(fields)
 library(cowplot)
+library(beyonce)
+library(here)
 
 # load spatial files (ocean raster and regions shapefile)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 regions_shape <- as(regions, "Spatial")
 land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
 
+chi_breaks <-  c(-1, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100)
+chi_cols <- c("#9E0142", "#B91F48", "#D53E4F", "#F46D43", "#FDAE61", "#FEE08B", "#FFFFBF", "#EFF9FF", "#BDE4FC", "#3288BD")
+chi_cols = rev(colorRampPalette(chi_cols)(length(chi_breaks)-1)) 
+chi_legend_labels <- c(0, 0.2, 0.6, 1, 1.5, 2, 3, 4.0, ">5")
+chi_label_sequence <- c(1, 3,  5,   7, 9,  11, 13, 15, 17)
 
 ```
 
@@ -47,45 +54,16 @@ land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "la
 legend.shrink <- 0.7
 legend.width <- 0.7
 
-
-raster_breaks <- function(raster_data, title, title_legend=NULL, 
-                          color_breaks=my_color_breaks, cols=my_cols,
-                          legend_break_labels=my_legend_break_labels, 
-                          legend_break_locations=my_legend_break_locations){
-  par(mar=c(1,1,1,1)) # bottom, left, top, and right
-  par(oma=c(0,0,0,0))
-plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=color_breaks, legend=FALSE)
-  title(title, line=0)
-# add axis with fields package function:
-break_locations <- seq(0, length(color_breaks), length.out=length(color_breaks))
-fields::image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
-           legend.only = TRUE, 
-           legend.shrink=legend.shrink,
-           legend.width=legend.width,
-           col = cols,
-           #legend.lab=title_legend,
-           breaks=break_locations,
-           axis.args=list(cex.axis=0.6, at=legend_break_locations, labels=legend_break_labels))
-
-plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
-}
-
-my_color_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100)
-my_cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_color_breaks)-1)) 
-
-break_locations <- seq(0, length(my_color_breaks), length.out=length(my_color_breaks)) # calculated in fucntion, but needed for below
-my_legend_break_labels <- c(0, 0.2, 0.6, 1, 1.5, 2, 3, 4.0, ">5")
-my_legend_break_locations <- break_locations[seq(1, length(break_locations), 2)]
-
+source(here("paper/figures/chi_plot_function.R"))
 
 for(year in 2003:2013){ # year = 2013
-png(sprintf("paper/figures/chi_maps/chi_%s.png", year), res=500, width=6, height=3, units="in")  
-p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
-raster_breaks(raster_data=p_rast,  title="", 
-              cols=my_cols, color_breaks = my_color_breaks,
-              legend_break_labels = my_legend_break_labels,
-              legend_break_locations = my_legend_break_locations)
-dev.off()
+  png(sprintf("paper/figures/chi_maps/chi_%s.png", year), res=500, width=6, height=3, units="in")  
+  p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
+  chi_plot(raster_data=p_rast,  title="", 
+                cols=chi_cols, color_breaks = chi_breaks,
+                legend_break_labels = chi_legend_labels,
+           label_sequence = chi_label_sequence)
+  dev.off()
 }
 
 
@@ -98,34 +76,15 @@ dev.off()
 slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
 overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'))
 
-# old palette
-# cols = rev(colorRampPalette(c("#9E0142", "#AE1245", "#BE2449", "#CE364D", "#DA464C", "#E35449", "#EC6145", "#F47044", "#F7834D", "#F99756", "#FCAA5F",             
-#                "#FEF0A7", "#F3FAAD",  
-#               "#CAE99D", "#A6DBA4", "#7ECBA4", "#59B4AA", "#3B92B8", "#4470B1", "#5E4FA2"))(254)) # 
+#source(here("paper/figures/chi_plot_function.R"))
 
-cols <- rev(colorRampPalette(c("#A50026", "#BE1826", "#CA2426", "#D73027", "#E54E35", "#F46D43", 
-                               "#FEE090", "#FFF1CC",
-                               "#E0F3F8", "#ABD9E9", "#74ADD1", "#5C91C2", "#4575B4"))(254))
-
-trend_plot <- function(plotRaster, cols=cols, saveName, overlay=TRUE){
-png(sprintf("paper/figures/trend/%s.png", saveName), res=500, width=6, height=3, units="in")  
-par(mar=c(1, 1, 1, 1))
-par(oma=c(0,0,0,0))
-plot(plotRaster, col=cols, axes=FALSE, box=FALSE, legend=FALSE)
-
-if(overlay){
-plot(overlay_rast, col="#ffffff", add=TRUE, legend=FALSE, box=FALSE)
-}
-  
-plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
-par(mfrow=c(1, 1), mar=c(1, 0, 1, 0), new=FALSE)
-plot(plotRaster, legend.only=TRUE, legend.shrink=.7, legend.width=.7, col=cols, axis.args = list(cex.axis = 0.6))
+png("paper/figures/trend/chi_trend.png", res=500, width=6, height=3, units="in")  
+trend_plot(plotRaster=slope, overlay=TRUE, overlay_rast=overlay_rast)
 dev.off()
-}
 
-trend_plot(plotRaster=slope, cols=cols, saveName= "chi_trend", overlay=TRUE)
-trend_plot(plotRaster=slope, cols=cols, saveName= "chi_trend_no_overlay", overlay=FALSE)
-
+png("paper/figures/trend/chi_trend_no_overlay.png", res=500, width=6, height=3, units="in")  
+trend_plot(plotRaster=slope, overlay=FALSE)
+dev.off()
 
 
 ```
@@ -150,16 +109,17 @@ m <- c(-Inf, 0, 0,
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 
 reclassify(slope, rclmat, 
-           filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/slope_pos_neg.tif'), overwrite=TRUE, progress="text")
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/slope_pos_neg.tif'), overwrite=TRUE, progress="text")
 
-slope_p_n <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/slope_pos_neg.tif'))
+slope_p_n <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/slope_pos_neg.tif'))
 plot(slope_p_n)
 freq(slope_p_n)
 #    value     count
-#     0  79187232
-#     1 337003569
+#     value     count
+#     0  77581546
+#     1 338609255
 #    NA 329175249
-79187232/(79187232+337003569)
+77581546/(77581546+338609255)
 # 19% decreasing trend
 
 # ###################################
@@ -168,43 +128,45 @@ freq(slope_p_n)
 # identify quantiles
 slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
 raster::quantile(slope, probs=c(0.1, 0.20, 0.25, 0.5, 0.75, 0.80, 0.90))
-# #        10%          20%          25%          50%          75%          80%          90% 
-# # -0.018059537  0.001269741  0.006122565  0.032733742  0.074715607  0.084770553  0.110365756 
 
-chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
-raster::quantile(chi, probs=c(0.1, 0.20, 0.25, 0.5, 0.75, 0.80, 0.90))
-
-
-## Identify rasters with values <20th and >80th quantiles
+#         10%          20%          25%          50%          75%          80%          90% 
+# -0.017325277  0.001684363  0.006271903  0.033656970  0.077449173  0.088130884  0.116197392 
 
 ## Slope: Identify rasters with <=0 and >80th quantile
 slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
 
 m <- c(-Inf, 0, 0,
-       0, 0.084770553, NA,
-       0.084770553, Inf ,1)
+       0, 0.088130884, NA,
+       0.088130884, Inf ,1)
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 
 reclassify(slope, rclmat,
-           filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/slope_upper_lower_quants.tif'), overwrite=TRUE, progress="text")
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/slope_upper_lower_quants.tif'), overwrite=TRUE, progress="text")
 
-slope_extreme <-  raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/slope_upper_lower_quants.tif'))
+slope_extreme <-  raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/slope_upper_lower_quants.tif'))
 plot(slope_extreme)
 #freq(slope_extreme)
 
 
 ## CHI
+
 chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
 
-m <- c(-Inf, 0.6165478, -1,   
-       0.6165478, 1.5580050, NA,  
-       1.5580050, Inf ,1)
+raster::quantile(chi, probs=c(0.1, 0.20, 0.25, 0.5, 0.75, 0.80, 0.90))
+#      10%       20%       25%       50%       75%       80%       90% 
+# 0.3522482 0.5831025 0.6792569 1.0132389 1.4066660 1.5279793 1.8737746 
+
+## Identify rasters with values <20th and >80th quantiles
+
+m <- c(-Inf, 0.5831025, -1,   
+       0.5831025, 1.5279793, NA,  
+       1.5279793, Inf ,1)
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 
 reclassify(chi, rclmat, 
-           filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/chi_upper_lower_quants.tif'), overwrite=TRUE, progress="text")
+           filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_upper_lower_quants.tif'), overwrite=TRUE, progress="text")
 
-chi_extreme <-  raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/chi_upper_lower_quants.tif'))
+chi_extreme <-  raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_upper_lower_quants.tif'))
 plot(chi_extreme)
 #freq(chi_extreme)
 
@@ -212,17 +174,17 @@ plot(chi_extreme)
 
 chi_slope <- stack(slope_extreme, chi_extreme)
 overlay(chi_slope, fun=function(x,y){x + y}, 
-                    filename = file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/chi_slope_extremes.tif'), overwrite=TRUE, progress="text")
+        filename = file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_slope_extremes.tif'), overwrite=TRUE, progress="text")
 
 ## check it out
-chi_slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/chi_slope_extremes.tif'))
+chi_slope <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_slope_extremes.tif'))
 plot(chi_slope)
 freq(chi_slope)
-#    -1  20904567 3.2%, low chi, decreasing trend
-#     0    173405 <1%, low chi, fast increasing trend
-#     1  10391962 1.6%, high chi, decreasing trend
-#     2  31476395 4.9%, high chi, fast increasing trend
-#    NA 682419721
+#    -1  26892714 4.1%, low chi, decreasing trend
+#     0    80685 <1%, low chi, fast increasing trend
+#     1  4210712 0.6%, high chi, decreasing trend
+#     2   48084132 7.4%, high chi, fast increasing trend
+#    NA 666097807
 # total ocean: 648429346
 
 ```
@@ -248,15 +210,36 @@ plot(chi_slope, col=cols, axes=FALSE, box=FALSE, breaks=my_breaks, legend=FALSE)
 # add axis with fields package function:
 def_breaks <- c(0, 1, 2, 3, 4)
 fields::image.plot(chi_slope, #zlim = c(min(myBreaks), max(myBreaks)), 
-           legend.only = TRUE, 
-           legend.shrink=legend.shrink,
-           legend.width=legend.width,
-           col = cols,
-           breaks=def_breaks,
-           #lab.breaks=labels,
-           axis.args = list(cex.axis = 0.6, at=c(0.5, 1.5, 2.5, 3.5), labels=labels))
+                   legend.only = TRUE, 
+                   legend.shrink=legend.shrink,
+                   legend.width=legend.width,
+                   col = cols,
+                   breaks=def_breaks,
+                   #lab.breaks=labels,
+                   axis.args = list(cex.axis = 0.6, at=c(0.5, 1.5, 2.5, 3.5), labels=labels))
 plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
 dev.off()
+
+# make another version with overlay
+overlay_rast <- raster(file.path(dir_M,  'git-annex/impact_acceleration/impact/trend/sig_overlay.tif'))
+png("paper/figures/trend/chi_trend_extremes_4_cats_sig_overlay.png", res=600, width=6, height=3, units="in") 
+par(mar=c(1, 1, 1, 2))
+par(oma=c(0,0,0,0))
+plot(chi_slope, col=cols, axes=FALSE, box=FALSE, breaks=my_breaks, legend=FALSE)
+# add axis with fields package function:
+def_breaks <- c(0, 1, 2, 3, 4)
+fields::image.plot(chi_slope, #zlim = c(min(myBreaks), max(myBreaks)), 
+                   legend.only = TRUE, 
+                   legend.shrink=legend.shrink,
+                   legend.width=legend.width,
+                   col = cols,
+                   breaks=def_breaks,
+                   #lab.breaks=labels,
+                   axis.args = list(cex.axis = 0.6, at=c(0.5, 1.5, 2.5, 3.5), labels=labels))
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+plot(overlay_rast, col="#ffffffbf", add=TRUE, legend=FALSE, box=FALSE)
+dev.off()
+
 
 ```
 
@@ -266,7 +249,7 @@ dev.off()
 Extract the data for each response from the raster (high/low slope and chi) and save (5 parts):"impacts/figures/map_histogram_data/lat_extreme_N_%s.csv"
 ```{r}
 
-extremes <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/figures/chi_slope_extremes.tif'))
+extremes <- raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_slope_extremes.tif'))
 
 x_count <- function(x, raster=extremes){
   tmp <- getValues(raster, row=x)
@@ -297,7 +280,7 @@ ocean_N <- purrr::map_df(tmp2, dplyr::bind_rows)
 names(ocean_N) <- "N_ocean_cells"
 
 ##
-prop_cells <- cbind(extremes, ocean_N)
+prop_cells <- cbind(extreme_N, ocean_N)
 
 
 ## Do in parallel
@@ -306,28 +289,28 @@ library(foreach)
 library(parallel)
 
 pullfrom <- data.frame(min = c(1, 3862, 7723, 11584, 15445), 
-                               max = c(3861, 7722, 11583, 15444, 19305),
+                       max = c(3861, 7722, 11583, 15444, 19305),
                        lab=c("part1", "part2", "part3", "part4", "part5"))
 
 registerDoParallel(5)
 
 foreach(run = 1:5) %dopar%{ # run=4
-
-extremes <- raster::raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_slope_extremes.tif'))
-
-x_count <- function(x, raster=extremes){
-  tmp <- raster::getValues(raster, row=x)
-  table(tmp)
-}
-
-tmp <- lapply(pullfrom$min[run]:pullfrom$max[run], x_count)
-
-extreme_N <- purrr::map_df(tmp, dplyr::bind_rows) %>%
-  data.frame()
-
-write.csv(extreme_N, sprintf("paper/figures/map_histogram_data/lat_extreme_N_%s.csv", 
-          pullfrom$lab[run]), row.names=FALSE)
-
+  
+  extremes <- raster::raster(file.path(dir_M, 'git-annex/impact_acceleration/paper/figures/chi_slope_extremes.tif'))
+  
+  x_count <- function(x, raster=extremes){
+    tmp <- raster::getValues(raster, row=x)
+    table(tmp)
+  }
+  
+  tmp <- lapply(pullfrom$min[run]:pullfrom$max[run], x_count)
+  
+  extreme_N <- purrr::map_df(tmp, dplyr::bind_rows) %>%
+    data.frame()
+  
+  write.csv(extreme_N, sprintf("paper/figures/map_histogram_data/lat_extreme_N_%s.csv", 
+                               pullfrom$lab[run]), row.names=FALSE)
+  
 }
 ```
 
@@ -347,7 +330,7 @@ lat_data <- bind_rows(
 
 lat_data <- cbind(lat_data, ocean_N)
 
-names(lat_data) <- c("low_decrease", "high_fast", "high_decrease", "low_fast", "ocean_N")
+names(lat_data) <- c("high_decrease", "high_fast", "low_decrease", "low_fast", "ocean_N")
 
 lat_data[is.na(lat_data)] <- 0
 lat_data$row_id = 1:dim(lat_data)[1]
@@ -379,28 +362,28 @@ lat_data_plot2_smooth <- lat_data_plot2 %>%
   ungroup() %>%
   mutate(category = as.factor(category)) %>%
   mutate(row_id = as.numeric(as.character(row_id)))
-  
+
 ggplot(lat_data_plot2_smooth) +
   geom_ribbon(aes(ymin = 0, ymax = cells, x=row_id, y=cells, group=category, fill=category)) +
   geom_line(aes(x=row_id, y=cells, group=category, color=category), size=0.3) +
   scale_x_reverse() +
   coord_flip() + 
-#  facet_grid(. ~ category) +
-scale_color_manual(values = c("#EBC915", "#018AC4", "#550133", "#CF2154"),
-                    limits = c("low_fast", "low_decrease", "high_decrease", "high_fast")) +
+  #  facet_grid(. ~ category) +
+  scale_color_manual(values = c("#EBC915", "#018AC4", "#550133", "#CF2154"),
+                     limits = c("low_fast", "low_decrease", "high_decrease", "high_fast")) +
   scale_fill_manual(values = c("#EBC915", "#018AC44D", "#33271BA6", "#CF21544D"),
                     limits = c("low_fast", "low_decrease", "high_decrease", "high_fast")) +
   theme(
-  strip.background = element_blank(),
-  strip.text = element_blank(),
-  axis.title = element_blank(),
-  axis.text  = element_blank(),
-  axis.ticks =element_blank(),
-  axis.line = element_blank(),
-  panel.border = element_blank(),
-  panel.grid = element_blank(),
-  panel.spacing = unit(-3, "lines"),
-  legend.position = "none")
+    strip.background = element_blank(),
+    strip.text = element_blank(),
+    axis.title = element_blank(),
+    axis.text  = element_blank(),
+    axis.ticks =element_blank(),
+    axis.line = element_blank(),
+    panel.border = element_blank(),
+    panel.grid = element_blank(),
+    panel.spacing = unit(-3, "lines"),
+    legend.position = "none")
 
 ggsave("paper/figures/map_histogram_data/latitudinal_extremes.png", width=3, height=5, units=c("in"), dpi=300)
 
@@ -408,7 +391,7 @@ ggsave("paper/figures/map_histogram_data/latitudinal_extremes.png", width=3, hei
 
 # region zooms
 
-Project to lat long
+Project to lat long.
 
 ```{r zoom_data}
 
@@ -418,7 +401,7 @@ Project to lat long
 sim_rast <- raster(ncol=40000, nrow=20000)
 
 chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
-projectRaster(chi, sim_rast, method="ngb", filename=file.path(dir_M, "git-annex/impact_acceleration/impact/figures/chi_lat_long_2013.tif"), progress="text", overwrite=TRUE)
+projectRaster(chi, sim_rast, method="ngb", filename=file.path(dir_M, "git-annex/impact_acceleration/paper/figures/chi_lat_long_2013.tif"), progress="text", overwrite=TRUE)
 chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/paper/figures/chi_lat_long_2013.tif"))
 plot(chi)
 
@@ -447,12 +430,12 @@ impacts_2013 <- grep("uv|benthic_str", impacts_2013, value=TRUE, invert=TRUE)
 registerDoParallel(8)
 
 foreach(impact = impacts_2013,.packages="dplyr") %dopar%{
-#for(impact in impacts_2013){ # impact = impacts_2013[2]
-impact_name <- paste("latlong", basename(impact), sep="_")
+  #for(impact in impacts_2013){ # impact = impacts_2013[2]
+  impact_name <- paste("latlong", basename(impact), sep="_")
   
-imp_rast_mol <- raster(impact)
+  imp_rast_mol <- raster(impact)
   
-raster::projectRaster(imp_rast_mol, sim_rast, method="ngb", over=TRUE, filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/paper/figures/impacts_lat_long/%s", impact_name)), overwrite=TRUE)
+  raster::projectRaster(imp_rast_mol, sim_rast, method="ngb", over=TRUE, filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/paper/figures/impacts_lat_long/%s", impact_name)), overwrite=TRUE)
 }
 
 check <- raster("/home/shares/ohi/git-annex/impact_acceleration/paper/figures/impacts_lat_long/latlong_dem_dest_2013.tif")
@@ -460,47 +443,49 @@ check <- raster("/home/shares/ohi/git-annex/impact_acceleration/paper/figures/im
 ### Trend data
 
 trend_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts"), 
-                           pattern = ".tif", full="TRUE")
+                          pattern = ".tif", full="TRUE")
 
 registerDoParallel(8)
 
 foreach(trend = trend_files,.packages="dplyr") %dopar%{
-#for(impact in impacts_2013){ # trend = trend_files[2]
-trend_name <- paste("latlong", basename(trend), sep="_")
+  #for(impact in impacts_2013){ # trend = trend_files[2]
+  trend_name <- paste("latlong", basename(trend), sep="_")
   
-imp_rast_mol <- raster(trend)
+  imp_rast_mol <- raster(trend)
   
-raster::projectRaster(imp_rast_mol, sim_rast, method="ngb", over=TRUE, filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/paper/figures/trend_lat_long/%s", trend_name)), overwrite=TRUE)
+  raster::projectRaster(imp_rast_mol, sim_rast, method="ngb", over=TRUE, filename=file.path(dir_M, sprintf("git-annex/impact_acceleration/paper/figures/trend_lat_long/%s", trend_name)), overwrite=TRUE)
 }
 
 check <- raster("/home/shares/ohi/git-annex/impact_acceleration/paper/figures/trend_lat_long/latlong_dem_dest_2013.tif")
 
-
-#regions_wgs <- st_transform(regions, 4326)
-land_wgs <- spTransform(land, CRS("+init=epsg:4326"))
 
 ```
 
 Figure out regions.
 ```{r zoom_regions}
 
+#regions_wgs <- st_transform(regions, 4326)
+land_wgs <- spTransform(land, CRS("+init=epsg:4326"))
+
 chi_slope <- raster(file.path(dir_M, "git-annex/impact_acceleration/paper/figures/extremes_lat_long.tif"))
 
 plot(chi_slope)
 tmp <- zoom(chi_slope)
 
-# low fast
-mad <- extent(45, 49, -17, -13)
+# low fast (not really any of these!)
+#mad <- extent(45, 49, -17, -13)
 
 ###
 # high decrease
-ns <- extent(5.5, 11, 54, 59)
+ns <- extent(-11, 0, 55, 60)
 
 # high increase
-gomaine <- extent(-72, -65, 41, 46)
+#gomaine <- extent(-72, -65, 41, 46)
+aus <- extent(112, 119, -36, -31)
 
-# New zealand
-nz <- extent(164, 174.5, -48, -38)
+# low/decrease
+#nz <- extent(164, 174.5, -48, -38)
+ak <- extent(-169, -161, 59, 64) 
 
 ```
 
@@ -508,39 +493,34 @@ nz <- extent(164, 174.5, -48, -38)
 
 ```{r zoom chi}
 
-raster_breaks <- function(raster_data, crop_rgn, myBreaks, cols, filename){
-png(sprintf("paper/figures/rgn_maps/%s.png", filename), res=600, width=6, height=5, units="in")  
+chi_crop <- function(raster_data, crop_rgn, myBreaks, cols, filename){
+  png(sprintf("paper/figures/rgn_maps/%s.png", filename), res=600, width=6, height=5, units="in")  
   
   par(mar=c(2,2,2,2)) # bottom, left, top, and right
   par(oma=c(0,0,0,0))
-
-master <- raster_data
-master_crop <- crop(master, crop_rgn)
-
-plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
-     type="n", xaxs="i", yaxs="i", axes=FALSE)
-plot(master_crop, col=cols,  breaks=myBreaks, legend=FALSE, add=TRUE)
-plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
-box("plot", col="gray")
-
-dev.off()
+  
+  master <- raster_data
+  master_crop <- crop(master, crop_rgn)
+  
+  plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+       type="n", xaxs="i", yaxs="i", axes=FALSE)
+  plot(master_crop, col=cols,  breaks=myBreaks, legend=FALSE, add=TRUE)
+  plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+  box("plot", col="gray")
+  
+  dev.off()
 }
 
 
-my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) 
 chi <- raster(file.path(dir_M, "git-annex/impact_acceleration/paper/figures/chi_lat_long_2013.tif"))
 
 
-raster_breaks(raster_data=chi,  crop_rgn=nz,
-              myBreaks=my_breaks, cols=cols, filename="chi_nz")
-raster_breaks(raster_data=chi,  crop_rgn=gomaine,
-              myBreaks=my_breaks, cols=cols, filename="chi_gomaine")
-raster_breaks(raster_data=chi,  crop_rgn=ns,
-              myBreaks=my_breaks, cols=cols, filename="chi_ns")
-raster_breaks(raster_data=chi,  crop_rgn=mad,
-              myBreaks=my_breaks, cols=cols, filename="chi_mad")
-
+chi_crop(raster_data=chi,  crop_rgn=ak,
+                   myBreaks=chi_breaks, cols=chi_cols, filename="chi_ak")
+chi_crop(raster_data=chi,  crop_rgn=aus,
+                   myBreaks=chi_breaks, cols=chi_cols, filename="chi_aus")
+chi_crop(raster_data=chi,  crop_rgn=ns,
+                   myBreaks=chi_breaks, cols=chi_cols, filename="chi_ns")
 
 ```
 
@@ -549,37 +529,48 @@ raster_breaks(raster_data=chi,  crop_rgn=mad,
 ```{r zoom trend}
 
 
-region_plot <- function(raster_data, crop_rgn, saveFile, cols){
-
-## crop region
-master_crop <- crop(raster_data, crop_rgn)
-
-png(sprintf("paper/figures/rgn_maps/%s.png",  saveFile), 
-    res=500, width=6, height=5, units="in")  
+chi_slope_plot <- function(raster_data, crop_rgn, saveFile, cols){
+  
+  ## crop region
+  master_crop <- crop(raster_data, crop_rgn)
+  
+  png(sprintf("paper/figures/rgn_maps/%s.png",  saveFile), 
+      res=500, width=6, height=5, units="in")  
   par(mar=c(2,2,2,2)) # bottom, left, top, and right
   par(oma=c(0,0,0,0))
+  
+  plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+       type="n", xaxs="i", yaxs="i", axes=FALSE)
+  
+  low <- rev(c("#E0F3F8", "#ABD9E9", "#74ADD1", "#5C91C2", "#4575B4"))
+  high <- rev(c("#A50026", "#C11B26", "#D02926", "#E14631", "#F46D43", "#F9A669", "#FEE090", "#FFF1CC"))
 
-plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
-     type="n", xaxs="i", yaxs="i", axes=FALSE)
-plot(master_crop, col=cols,  
-     breaks=seq(minValue(raster_data),
-                  maxValue(raster_data), length.out=255), 
-     legend=FALSE, add=TRUE)
-plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
-box("plot", col="gray")
+  quants <- quantile(raster_data, c(0.00001, 0.99999))
+  low_breaks <- c(minValue(raster_data)-0.01, 
+              seq(quants[[1]], 0, by=0.005))
+  high_breaks <- c(seq(0, quants[[2]], by=0.005),
+                   maxValue(raster_data)+0.01)
+  
+  low_cols <- colorRampPalette(low)(length(low_breaks)-1)
+  high_cols <- colorRampPalette(high)(length(high_breaks)-1)
+  cols <- c(low_cols, "#F4FBFC", "#F4FBFC", high_cols)
+  
+
+  plot(master_crop, col=cols,  
+      breaks=c(low_breaks, high_breaks),
+       legend=FALSE, add=TRUE)
+  
+  plot(land_wgs, add=TRUE, border="gray75", col="gray90", lwd=0.5)
+  box("plot", col="gray")
   dev.off()
 }
 
 slope <- raster(file.path(dir_M, "git-annex/impact_acceleration/paper/figures/slope_lat_long.tif"))
 
-cols <- rev(colorRampPalette(c("#A50026", "#BE1826", "#CA2426", "#D73027", "#E54E35", "#F46D43", 
-                               "#FEE090", "#FFF1CC",
-                               "#E0F3F8", "#ABD9E9", "#74ADD1", "#5C91C2", "#4575B4"))(254))
 
-region_plot(raster_data=slope, crop_rgn=gomaine, saveFile="slope_gomaine", cols=cols)
-region_plot(raster_data=slope, crop_rgn=ns, saveFile="slope_ns", cols=cols)
-region_plot(raster_data=slope, crop_rgn=nz, saveFile="slope_nz", cols=cols)
-region_plot(raster_data=slope, crop_rgn=mad, saveFile="slope_mad", cols=cols)
+chi_slope_plot(raster_data=slope, crop_rgn=aus, saveFile="slope_aus", cols=cols)
+chi_slope_plot(raster_data=slope, crop_rgn=ns, saveFile="slope_ns", cols=cols)
+chi_slope_plot(raster_data=slope, crop_rgn=ak, saveFile="slope_ak", cols=cols)
 
 ```
 
@@ -590,21 +581,22 @@ region_plot(raster_data=slope, crop_rgn=mad, saveFile="slope_mad", cols=cols)
 library(cowplot)
 library(magick)
 
-chi1 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_gomaine.png")
+chi1 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_ak.png")
 chi2 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_ns.png")
-chi3 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_mad.png")
-chi4 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_nz.png")
+chi3 <- ggdraw() + draw_image("paper/figures/rgn_maps/chi_aus.png")
 
-chi_plots <- plot_grid(chi1, chi2, chi3, chi4, nrow=1)
+
+chi_plots <- plot_grid(chi1, chi2, chi3, nrow=1)
 save_plot("paper/figures/rgn_maps/chi.png", chi_plots, ncol=1, base_height=1, base_width=4)
 
 
-trend1 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_gomaine.png")
+trend1 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_ak.png")
 trend2 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_ns.png")
-trend3 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_mad.png")
-trend4 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_nz.png")
+trend3 <- ggdraw() + draw_image("paper/figures/rgn_maps/slope_aus.png")
 
-trend_plots <- plot_grid(trend1, trend2, trend3, trend4, nrow=1)
+
+
+trend_plots <- plot_grid(trend1, trend2, trend3, nrow=1)
 save_plot("paper/figures/rgn_maps/trend.png", trend_plots, ncol=1, base_height=1, base_width=4)
 
 ```
@@ -630,36 +622,34 @@ plotwgs <- function(x){ # x = aus
 legend.shrink <- 0.7
 legend.width <- 0.7
 
-my_breaks <- c(-1, 0, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100) 
-cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(length(my_breaks)-1)) 
-cols_trans = paste0(cols, "80")
+cols_trans = paste0(chi_cols, "80")
 
 p_rast <- raster(file.path(dir_M,  "git-annex/impact_acceleration/impact/cumulative_impact/chi_2013.tif"))
 
 png("paper/figures/rgn_maps/rgn_locations.png", 
     res=500, width=6, height=3, units="in")  
-  par(mar=c(1,1,1,1)) # bottom, left, top, and right
-  par(oma=c(0,0,0,0))
-plot(p_rast, col=cols_trans, axes=FALSE, box=FALSE, breaks=my_breaks, legend=FALSE)
-  
-# add axis with fields package function:
-def_breaks <- seq(0, length(my_breaks), length.out=length(my_breaks))
-fields::image.plot(p_rast,  
-           legend.only = TRUE, 
-           legend.shrink=legend.shrink,
-           legend.width=legend.width,
-           col = cols,
-           legend.lab="impact",
-            breaks=def_breaks,
-           lab.breaks=c(0, NA, 0.2, NA, 0.6, NA, 1, NA, 1.5, NA, 2, NA, 3, NA, 4.0, NA, ">5"),
-           axis.args = list(cex.axis = 0.6))
+par(mar=c(1,1,1,1)) # bottom, left, top, and right
+par(oma=c(0,0,0,0))
+plot(p_rast, col=cols_trans, axes=FALSE, box=FALSE, breaks=chi_breaks, legend=FALSE)
 
+# add axis with fields package function:
+  # add axis with fields package function:
+  break_locations <- seq(0, length(chi_breaks), length.out=length(chi_breaks)) # breaks for colors for legend
+  legend_label_locations <- break_locations[seq(1, length(break_locations), 2)] # label locations (every other color labeled)
+  
+  fields::image.plot(p_rast, #zlim = c(min(myBreaks), max(myBreaks)), 
+                     legend.only = TRUE, 
+                     legend.shrink=legend.shrink,
+                     legend.width=legend.width,
+                     col = cols_trans,
+                     #legend.lab=title_legend,
+                     breaks=break_locations,
+                     axis.args=list(cex.axis=0.6, at=legend_label_locations, labels=chi_legend_labels))
 plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
 
 plotwgs(ns)
-plotwgs(nz)
-plotwgs(gomaine)
-plotwgs(mad)
+plotwgs(aus)
+plotwgs(ak)
 
 dev.off()
 
@@ -734,7 +724,7 @@ second_angles = c(-90 - 180/length(second_sequence) * second_sequence)
 
 rank_rgn$angle <- c(first_angles,second_angles)
 rank_rgn$hjust <- c(rep(0, length(first_sequence)), 
-                       rep(1, length(second_sequence)))
+                    rep(1, length(second_sequence)))
 
 # color for region labels
 rank_rgn <- rank_rgn %>%
@@ -756,8 +746,8 @@ rgn_shift <- which(rgn_shift$region_shift > 0)
 rgn_shift <- c(1, rgn_shift) -0.5
 rgn_shift <- data.frame(rgn_shift_x=rgn_shift,
                         georegion = rank_georgn$georegion,
-                        name_x= c(5, 25, 55, 70, 110, 145, 200), # 140
-                        name_y=c(0.12, 0.1, 0.1, 0.1, 0.11, 0.1, 0.11))
+                        name_x= c(25, 51, 68, 90, 110, 145, 200), # 140
+                        name_y=c(0.1, 0.1, 0.1, 0.12, 0.11, 0.1, 0.11))
 rgn_shift <- rgn_shift %>%
   mutate(georegion = as.character(georegion)) %>%
   mutate(georegion = ifelse(georegion == "Latin America and the Caribbean", "Latin America and\nthe Caribbean",
@@ -784,10 +774,10 @@ impacts %>%
   arrange(mean)
 
 pressure_name <- data.frame(pressure = c("sst", "slr", "oa", 
-                                                  "shipping",
-                                                  "light", "nutrient", "direct_human", "organic",
-                                                  "pel_hb", "dem_nondest_hb","pel_lb", 
-                                                  "dem_nondest_lb", "dem_dest", "art_fish"),
+                                         "shipping",
+                                         "light", "nutrient", "direct_human", "organic",
+                                         "pel_hb", "dem_nondest_hb","pel_lb", 
+                                         "dem_nondest_lb", "dem_dest", "art_fish"),
                             pressure_name = c("sst", "slr", "oa",
                                               "shipping", "light pollution", 
                                               "nutrient pollution", "direct human", "organic pollution",  
@@ -807,28 +797,28 @@ myPalette <- c(beyonce_palette(18, 15, type=c("continuous"))[1:6],
                beyonce_palette(18, 25, type=c("continuous"))[15:18],
                beyonce_palette(18, 15, type=c("continuous"))[8],
                beyonce_palette(18, 20, type=c("continuous"))[16:19])
-               
+
 
 ## some theme stuff to make the circle plot look nice
 
 circle_theme <- theme(axis.line=element_blank(),
-      axis.text.y=element_blank(),
-      axis.ticks=element_blank(),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position="none",
-      panel.background=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major=element_blank(),
-      panel.grid.minor=element_blank(),
-      plot.background=element_blank(),
-      axis.text.x = element_blank())
+                      axis.text.y=element_blank(),
+                      axis.ticks=element_blank(),
+                      axis.title.x=element_blank(),
+                      axis.title.y=element_blank(),
+                      legend.position="none",
+                      panel.background=element_blank(),
+                      panel.border=element_blank(),
+                      panel.grid.major=element_blank(),
+                      panel.grid.minor=element_blank(),
+                      plot.background=element_blank(),
+                      axis.text.x = element_blank())
 
 # circle plot
 # https://www.r-graph-gallery.com/299-circular-stacked-barplot/
 p <- ggplot(data=impacts, aes(x=rgn_name, y=value, fill=pressure_name)) + 
   geom_bar(stat="identity") +
-  geom_errorbar(aes(x = 1, ymin = -0.15, ymax=0.25), alpha=0)  +
+  geom_errorbar(aes(x = 1, ymin = -0.13, ymax=0.25), alpha=0)  +
   geom_text(data=rank_rgn, aes(x=rgn_name, y=0.16, label=rgn_name_short, angle=angle, hjust=hjust, color=color), inherit.aes = FALSE) +
   geom_segment(x = 5, y = 0, xend = dim(rank_rgn)[1]+1, yend = 0, colour = "black", alpha=1, size=0.5) +
   geom_segment(x = 7, y = -0.05, xend = dim(rank_rgn)[1]-1, yend = -0.05, colour = "gray", alpha=1, size=0.5) +
@@ -837,7 +827,7 @@ p <- ggplot(data=impacts, aes(x=rgn_name, y=value, fill=pressure_name)) +
   scale_fill_manual(values=myPalette) +
   coord_polar() +
   geom_segment(data = rgn_shift, aes(x=rgn_shift_x, xend=rgn_shift_x, y=rep(-0.05, dim(rgn_shift)[1]), yend=rep(0.2, dim(rgn_shift)[1])), colour="gray", size=0.5, inherit.aes=FALSE) +
-geom_text(data=rgn_shift, aes(x=name_x, y=name_y, label=georegion), inherit.aes=FALSE, size=5) +
+  geom_text(data=rgn_shift, aes(x=name_x, y=name_y, label=georegion), inherit.aes=FALSE, size=5) +
   #geom_point(data=chi, aes(y=chi, x=rgn_name), fill="black", shape="|", size=2.5) +
   circle_theme
 
@@ -864,7 +854,7 @@ total_hab_data <- hab_imp %>%
   group_by(name) %>%
   summarize(impact_on_hab=sum(mean)) %>%
   arrange(impact_on_hab)
-  
+
 
 ## rank of pressure categories for ordering 
 ## (although the categories weren't super coordinated)
@@ -874,38 +864,33 @@ hab_imp %>%
   arrange(mean)
 
 impact_name <- data.frame(impact = c("sst", "oa", "slr", 
-                                                  "shipping",
-                                                  "nutrient", "organic", "direct_human", "light",
-                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
-                                                  "dem_nondest_lb", "art_fish"),
-                            impact_name = c("sst", "oa", "slr", 
-                                              "shipping", 
-                                              "nutrient pollution", "organic pollution", "direct human", "light pollution",
-                                              "comm fish: pel hb", "comm fish: pel lb", "comm fish: dem dest", 
-                                              "comm fish: dem nondest hb", "comm fish: dem nondest lb",
-                                              "artisanal fishing"))
+                                     "shipping",
+                                     "nutrient", "organic", "direct_human", "light",
+                                     "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                     "dem_nondest_lb", "art_fish"),
+                          impact_name = c("sst", "oa", "slr", 
+                                          "shipping", 
+                                          "nutrient pollution", "organic pollution", "direct human", "light pollution",
+                                          "comm fish: pel hb", "comm fish: pel lb", "comm fish: dem dest", 
+                                          "comm fish: dem nondest hb", "comm fish: dem nondest lb",
+                                          "artisanal fishing"))
 
 hab_imp <- hab_imp %>%
   left_join(impact_name, by = "impact")
 
 # order factors for plotting
 hab_imp$name <- factor(hab_imp$name, 
-                             levels = total_hab_data$name)
+                       levels = total_hab_data$name)
 
 hab_imp$impact_name <- factor(hab_imp$impact_name, levels=rev(impact_name$impact_name))
 
-
-# assign color scale
-cols <- c("#9E0142",
-          "#9E0041", "#B92548", "#D43E4E", "#E45649", "#F36C43", "#F98E51", "#FDAD60",  
-          "#FDAE61", "#FEE08B", "#FFFFBF", "#E6F598", "#ABDDA4", "#66C2A5", "#3288BD", "#5E4FA2")
-
+hab_cols <- rev(c("#9E0142", "#B91F48", "#D53E4F", "#F46D43", "#FDAE61", "#FEE08B", "#FFFFBF", "#EFF9FF", "#3288bd"))
 
 # plot the data
 tmp <- ggplot(hab_imp, aes(y=impact_name, x=name)) +
   geom_tile(aes(fill=mean, 
                 text=sprintf("habitat: %s \nimpact: %s \ntotal impact: %s" , name, impact_name, round(mean, 2))), color="white") +
-  scale_fill_gradientn(colors=rev(cols), name="Impact") +
+  scale_fill_gradientn(colors=hab_cols, name="Impact") +
   ylab("") +
   xlab("") +
   theme_bw() + 
@@ -932,7 +917,7 @@ hab_chi <- bind_rows(datalist) %>%
 
 hab_trends <- list.files("paper/zonal_data_habitat", pattern="trend.csv", full=TRUE)
 datalist = lapply(hab_trends, function(x){read.csv(file=x,header=T)})
-  
+
 hab_data <- bind_rows(datalist) %>%
   group_by(habitat) %>%
   summarize(trend_total=sum(trend)) %>%
@@ -945,21 +930,21 @@ hab_names <- read.csv("habitats/habitat.csv") %>%
 hab_data <- hab_data %>%
   left_join(hab_names) %>%
   rename(trend = trend_total,
-            chi = impact) %>%
+         chi = impact) %>%
   filter(habitat != "ice")
 
-  
+
 library(ggrepel)
 library(cowplot)
 ggplot(hab_data, aes(x=chi, y=trend)) +
   geom_point(size=5, alpha=0.5) +
   geom_text_repel(aes(label = name),
-                 # box.padding   = 0.35, 
-                #  point.padding = 0.5,
+                  # box.padding   = 0.35, 
+                  #  point.padding = 0.5,
                   segment.color = 'grey50',
-                segment.size = 0.2,
-                point.padding = 0.2,
-                size = 4) +
+                  segment.size = 0.2,
+                  point.padding = 0.2,
+                  size = 4) +
   labs(x = "Cumulative human impact, 2013", y = "Trend, cumulative human impact")
 
 ggsave("paper/figures/avg_chi_vs_trend_habitat.png", width=8, height=5, units=c("in"), dpi=300)
@@ -974,14 +959,14 @@ ggsave("paper/figures/avg_chi_vs_trend_habitat.png", width=8, height=5, units=c(
 
 hab_trends <- list.files("paper/zonal_data_habitat", pattern="trend.csv", full=TRUE)
 datalist = lapply(hab_trends, function(x){read.csv(file=x,header=T)})
-  
+
 hab_trend_df <- bind_rows(datalist)
 
 trend_data <- read.csv("habitats/habitat.csv") %>%
   dplyr::select(habitat=tif_name, name=plot_name3) %>%
   left_join(hab_trend_df) %>%
   filter(name != "ice edge")
-  
+
 
 # determine which habitats have the largest/smallest trends:
 total_trend <- trend_data %>%
@@ -1008,7 +993,7 @@ second_angles = c(-90 - 185/length(second_sequence) * second_sequence)
 
 total_trend$angle <- c(first_angles,second_angles)
 total_trend$hjust <- c(rep(0, length(first_sequence)), 
-                    rep(1, length(second_sequence)))
+                       rep(1, length(second_sequence)))
 
 total_trend <- total_trend %>%
   mutate(name = factor(name, unique(name))) %>%
@@ -1031,16 +1016,16 @@ trend_data %>%
   arrange(mean)
 
 impact_name <- data.frame(impact = c("sst", "oa", "slr", 
-                                                  "shipping",
-                                                  "nutrient", "organic", "direct_human", "light",
-                                                  "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
-                                                  "dem_nondest_lb", "art_fish"),
-                            impact_name = c("sst", "oa", "slr", 
-                                              "shipping", 
-                                              "nutrient pollution", "organic pollution", "direct human", "light pollution",
-                                              "comm fish: pel hb", "comm fish: pel lb", "comm fish: dem dest", 
-                                              "comm fish: dem nondest hb", "comm fish: dem nondest lb",
-                                              "artisanal fishing"))
+                                     "shipping",
+                                     "nutrient", "organic", "direct_human", "light",
+                                     "pel_hb", "pel_lb", "dem_dest", "dem_nondest_hb",
+                                     "dem_nondest_lb", "art_fish"),
+                          impact_name = c("sst", "oa", "slr", 
+                                          "shipping", 
+                                          "nutrient pollution", "organic pollution", "direct human", "light pollution",
+                                          "comm fish: pel hb", "comm fish: pel lb", "comm fish: dem dest", 
+                                          "comm fish: dem nondest hb", "comm fish: dem nondest lb",
+                                          "artisanal fishing"))
 
 trend_data <- trend_data %>%
   mutate(impact = gsub("_trend", "", impact)) %>%
@@ -1056,35 +1041,35 @@ myPalette <- c(beyonce_palette(18, 15, type=c("continuous"))[1:6],
                beyonce_palette(18, 25, type=c("continuous"))[15:18],
                beyonce_palette(18, 15, type=c("continuous"))[8],
                beyonce_palette(18, 20, type=c("continuous"))[16:19])
-               
+
 
 ## some theme stuff to make the plot look nice
 circle_theme <- theme(axis.line=element_blank(),
-      axis.text.y=element_blank(),
-      axis.ticks=element_blank(),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position="none",
-      panel.background=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major=element_blank(),
-      panel.grid.minor=element_blank(),
-      plot.background=element_blank(),
-      axis.text.x = element_blank())
+                      axis.text.y=element_blank(),
+                      axis.ticks=element_blank(),
+                      axis.title.x=element_blank(),
+                      axis.title.y=element_blank(),
+                      legend.position="none",
+                      panel.background=element_blank(),
+                      panel.border=element_blank(),
+                      panel.grid.major=element_blank(),
+                      panel.grid.minor=element_blank(),
+                      plot.background=element_blank(),
+                      axis.text.x = element_blank())
 
 # circle plot
 # https://www.r-graph-gallery.com/299-circular-stacked-barplot/
 p <- ggplot(data=trend_data, aes(x=name, y=trend, fill=impact_name)) +
   geom_bar(stat="identity") +
   geom_errorbar(aes(x = 1, ymin = -0.04, ymax=0.24), alpha=0)  +
- geom_text(data=total_trend, aes(x=name, y=trend_total+0.01, label=name, angle=angle, hjust=hjust, color=color), size=3, inherit.aes = FALSE) +
-    scale_colour_identity() +
-geom_segment(x = 1.5, y = 0, xend = dim(total_trend)[1]+0.5, yend = 0, colour = "black", alpha=1, size=0.3) +
+  geom_text(data=total_trend, aes(x=name, y=trend_total+0.01, label=name, angle=angle, hjust=hjust, color=color), size=3, inherit.aes = FALSE) +
+  scale_colour_identity() +
+  geom_segment(x = 1.5, y = 0, xend = dim(total_trend)[1]+0.5, yend = 0, colour = "black", alpha=1, size=0.3) +
   annotate("text", x = c(1,1,1), y = c(0, 0.05, 0.1), label = c(0, 0.05, 0.1), color="darkgrey", angle=-10, size=3) +
   scale_fill_manual(values=myPalette) + 
   coord_polar() +
   circle_theme 
- 
+
 
 p
 
@@ -1099,7 +1084,7 @@ p <- ggplot(data=trend_data, aes(x=name, y=trend, fill=impact_name)) +
   coord_polar() +
   geom_hline(yintercept=0, color="black") +
   geom_text(data=total_trend, aes(x=name, y=0.09, label=name, angle=angle+10, hjust=hjust), inherit.aes = FALSE) +
- theme(legend.title=element_blank())
+  theme(legend.title=element_blank())
 
 p
 leg <- cowplot::get_legend(p)

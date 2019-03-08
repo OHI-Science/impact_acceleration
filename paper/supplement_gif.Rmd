@@ -1,0 +1,62 @@
+---
+title: 'S2: Additional supplementary figures'
+author: "*Compiled on `r date()` by `r Sys.info()['user']`*"
+output: 
+  html_document:
+    toc: true
+    number_sections: false
+    theme: cerulean
+    highlight: haddock
+    includes: 
+      in_header: '~/ohiprep_v2018/src/templates/ohi_hdr.html'
+  pdf_document:
+    toc: true
+---
+  
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(rgdal)
+library(sf)
+library(fields)
+library(cowplot)
+library(ggplot2)
+library(here)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+
+```
+
+
+## Fig 1. CHI from 2008 to 2013
+Cumulative human impact maps from 2003 to 2013.
+
+```{r chi_map, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
+
+## function to make plots
+
+legend.shrink <- 0.7
+legend.width <- 0.7
+
+source(here("paper/figures/chi_plot_function.R"))
+
+for(year in 2003:2013){ # year = 2013
+png(here(sprintf("paper/figures/chi_maps/year_labels/chi_%s.png", year)), res=500, width=6, height=3, units="in")  
+p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
+chi_breaks(raster_data=p_rast,  title=year, 
+                cols=chi_cols, color_breaks = chi_breaks,
+                legend_break_labels = chi_legend_labels)
+dev.off()
+}
+
+
+```
+
+### Gif image
+![](figures/chi_maps/year_labels/merged_chi.gif)
+
