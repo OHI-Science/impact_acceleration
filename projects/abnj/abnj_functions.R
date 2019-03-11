@@ -59,14 +59,14 @@ plot_impact_rgn <- function(impact_crop, region = "wio",
   png(here(sprintf("projects/abnj/figures/rgn_maps%s/%s", saveLoc, saveFile)), 
       res=500, width=7, height=6, units="in")  
   
-  par(mar=c(2,2,2,5)) # bottom, left, top, and right
-  par(oma=c(0,0,0,1))
+  par(mar=c(2,2,3,5)) # bottom, left, top, and right
+  par(oma=c(0,0,1,1))
   
   plot(extent(impact_rast), 
        type="n", xaxs="i", yaxs="i", axes=FALSE)
   
 if(title){
-  title(stress_plot_name, line=1) #, cex.main =title_size)
+  title(stress_plot_name, line=1, cex.main = 2, font.main = 1)
 }
   
   plot(land_wgs, add=TRUE, col="gray90", border="gray75", lwd=0.5)
@@ -78,7 +78,7 @@ if(title){
   box("plot", col="gray")
   
   if(legend){
-  par(mar=c(2,2,2,2)) # bottom, left, top, and right
+  par(mar=c(2,2,3,2)) # bottom, left, top, and right
   par(oma=c(0,0,0,0))
   
   break_locations <- seq(0, length(color_breaks), length.out=length(color_breaks)) # breaks for colors for legend
@@ -194,14 +194,14 @@ plot_impact_rgn_no_brks <- function(impact_crop, region = "wio",
                    saveLoc, saveFile)), 
       res=500, width=7, height=6, units="in")  
   
-  par(mar=c(2,2,2,5)) # bottom, left, top, and right
-  par(oma=c(0,0,0,1))
+  par(mar=c(2,2,3,5)) # bottom, left, top, and right
+  par(oma=c(0,0,1,1))
   
   plot(extent(impact_rast), 
        type="n", xaxs="i", yaxs="i", axes=FALSE)
   
   if(title){
-    title(stress_plot_name, line=1) #, cex.main =title_size)
+    title(stress_plot_name, line=1, cex.main=2, font.main=1) 
   }
   
   plot(land_wgs, add=TRUE, col="gray90", border="gray75", lwd=0.5)
@@ -213,9 +213,11 @@ plot_impact_rgn_no_brks <- function(impact_crop, region = "wio",
   box("plot", col="gray")
   
   if(legend){
-    par(mar=c(2,2,2,2)) # bottom, left, top, and right
+      
+    par(mar=c(2,2,3,2)) # bottom, left, top, and right
     par(oma=c(0,0,0,0))
-    plot(impact_rast, col=cols, legend.only=TRUE)
+    plot(impact_rast, col=cols, legend.only=TRUE, legend.shrink = 0.8,
+         legend.width = 0.7)
         
   }
   dev.off()

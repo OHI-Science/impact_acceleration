@@ -41,11 +41,11 @@ pressure_name <- data.frame(pressure = c("chi", "sst", "slr", "oa",
                                                   "light", "nutrient", "direct_human", "organic",
                                                   "pel_hb", "dem_nondest_hb","pel_lb", 
                                                   "dem_nondest_lb", "dem_dest", "art_fish"),
-                            pressure_name = c("cumulative impact", "sst", "slr", "oa",
+                            pressure_name = c("cumulative impact", "sea surface temp", "sea level rise", "ocean acidification",
                                               "shipping", "light pollution", 
                                               "nutrient pollution", "direct human", "organic pollution",  
-                                              "comm fish: pel hb", "comm fish: dem nondest hb", "comm fish: pel lb", 
-                                              "comm fish: dem nondest lb", "comm fish: dem dest", "artisanal fishing"))
+                                              "pelegic high bycatch", "demersal nondest high bycatch", "pelagic low bycatch", 
+                                              "demersal nondest low bycatch", "demersal destructive", "artisanal fishing"))
 
 
 ```
@@ -219,6 +219,13 @@ chi <- file.path(dir_M, "git-annex/impact_acceleration/paper/figures/chi_lat_lon
 
 saveClippedRgn(raster_data_path=chi, mask_raster_name="wio", crop_rgn=wio_extent) 
 saveClippedRgn(raster_data_path=chi, mask_raster_name="cpps", crop_rgn=cpps_extent) 
+
+## now for trend
+trend <- file.path(dir_M, "git-annex/impact_acceleration/paper/figures/slope_lat_long.tif") #used for extent, etc.  
+
+saveClippedRgn(raster_data_path=trend, mask_raster_name="wio", crop_rgn=wio_extent) 
+saveClippedRgn(raster_data_path=trend, mask_raster_name="cpps", crop_rgn=cpps_extent) 
+
 
 ## now for ln(x+1) fishing files
 fish <- list.files(file.path(dir_M, "git-annex/impact_acceleration/paper/figures/impacts_lat_long/log_latlong"), full=TRUE)
@@ -608,7 +615,7 @@ source(here("projects/abnj/abnj_functions.R"))
 ```
 
 
-floating color scale: Impacts for WIO region.
+floating color scale: Impacts for WIO region. v1. box crop
 ```{r}
 
 region="wio"
@@ -628,8 +635,27 @@ plot_impact_rgn_no_brks(impact_crop, region = "wio",
 
 ```
 
+floating color scale: Impacts for WIO region. v2. rgn mask
+```{r}
 
-floating color scale: Impacts for cpps region
+region="wio"
+
+impacts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files"), pattern=region, full=TRUE)
+
+# focus on bounded (vs. clipped) area for now (will change if desired)
+impact_wio <- grep("mask", impacts, value=TRUE)
+
+for (impact_crop in impact_wio){ #impact_crop = impact_wio[20]
+  
+plot_impact_rgn_no_brks(impact_crop, region = "wio", 
+                cols = chi_cols, 
+                legend=TRUE, saveLoc="/float_scale_mask_version")
+  }
+
+
+```
+
+floating color scale: Impacts for cpps region. v1. box crop
 ```{r}
 
 region="cpps"
@@ -648,6 +674,27 @@ plot_impact_rgn_no_brks(impact_crop, region = "cpps",
 
 
 ```
+
+floating color scale: Impacts for cpps region. v2. rgn mask
+```{r}
+
+region="cpps"
+
+impacts <- list.files(file.path(dir_M, "git-annex/impact_acceleration/projects/abnj/clipped_files"), pattern=region, full=TRUE)
+
+# focus on bounded (vs. clipped) area for now (will change if desired)
+impact_cpps <- grep("mask", impacts, value=TRUE)
+
+for (impact_crop in impact_cpps){ #impact_crop = impact_cpps[1]
+  
+plot_impact_rgn_no_brks(impact_crop, region = "cpps", 
+                cols = chi_cols, 
+                legend=TRUE, saveLoc="/float_scale_mask_version")
+  }
+
+
+```
+
 
 
 ### floating color scale: putting together: wio
@@ -690,7 +737,7 @@ ggsave("projects/abnj/figures/final_figs/wio_float_scale_2013.png", dpi=300, wid
 ```
 
 
-### Same color scale: cpps
+### Floating color scale: cpps
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 
 ## climate-change
@@ -724,6 +771,8 @@ ggsave("projects/abnj/figures/final_figs/cpps_float_scale_2013.png", dpi=300, wi
 ```
 
 
+
+##### Trend plots!
 
 
 
