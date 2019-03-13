@@ -33,8 +33,13 @@ source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src
 
 regions_mol <- as(regions, "Spatial")
 regions_shape <- spTransform(regions_mol, CRS("+init=epsg:4326"))
-land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
-land_wgs <- spTransform(land, CRS("+init=epsg:4326"))
+land_wgs <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+eez_wgs <- regions_shape[regions_shape$rgn_type %in% c("eez"), ]
+eez_wgs <- eez_wgs[eez_wgs$rgn_name %in% c("Somalia", "Kenya", "Tanzania",
+                                           "Mozambique", "Madagascar", "Reunion",
+                                           "Mauritius", "Seychelles", "Glorioso Islands",
+                                           "Mayotte", "Comoro Islands", "Maldives",
+                                           "Crozet Islands"),]
 
 pressure_name <- data.frame(pressure = c("chi", "sst", "slr", "oa", 
                                                   "shipping",
@@ -364,7 +369,7 @@ source(here("projects/abnj/abnj_functions.R"))
 
 chi_global <- file.path(dir_M, "git-annex/impact_acceleration/paper/figures/chi_lat_long_2013.tif")
 
-plot_impact_global(chi_global, region = "wio", 
+plot_impact_global(impact_global=chi_global, region = "wio", 
                 color_breaks = chi_breaks, cols = chi_cols, 
                 legend_break_labels = chi_legend_labels, label_sequence = chi_label_sequence,
                 legend=FALSE, title=FALSE)
