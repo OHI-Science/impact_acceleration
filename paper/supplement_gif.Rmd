@@ -38,6 +38,19 @@ Cumulative human impact maps from 2003 to 2013.
 
 ```{r chi_map, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
 
+library(magick)
+
+files <- list.files(path = "paper/figures/chi_maps/year_labels", pattern = "*.png", full.names = TRUE) 
+files <- grep("all_years", files, invert=TRUE, value=TRUE)
+
+files %>%
+  map(image_read) %>% # reads each path file
+  image_join() %>% # joins image
+  image_animate(fps=2) %>% # animates, can opt for number of loops
+  image_write("test.gif") # write to current dir
+
+
+
 ## function to make plots
 
 legend.shrink <- 0.7
@@ -53,6 +66,19 @@ chi_breaks(raster_data=p_rast,  title=year,
                 legend_break_labels = chi_legend_labels)
 dev.off()
 }
+
+
+
+library(animation)
+saveGIF({
+  for(i in 1:nlayers(s)){
+      # don't forget to fix the zlimits
+      plot(s[[i]], zlim=c(0,52), axes=F, col=cols,
+           main=names(s[[i]]),
+           legend.args=list(text='Anomalous Weeks', side=4, font=2, line=2.5, cex=0.8))
+      
+  }
+}, movie.name = 'sst_annual_anoms.gif')
 
 
 ```

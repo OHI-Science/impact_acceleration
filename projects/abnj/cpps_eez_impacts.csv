@@ -1,0 +1,106 @@
+"ocean_region","rgn_name","area_km2","pressure","value"
+"cpps","Clipperton Island",433990,"direct_human",0
+"cpps","Clipperton Island",433990,"light",0
+"cpps","Clipperton Island",433990,"nutrient",0
+"cpps","Clipperton Island",433990,"organic",0
+"cpps","Clipperton Island",433990,"dem_nondest_hb",4.03566815061166e-09
+"cpps","Clipperton Island",433990,"dem_nondest_lb",6.11383643811755e-09
+"cpps","Clipperton Island",433990,"art_fish",6.8128661270142e-08
+"cpps","Clipperton Island",433990,"dem_dest",4.9499266270295e-07
+"cpps","Costa Rica",576132,"dem_nondest_lb",5.36732458487858e-06
+"cpps","Clipperton Island",433990,"slr",9.44342108484904e-06
+"cpps","Colombia",730703,"dem_nondest_lb",1.02799995672652e-05
+"cpps","Clipperton Island",433990,"pel_hb",1.39508142885534e-05
+"cpps","Peru",838324,"dem_nondest_hb",2.6598713506453e-05
+"cpps","Colombia",730703,"art_fish",6.3084851761692e-05
+"cpps","Chile",3657313,"light",9.82557267422816e-05
+"cpps","Ecuador",1079918,"dem_nondest_lb",0.000113603188919112
+"cpps","Colombia",730703,"pel_lb",0.000115071490811852
+"cpps","Colombia",730703,"pel_hb",0.000128375718119986
+"cpps","Costa Rica",576132,"dem_nondest_hb",0.000129145725100642
+"cpps","Ecuador",1079918,"dem_nondest_hb",0.00013077117386074
+"cpps","Costa Rica",576132,"art_fish",0.000137964935032247
+"cpps","Costa Rica",576132,"pel_lb",0.000141982165522877
+"cpps","Clipperton Island",433990,"pel_lb",0.000151281310721416
+"cpps","Colombia",730703,"dem_nondest_hb",0.00016587210312487
+"cpps","Costa Rica",576132,"light",0.000192310033731492
+"cpps","Ecuador",1079918,"light",0.000248661342281602
+"cpps","Colombia",730703,"light",0.000336055302884466
+"cpps","Costa Rica",576132,"pel_hb",0.000348501042298853
+"cpps","Peru",838324,"light",0.000432973752043228
+"cpps","Panama",332644,"dem_nondest_hb",0.000486788713013128
+"cpps","Chile",3657313,"dem_nondest_hb",0.000495638412775159
+"cpps","Panama",332644,"dem_nondest_lb",0.000529242492717288
+"cpps","Panama",332644,"light",0.00054019897530515
+"cpps","Ecuador",1079918,"art_fish",0.000772997105682113
+"cpps","Colombia",730703,"dem_dest",0.000832770542810325
+"cpps","Costa Rica",576132,"dem_dest",0.00101375901023055
+"cpps","Ecuador",1079918,"dem_dest",0.00110368408835253
+"cpps","Panama",332644,"art_fish",0.0011791989545456
+"cpps","Ecuador",1079918,"direct_human",0.00127987131215966
+"cpps","Chile",3657313,"art_fish",0.00131155063800586
+"cpps","Chile",3657313,"dem_nondest_lb",0.0013313973898408
+"cpps","Costa Rica",576132,"direct_human",0.00135968515735233
+"cpps","Panama",332644,"organic",0.00144089227128902
+"cpps","Chile",3657313,"direct_human",0.00144382363392558
+"cpps","Ecuador",1079918,"organic",0.00166435375989112
+"cpps","Chile",3657313,"organic",0.00185241564926223
+"cpps","Ecuador",1079918,"pel_lb",0.0021165957393364
+"cpps","Costa Rica",576132,"organic",0.00217276002972376
+"cpps","Peru",838324,"direct_human",0.00222440422516142
+"cpps","Costa Rica",576132,"slr",0.00234360982809495
+"cpps","Chile",3657313,"dem_dest",0.00243971854310331
+"cpps","Panama",332644,"pel_lb",0.00246592285237053
+"cpps","Chile",3657313,"pel_hb",0.00263299567230532
+"cpps","Ecuador",1079918,"pel_hb",0.00268527599975873
+"cpps","Colombia",730703,"direct_human",0.00284988231936889
+"cpps","Chile",3657313,"nutrient",0.00318602612641337
+"cpps","Ecuador",1079918,"slr",0.00373411973549737
+"cpps","Ecuador",1079918,"nutrient",0.00423015676926058
+"cpps","Peru",838324,"slr",0.00491315350171152
+"cpps","Peru",838324,"organic",0.00500183371267207
+"cpps","Panama",332644,"pel_hb",0.00511505558756445
+"cpps","Peru",838324,"dem_nondest_lb",0.00524576157361807
+"cpps","Chile",3657313,"pel_lb",0.00542858628446935
+"cpps","Panama",332644,"direct_human",0.00548082912762852
+"cpps","Panama",332644,"dem_dest",0.00565269000221564
+"cpps","Costa Rica",576132,"nutrient",0.00591854623288693
+"cpps","Chile",3657313,"slr",0.00614444745348875
+"cpps","Peru",838324,"art_fish",0.00746630776276319
+"cpps","Peru",838324,"pel_hb",0.00757903224778815
+"cpps","Colombia",730703,"organic",0.00841952970435486
+"cpps","Peru",838324,"nutrient",0.00871348382746717
+"cpps","Colombia",730703,"slr",0.00898365564151494
+"cpps","Panama",332644,"nutrient",0.0101445775073878
+"cpps","Peru",838324,"dem_dest",0.0136105434950521
+"cpps","Colombia",730703,"nutrient",0.0137145831000506
+"cpps","Panama",332644,"slr",0.0195922297241952
+"cpps","Peru",838324,"sst",0.036812639951782
+"cpps","Peru",838324,"pel_lb",0.0711723121746934
+"cpps","Chile",3657313,"shipping",0.0740018408576832
+"cpps","Ecuador",1079918,"sst",0.0783217691139835
+"cpps","Costa Rica",576132,"oa",0.106427876483068
+"cpps","Ecuador",1079918,"shipping",0.110480838080307
+"cpps","Ecuador",1079918,"oa",0.114030095586864
+"cpps","Clipperton Island",433990,"shipping",0.123642192611714
+"cpps","Clipperton Island",433990,"oa",0.136558463534481
+"cpps","Costa Rica",576132,"shipping",0.159333760444804
+"cpps","Peru",838324,"shipping",0.168648947780581
+"cpps","Colombia",730703,"oa",0.174170414264595
+"cpps","Panama",332644,"oa",0.179607703348883
+"cpps","Costa Rica",576132,"sst",0.185645783681744
+"cpps","Chile",3657313,"sst",0.200621618320303
+"cpps","Colombia",730703,"shipping",0.255908004176464
+"cpps","Panama",332644,"shipping",0.270365360196832
+"cpps","Peru",838324,"oa",0.318899347084776
+"cpps","Ecuador",1079918,"chi",0.320912793032776
+"cpps","Clipperton Island",433990,"sst",0.375294979580746
+"cpps","Chile",3657313,"oa",0.414281868720242
+"cpps","Costa Rica",576132,"chi",0.46517105192378
+"cpps","Panama",332644,"sst",0.593296964071832
+"cpps","Clipperton Island",433990,"chi",0.635670884666815
+"cpps","Peru",838324,"chi",0.65074733985082
+"cpps","Colombia",730703,"sst",0.678965362635467
+"cpps","Chile",3657313,"chi",0.715270183579965
+"cpps","Panama",332644,"chi",1.09589765387788
+"cpps","Colombia",730703,"chi",1.14466294183748

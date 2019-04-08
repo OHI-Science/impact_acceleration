@@ -1,0 +1,316 @@
+"ocean_region","rgn_name","area_km2","pressure","value"
+"wio","Prince Edward Islands",473182,"art_fish",0
+"wio","Crozet Islands",574392,"art_fish",0
+"wio","Crozet Islands",574392,"dem_nondest_hb",0
+"wio","Glorioso Islands",43699,"direct_human",0
+"wio","Juan de Nova Island",62551,"direct_human",0
+"wio","Bassas da India",122177,"direct_human",0
+"wio","Ile Europa",125624,"direct_human",0
+"wio","Ile Tromelin",271997,"direct_human",0
+"wio","British Indian Ocean Territory",642745,"direct_human",0
+"wio","Prince Edward Islands",473182,"direct_human",0
+"wio","Crozet Islands",574392,"direct_human",0
+"wio","Amsterdam Island and Saint Paul Island",509822,"direct_human",0
+"wio","Glorioso Islands",43699,"light",0
+"wio","Juan de Nova Island",62551,"light",0
+"wio","Bassas da India",122177,"light",0
+"wio","Ile Europa",125624,"light",0
+"wio","Ile Tromelin",271997,"light",0
+"wio","Crozet Islands",574392,"light",0
+"wio","Mayotte",63362,"nutrient",0
+"wio","Glorioso Islands",43699,"nutrient",0
+"wio","Reunion",316499,"nutrient",0
+"wio","Juan de Nova Island",62551,"nutrient",0
+"wio","Bassas da India",122177,"nutrient",0
+"wio","Ile Europa",125624,"nutrient",0
+"wio","Ile Tromelin",271997,"nutrient",0
+"wio","British Indian Ocean Territory",642745,"nutrient",0
+"wio","Maldives",922110,"nutrient",0
+"wio","Crozet Islands",574392,"nutrient",0
+"wio","Amsterdam Island and Saint Paul Island",509822,"nutrient",0
+"wio","Mayotte",63362,"organic",0
+"wio","Glorioso Islands",43699,"organic",0
+"wio","Reunion",316499,"organic",0
+"wio","Juan de Nova Island",62551,"organic",0
+"wio","Bassas da India",122177,"organic",0
+"wio","Ile Europa",125624,"organic",0
+"wio","Ile Tromelin",271997,"organic",0
+"wio","British Indian Ocean Territory",642745,"organic",0
+"wio","Maldives",922110,"organic",0
+"wio","Crozet Islands",574392,"organic",0
+"wio","Amsterdam Island and Saint Paul Island",509822,"organic",0
+"wio","Amsterdam Island and Saint Paul Island",509822,"dem_nondest_lb",1.49379750477087e-09
+"wio","Amsterdam Island and Saint Paul Island",509822,"dem_dest",3.01014260625714e-09
+"wio","Amsterdam Island and Saint Paul Island",509822,"art_fish",3.6116009510909e-09
+"wio","Amsterdam Island and Saint Paul Island",509822,"dem_nondest_hb",7.14076415489366e-09
+"wio","Ile Tromelin",271997,"dem_nondest_lb",2.66343932773747e-08
+"wio","Ile Europa",125624,"dem_nondest_hb",6.20159405578049e-08
+"wio","Prince Edward Islands",473182,"light",7.2652350570302e-08
+"wio","Crozet Islands",574392,"pel_hb",8.43612235339543e-08
+"wio","Amsterdam Island and Saint Paul Island",509822,"light",8.8587026986782e-08
+"wio","Ile Tromelin",271997,"dem_nondest_hb",1.2062128893263e-07
+"wio","Prince Edward Islands",473182,"dem_nondest_hb",1.24442308818315e-07
+"wio","Ile Europa",125624,"dem_nondest_lb",3.64762227189201e-07
+"wio","British Indian Ocean Territory",642745,"dem_nondest_hb",3.66681172773234e-07
+"wio","Crozet Islands",574392,"dem_dest",5.96944697913758e-07
+"wio","British Indian Ocean Territory",642745,"dem_nondest_lb",1.05361117368256e-06
+"wio","Ile Tromelin",271997,"art_fish",1.19064202186344e-06
+"wio","British Indian Ocean Territory",642745,"dem_dest",1.1927823541221e-06
+"wio","Seychelles",1340839,"organic",1.20923880771224e-06
+"wio","British Indian Ocean Territory",642745,"art_fish",1.26951574572585e-06
+"wio","Prince Edward Islands",473182,"pel_lb",1.6382118185553e-06
+"wio","Reunion",316499,"dem_nondest_lb",1.67733591919656e-06
+"wio","Mauritius",1280068,"dem_nondest_lb",1.83745499429114e-06
+"wio","Seychelles",1340839,"dem_nondest_lb",2.03081706351686e-06
+"wio","Madagascar",1205825,"dem_nondest_hb",2.66451017734202e-06
+"wio","Tanzania",243130,"dem_nondest_lb",3.13331306186696e-06
+"wio","Seychelles",1340839,"art_fish",3.20565451963615e-06
+"wio","Madagascar",1205825,"dem_nondest_lb",3.22214008640221e-06
+"wio","Prince Edward Islands",473182,"pel_hb",3.25546513737367e-06
+"wio","Ile Tromelin",271997,"dem_dest",3.48848424073992e-06
+"wio","Crozet Islands",574392,"pel_lb",3.96429300990426e-06
+"wio","Bassas da India",122177,"dem_nondest_lb",4.10924829798222e-06
+"wio","Somalia",784502,"dem_nondest_hb",4.25161237372577e-06
+"wio","Bassas da India",122177,"art_fish",4.28091266278739e-06
+"wio","Mozambique",574410,"dem_nondest_lb",4.62329043943553e-06
+"wio","Reunion",316499,"dem_nondest_hb",4.94550785044262e-06
+"wio","Ile Europa",125624,"art_fish",5.27324239775898e-06
+"wio","Bassas da India",122177,"dem_nondest_hb",5.51119385657948e-06
+"wio","Prince Edward Islands",473182,"dem_nondest_lb",5.92085971013268e-06
+"wio","Reunion",316499,"art_fish",6.31215089559208e-06
+"wio","Tanzania",243130,"dem_nondest_hb",7.5217882261046e-06
+"wio","Juan de Nova Island",62551,"dem_nondest_lb",7.97631347490473e-06
+"wio","Seychelles",1340839,"nutrient",9.2713325549946e-06
+"wio","Amsterdam Island and Saint Paul Island",509822,"pel_hb",1.16010495219639e-05
+"wio","Ile Tromelin",271997,"slr",1.23695976068453e-05
+"wio","Reunion",316499,"dem_dest",1.41423340748739e-05
+"wio","Somalia",784502,"light",1.57400655725856e-05
+"wio","Seychelles",1340839,"dem_nondest_hb",1.59628592201142e-05
+"wio","Juan de Nova Island",62551,"dem_nondest_hb",1.8687268410694e-05
+"wio","Juan de Nova Island",62551,"art_fish",1.88334037619007e-05
+"wio","Bassas da India",122177,"dem_dest",2.20444911381663e-05
+"wio","Seychelles",1340839,"light",2.24973954828741e-05
+"wio","British Indian Ocean Territory",642745,"pel_lb",2.34256513189693e-05
+"wio","Mozambique",574410,"pel_lb",2.36081513217323e-05
+"wio","Comoro Islands",165505,"light",2.44809915393965e-05
+"wio","British Indian Ocean Territory",642745,"pel_hb",2.58867677186843e-05
+"wio","Madagascar",1205825,"light",2.60144755010141e-05
+"wio","Amsterdam Island and Saint Paul Island",509822,"slr",2.70438358884166e-05
+"wio","Glorioso Islands",43699,"art_fish",2.71077160738237e-05
+"wio","Ile Tromelin",271997,"pel_hb",2.74208087539104e-05
+"wio","Amsterdam Island and Saint Paul Island",509822,"pel_lb",2.78498054584429e-05
+"wio","Ile Europa",125624,"dem_dest",2.97646594627331e-05
+"wio","Mozambique",574410,"dem_nondest_hb",3.06463200643659e-05
+"wio","Mozambique",574410,"pel_hb",3.14195386734396e-05
+"wio","British Indian Ocean Territory",642745,"light",3.32251117200829e-05
+"wio","Kenya",112400,"dem_nondest_lb",3.36820389560141e-05
+"wio","Prince Edward Islands",473182,"dem_dest",4.04449109488088e-05
+"wio","Somalia",784502,"pel_lb",4.21400918063835e-05
+"wio","Mauritius",1280068,"light",4.73259182715027e-05
+"wio","Somalia",784502,"dem_nondest_lb",4.86943160517504e-05
+"wio","Mauritius",1280068,"pel_lb",5.13228150765367e-05
+"wio","Crozet Islands",574392,"dem_nondest_lb",5.53870946407202e-05
+"wio","Mauritius",1280068,"art_fish",6.1121536708206e-05
+"wio","Glorioso Islands",43699,"dem_nondest_lb",6.11396415724431e-05
+"wio","Somalia",784502,"pel_hb",7.24223579116486e-05
+"wio","Mauritius",1280068,"dem_dest",7.98374603323335e-05
+"wio","Prince Edward Islands",473182,"organic",9.1494163793001e-05
+"wio","Maldives",922110,"art_fish",9.28285630884204e-05
+"wio","Ile Europa",125624,"slr",9.63966386969826e-05
+"wio","Reunion",316499,"pel_hb",9.76017169695099e-05
+"wio","South Africa",1069378,"art_fish",0.000112405088321941
+"wio","Madagascar",1205825,"pel_lb",0.000115458911677815
+"wio","Ile Europa",125624,"pel_hb",0.000115931990631426
+"wio","Madagascar",1205825,"pel_hb",0.00011614261283704
+"wio","Reunion",316499,"pel_lb",0.000121690559237332
+"wio","Glorioso Islands",43699,"dem_nondest_hb",0.000123245027237817
+"wio","Ile Europa",125624,"pel_lb",0.000138304105908958
+"wio","Seychelles",1340839,"direct_human",0.000141523147984541
+"wio","Ile Tromelin",271997,"pel_lb",0.000143002467339965
+"wio","Seychelles",1340839,"pel_lb",0.000144988730783051
+"wio","South Africa",1069378,"dem_nondest_lb",0.000147451301425133
+"wio","Juan de Nova Island",62551,"pel_lb",0.000153324002507003
+"wio","Bassas da India",122177,"pel_lb",0.000153405004451179
+"wio","Mauritius",1280068,"dem_nondest_hb",0.000154231691195407
+"wio","Prince Edward Islands",473182,"slr",0.000163712281587822
+"wio","Juan de Nova Island",62551,"dem_dest",0.000178485536723782
+"wio","Mozambique",574410,"light",0.000188011090754043
+"wio","Madagascar",1205825,"organic",0.000192996902679091
+"wio","Kenya",112400,"dem_nondest_hb",0.000194653013563574
+"wio","Bassas da India",122177,"pel_hb",0.000196632600081353
+"wio","Maldives",922110,"pel_hb",0.000202692382215838
+"wio","Mauritius",1280068,"direct_human",0.00020759964963514
+"wio","Comoro Islands",165505,"organic",0.000226353234788976
+"wio","Maldives",922110,"dem_nondest_hb",0.000229044168442032
+"wio","Maldives",922110,"light",0.00023984374958876
+"wio","Maldives",922110,"dem_dest",0.000244778771480541
+"wio","Maldives",922110,"dem_nondest_lb",0.000252643505613373
+"wio","Kenya",112400,"pel_lb",0.000266960519827746
+"wio","South Africa",1069378,"pel_hb",0.000274999995574426
+"wio","Glorioso Islands",43699,"pel_lb",0.000297277710625123
+"wio","Juan de Nova Island",62551,"slr",0.000328652789279301
+"wio","Mauritius",1280068,"pel_hb",0.000335023276691562
+"wio","Reunion",316499,"light",0.000338658514130818
+"wio","Somalia",784502,"art_fish",0.000344374585011929
+"wio","Kenya",112400,"light",0.000345299300355255
+"wio","Tanzania",243130,"light",0.000349090302239355
+"wio","Comoro Islands",165505,"pel_lb",0.000379826682118206
+"wio","Reunion",316499,"slr",0.000396191522266816
+"wio","Glorioso Islands",43699,"dem_dest",0.000408448688180258
+"wio","South Africa",1069378,"light",0.000489786627623238
+"wio","Bassas da India",122177,"slr",0.000494124152613016
+"wio","Prince Edward Islands",473182,"nutrient",0.000528697237153601
+"wio","Somalia",784502,"organic",0.000531040757130677
+"wio","Reunion",316499,"direct_human",0.000552837372054986
+"wio","Mayotte",63362,"art_fish",0.00056334191167958
+"wio","South Africa",1069378,"pel_lb",0.000570451432308973
+"wio","South Africa",1069378,"dem_nondest_hb",0.000580130496040321
+"wio","Crozet Islands",574392,"slr",0.000581643143960207
+"wio","Kenya",112400,"pel_hb",0.000584242697762024
+"wio","South Africa",1069378,"dem_dest",0.000605552120013634
+"wio","Juan de Nova Island",62551,"pel_hb",0.00061496727395855
+"wio","Seychelles",1340839,"dem_dest",0.000619805047422969
+"wio","Mauritius",1280068,"nutrient",0.000654033906741289
+"wio","Mayotte",63362,"light",0.000659238994091753
+"wio","Comoro Islands",165505,"dem_nondest_hb",0.000678853256582255
+"wio","Comoro Islands",165505,"dem_dest",0.00072972699914506
+"wio","Madagascar",1205825,"art_fish",0.000742509557105102
+"wio","Mayotte",63362,"dem_nondest_hb",0.000761511760734108
+"wio","Mauritius",1280068,"organic",0.000782529141956738
+"wio","Mayotte",63362,"dem_dest",0.000799041415886291
+"wio","Comoro Islands",165505,"dem_nondest_lb",0.000959176509283541
+"wio","Tanzania",243130,"organic",0.00102455181168556
+"wio","Seychelles",1340839,"pel_hb",0.00105079916406987
+"wio","Comoro Islands",165505,"pel_hb",0.00111038356880655
+"wio","Tanzania",243130,"pel_lb",0.00111981333096017
+"wio","Kenya",112400,"dem_dest",0.00118151433658672
+"wio","Mayotte",63362,"dem_nondest_lb",0.0012984078818415
+"wio","Madagascar",1205825,"nutrient",0.00147245509127966
+"wio","Glorioso Islands",43699,"pel_hb",0.00152052889013942
+"wio","Somalia",784502,"nutrient",0.00155504553160132
+"wio","Somalia",784502,"direct_human",0.00159317263100023
+"wio","South Africa",1069378,"direct_human",0.00162854109111424
+"wio","South Africa",1069378,"organic",0.00184174929320623
+"wio","Comoro Islands",165505,"nutrient",0.00191565280502144
+"wio","Glorioso Islands",43699,"slr",0.00192506236182771
+"wio","Comoro Islands",165505,"art_fish",0.00201199418872758
+"wio","Comoro Islands",165505,"direct_human",0.0021167466854908
+"wio","Somalia",784502,"dem_dest",0.00212940685113696
+"wio","Tanzania",243130,"pel_hb",0.0022925008798382
+"wio","Comoro Islands",165505,"slr",0.00242552468347322
+"wio","Kenya",112400,"art_fish",0.00249320303138105
+"wio","Mauritius",1280068,"slr",0.00267062308357851
+"wio","Maldives",922110,"pel_lb",0.00285993130643565
+"wio","Madagascar",1205825,"direct_human",0.00286631187261739
+"wio","Mozambique",574410,"art_fish",0.00298457074481302
+"wio","Madagascar",1205825,"dem_dest",0.00302667465291006
+"wio","Mayotte",63362,"direct_human",0.00308827588472344
+"wio","Maldives",922110,"direct_human",0.0030901785853828
+"wio","Mozambique",574410,"organic",0.00337717344902321
+"wio","Mayotte",63362,"pel_lb",0.0037548052381782
+"wio","Mozambique",574410,"direct_human",0.00439854706650703
+"wio","Kenya",112400,"direct_human",0.00518636879768812
+"wio","Seychelles",1340839,"slr",0.00543251675756185
+"wio","Kenya",112400,"organic",0.00627595099941658
+"wio","South Africa",1069378,"slr",0.00680650134565539
+"wio","Mozambique",574410,"dem_dest",0.00763192843639412
+"wio","Tanzania",243130,"direct_human",0.00773627614678948
+"wio","Tanzania",243130,"dem_dest",0.00777166354421599
+"wio","Mayotte",63362,"slr",0.00788030557001603
+"wio","South Africa",1069378,"nutrient",0.00815865633102354
+"wio","Tanzania",243130,"nutrient",0.00858987667931213
+"wio","Mayotte",63362,"pel_hb",0.00931678510866423
+"wio","Tanzania",243130,"art_fish",0.00941475252962977
+"wio","British Indian Ocean Territory",642745,"slr",0.00962012987178436
+"wio","Maldives",922110,"slr",0.00997821790718552
+"wio","Mozambique",574410,"nutrient",0.0113818114712173
+"wio","Somalia",784502,"slr",0.0118030000238431
+"wio","Kenya",112400,"slr",0.0131401540578902
+"wio","Crozet Islands",574392,"shipping",0.0151564589315305
+"wio","Madagascar",1205825,"slr",0.0170982016874751
+"wio","Prince Edward Islands",473182,"shipping",0.0189337112489043
+"wio","Tanzania",243130,"slr",0.0233519480960009
+"wio","Amsterdam Island and Saint Paul Island",509822,"shipping",0.0241488942132975
+"wio","Kenya",112400,"nutrient",0.025053574350901
+"wio","Mozambique",574410,"slr",0.0364589660251368
+"wio","Kenya",112400,"shipping",0.0377685409333069
+"wio","Tanzania",243130,"shipping",0.054841528680143
+"wio","Seychelles",1340839,"shipping",0.0692332858687257
+"wio","Ile Europa",125624,"shipping",0.0692738802872123
+"wio","Ile Tromelin",271997,"shipping",0.0752248968972169
+"wio","Somalia",784502,"shipping",0.0777662188170452
+"wio","Glorioso Islands",43699,"shipping",0.0839893038269969
+"wio","British Indian Ocean Territory",642745,"shipping",0.092008680014904
+"wio","Maldives",922110,"shipping",0.109710229795945
+"wio","Mauritius",1280068,"shipping",0.113562932645695
+"wio","Comoro Islands",165505,"shipping",0.115514424850325
+"wio","Madagascar",1205825,"shipping",0.115873407271785
+"wio","Mayotte",63362,"shipping",0.125246895763987
+"wio","Mozambique",574410,"shipping",0.14433856620519
+"wio","Juan de Nova Island",62551,"shipping",0.151453195690613
+"wio","Bassas da India",122177,"shipping",0.154282815939082
+"wio","Maldives",922110,"oa",0.171286921659525
+"wio","Somalia",784502,"oa",0.206035845608768
+"wio","Kenya",112400,"oa",0.208576999597379
+"wio","Tanzania",243130,"oa",0.212854589308359
+"wio","British Indian Ocean Territory",642745,"oa",0.214414825469916
+"wio","Mozambique",574410,"oa",0.220240965293371
+"wio","Comoro Islands",165505,"oa",0.230022833988865
+"wio","South Africa",1069378,"shipping",0.231078418602036
+"wio","Reunion",316499,"shipping",0.234840681319398
+"wio","Mayotte",63362,"oa",0.236456850134632
+"wio","Juan de Nova Island",62551,"oa",0.240626548746357
+"wio","Glorioso Islands",43699,"oa",0.241674656367047
+"wio","Seychelles",1340839,"oa",0.242020023148277
+"wio","Bassas da India",122177,"oa",0.246580138416192
+"wio","Ile Europa",125624,"oa",0.248173604878391
+"wio","Ile Tromelin",271997,"oa",0.252056660659639
+"wio","Madagascar",1205825,"oa",0.256523292291509
+"wio","Mauritius",1280068,"oa",0.261365520274529
+"wio","South Africa",1069378,"oa",0.265032388580684
+"wio","Reunion",316499,"oa",0.274535498873753
+"wio","Amsterdam Island and Saint Paul Island",509822,"oa",0.298309095634927
+"wio","South Africa",1069378,"sst",0.31505658153244
+"wio","Ile Europa",125624,"sst",0.3855557446348
+"wio","Crozet Islands",574392,"sst",0.39116018650113
+"wio","Mozambique",574410,"sst",0.434290085823507
+"wio","Bassas da India",122177,"sst",0.436887130525864
+"wio","Prince Edward Islands",473182,"sst",0.454472592896351
+"wio","Amsterdam Island and Saint Paul Island",509822,"sst",0.454517224600096
+"wio","British Indian Ocean Territory",642745,"sst",0.50949478492634
+"wio","Prince Edward Islands",473182,"oa",0.544816442705421
+"wio","Juan de Nova Island",62551,"sst",0.567474119900692
+"wio","Crozet Islands",574392,"oa",0.572086905078393
+"wio","Maldives",922110,"sst",0.594509367484077
+"wio","Glorioso Islands",43699,"sst",0.61134318022443
+"wio","Mayotte",63362,"sst",0.618526811537232
+"wio","Comoro Islands",165505,"sst",0.685004484266845
+"wio","Ile Europa",125624,"chi",0.703389326821388
+"wio","Somalia",784502,"sst",0.724105910612318
+"wio","Seychelles",1340839,"sst",0.755887985263702
+"wio","Amsterdam Island and Saint Paul Island",509822,"chi",0.777041812896645
+"wio","Tanzania",243130,"sst",0.777461511615867
+"wio","Mauritius",1280068,"sst",0.800871031429375
+"wio","Madagascar",1205825,"sst",0.819666938000641
+"wio","British Indian Ocean Territory",642745,"chi",0.82562484066905
+"wio","South Africa",1069378,"chi",0.832383614331045
+"wio","Bassas da India",122177,"chi",0.838630192922973
+"wio","Ile Tromelin",271997,"sst",0.852734883043631
+"wio","Mozambique",574410,"chi",0.86538092273225
+"wio","Kenya",112400,"sst",0.875860042748877
+"wio","Maldives",922110,"chi",0.892696677815462
+"wio","Glorioso Islands",43699,"chi",0.941369950047714
+"wio","Juan de Nova Island",62551,"chi",0.960874790755978
+"wio","Crozet Islands",574392,"chi",0.979045225183622
+"wio","Mayotte",63362,"chi",1.00835227155375
+"wio","Prince Edward Islands",473182,"chi",1.01905810561668
+"wio","Somalia",784502,"chi",1.02604726386766
+"wio","Comoro Islands",165505,"chi",1.04312046309989
+"wio","Seychelles",1340839,"chi",1.07458510407699
+"wio","Tanzania",243130,"chi",1.10681875836055
+"wio","Kenya",112400,"chi",1.17696118644604
+"wio","Ile Tromelin",271997,"chi",1.18020406022155
+"wio","Mauritius",1280068,"chi",1.18084497047222
+"wio","Madagascar",1205825,"chi",1.21772628962241
+"wio","Reunion",316499,"sst",1.37655829714156
+"wio","Reunion",316499,"chi",1.88746853416978

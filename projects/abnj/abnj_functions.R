@@ -224,3 +224,67 @@ plot_impact_rgn_no_brks <- function(impact_crop, region = "wio",
   
 }
 
+################
+### trend plot
+################
+
+trend_plot <- function(plotRaster, scaleRaster, region="wio", overlay=FALSE, overlay_rast=NA, legend=TRUE,
+                       title=""){
+  
+  
+  png(here(sprintf("projects/abnj/figures/rgn_maps/trend/%s_trend.png", region)), 
+      res=500, width=7, height=6, units="in")  
+  
+  par(mar=c(2,2,3,5)) # bottom, left, top, and right
+  par(oma=c(0,0,1,1))
+  
+  low <- rev(c("#E0F3F8", "#ABD9E9", "#74ADD1", "#5C91C2", "#4575B4"))
+  high <- rev(c("#A50026", "#C11B26", "#D02926", "#E14631", "#F46D43", "#F9A669", "#FEE090", "#FFF1CC"))
+  
+  quants <- quantile(scaleRaster, c(0.00001, 0.99999))
+  low_breaks <- c(minValue(scaleRaster)-0.01, 
+                  seq(quants[[1]], 0, by=0.005))
+  high_breaks <- c(seq(0, quants[[2]], by=0.005),
+                   maxValue(scaleRaster)+0.01)
+  
+  low_cols <- colorRampPalette(low)(length(low_breaks)-1)
+  high_cols <- colorRampPalette(high)(length(high_breaks)-1)
+  cols <- c(low_cols, "#F4FBFC", "#F4FBFC", high_cols)
+  
+  plot(extent(plotRaster), 
+       type="n", xaxs="i", yaxs="i", axes=FALSE)
+  
+  plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+  
+  plot(plotRaster, col=cols,  
+       breaks=c(low_breaks, high_breaks), 
+       legend=FALSE, axes=FALSE, box=FALSE, add=TRUE)
+
+  ## get and plot border
+  border_shape=get(region)
+  plot(border_shape, border="red", add=TRUE)
+    
+  title(title, line=0)
+  
+  if(overlay){
+    plot(overlay_rast, col="#ffffff", add=TRUE, legend=FALSE, box=FALSE)
+  }
+  
+  
+  if(legend){
+    par(mar=c(2,2,3,2)) # bottom, left, top, and right
+    par(oma=c(0,0,0,0))
+
+    plot(scaleRaster, legend.only=TRUE, legend.shrink=.7, legend.width=.7, col=cols,
+         breaks=c(low_breaks, high_breaks),
+         axis.args = list(cex.axis = 0.6, 
+                          at = c(minValue(scaleRaster), quants[[1]], 
+                                 -0.1, 0, 0.1, 
+                                 quants[[2]], maxValue(scaleRaster)),
+                          labels = c(round(minValue(scaleRaster), 2), round(quants[[1]], 2), 
+                                     -0.1, 0, 0.1, 
+                                     round(quants[[2]], 2), round(maxValue(scaleRaster), 2))
+         ))
+  }
+dev.off()
+  }
