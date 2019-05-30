@@ -12,8 +12,5 @@ Calc_CHI: For each year, sums the individual impacts to get a cumulative human i
 
 ### Visualization
 cumulative_impact_vis.Rmd: plot all the CHI rasters for all years
-individual_impact_same_legend_vis.Rmd: plot each pressure impact for all years
 
-### Analysis
-Calc_quantiles.Rmd: Calculate global quantiles of data and visualize
 

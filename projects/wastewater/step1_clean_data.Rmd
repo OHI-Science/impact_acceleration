@@ -1,0 +1,60 @@
+---
+title: "wastewater: cleaning plume output and transforming to mollweide CRS"
+output: html_document
+---
+
+```{r}
+
+library(RColorBrewer)
+
+library(raster)
+library(rgdal)
+
+library(dplyr)
+library(stringr)
+
+library(parallel)
+library(foreach)
+library(doParallel)
+
+library(here)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2019/gh-pages/workflow/R/common.R")
+ohi_rasters()
+rgn_data()
+
+cols <- rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+cols <- cols[150:255]
+
+```
+
+
+Clean data and convert data to mollweide.
+```{r}
+
+# read in wastewater data
+ww <- raster::raster(file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw.tif"))
+cellStats(ww, stat="min") # min value = -0.1515496  (not sure where negative values would come from, check on this)
+cellStats(ww, stat="max") # max value = 2739810
+
+#negative cell values convert to zero for now
+raster::calc(ww, fun=function(x){ifelse(x<0, 0, x)},
+             filename=file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw_nonegs.tif"))
+
+ww_no_neg <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw_nonegs.tif"))
+
+# project to mollweide
+raster::projectRaster(ww_no_neg, ocean, over=TRUE, method = "ngb", filename = file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw_mol_nonegs.tif"), progress="text", overwrite=TRUE)
+
+ww_mol <- raster::raster(file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw_mol_nonegs.tif"))
+
+# raster doesn't have complete coverage...fixing this and masking ocean region
+ww_mol %>%
+raster::extend(ocean) %>%
+    raster::calc(fun=function(x){ifelse(is.na(x), 0, x)}) %>%  # gapfilling area near Antarctica with zero
+    raster::mask(ocean, 
+         filename = file.path(dir_M, "git-annex/land-based/wastewater/output/global_effluent_2015_all_raw_mol_nonegs_clean.tif"),
+         overwrite = TRUE, progress = "text")
+
+```
+

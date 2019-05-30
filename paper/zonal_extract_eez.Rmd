@@ -35,7 +35,7 @@ library(htmlwidgets)
 library(RColorBrewer)
 library(ohicore)
 
-source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/master/src/R/spatial_common.R")
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/common.R")
 ```
 
 ## EEZ regions: CHI

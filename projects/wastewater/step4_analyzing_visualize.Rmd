@@ -1,0 +1,276 @@
+---
+title: "wastewater: analyze and visualize data"
+output: html_document
+---
+
+```{r}
+
+library(RColorBrewer)
+
+library(raster)
+library(rgdal)
+
+library(dplyr)
+library(stringr)
+
+library(parallel)
+library(foreach)
+library(doParallel)
+
+library(here)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2019/gh-pages/workflow/R/common.R")
+ohi_rasters()
+region_data()
+regions_shape()
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+
+
+cols <- rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) # rainbow color scheme
+cols <- cols[150:255]
+
+```
+
+
+Find hotspots.
+
+```{r}
+# r <- raster(ncol=360, nrow=180, xmx=180, xmn=-180, ymn=-90, ymx=90)
+# plot(area(r))
+
+ww <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015.tif"))
+
+raster::calc(ww, fun=function(x){ifelse(x==0, NA, x)},
+             filename=file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/viz/global_effluent_2015_all_raw_nonegs.tif"), progress="text")
+
+ww_nozeros <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/viz/global_effluent_2015_all_raw_nonegs.tif"))
+
+quants <- quantile(ww_nozeros, c(0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.975, 0.99, 0.999, 0.9999))
+#          50%          60%          70%          80%          90%          95%        97.5%          99%        99.9% 
+# 3.833002e-05 1.615543e-04 6.501950e-04 2.698332e-03 1.472878e-02 5.123992e-02 1.400501e-01 4.494303e-01 2.000000e+00 
+#       99.99% 
+# 2.000000e+00 
+
+raster::calc(ww, fun=function(x){ifelse(x>=2.000000e+00, 1, NA)},
+             filename=file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/viz/global_effluent_2015_all_raw_999.tif"), progress="text")
+
+check <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/viz/global_effluent_2015_all_raw_999.tif"))
+plot(check, col="red")
+check_points <- rasterToPoints(check, spatial=TRUE)
+
+check_points_kml <- spTransform(check_points, CRS("+proj=longlat +datum=WGS84"))
+writeOGR(check_points_kml["global_effluent_2015_all_raw_999"], "global_effluent_2015_all_raw_999.kml", layer="global_effluent_2015_all_raw_999 ", driver="KML") 
+
+plot(check, col="red")
+plot(check_points, col="#FF00000D", cex=.3, add=TRUE, pch=16)
+zoom(check)
+plot(check_points, col="#FF00000D", cex=.3, add=TRUE)
+plot(land, border="gray80", col="gray90", lwd=0.5, add=TRUE)
+plot(check_points, col="#FF00000D", cex=.3, add=TRUE)
+
+```
+
+From the above plot, I went through the raster and identified the lat/long of the hotspots and estimated their areas.  
+
+```{r}
+
+hot_spots <- read.csv(here("projects/wastewater/wastewater_hotspot.csv")) %>%
+  filter(pins >=300)
+
+xy <- hot_spots[, c(5,4)]
+
+hot_spots_spatial <- SpatialPointsDataFrame(coords=xy, data=hot_spots, 
+                                            proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+hot_spots_spatial <- spTransform(hot_spots_spatial, mollCRS)
+
+
+plot(land, border="gray80", col="gray90", lwd=0.5)
+plot(hot_spots_spatial, col="#FF0000", cex=1, pch=16, add=TRUE)
+
+```
+
+
+### Zoomed maps
+
+```{r}
+
+# project to lat long
+sim_rast <- raster(ncol=40000, nrow=20000)
+
+#impact
+ww <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015.tif"))
+projectRaster(ww, sim_rast, method="ngb", filename=file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015_latlong.tif"), progress="text", overwrite=TRUE)
+
+ww_ll <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015_latlong.tif"))
+plot(ww_ll)
+
+
+# pressure
+ww_stress <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor/global_effluent_2015_mol_rescaled.tif"))
+projectRaster(ww_stress, sim_rast, method="ngb", filename=file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor/global_effluent_2015_mol_rescaled_latlong.tif"), progress="text", overwrite=TRUE)
+
+ww_stress <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor/global_effluent_2015_mol_rescaled_latlong.tif"))
+plot(ww_stress)
+
+```
+
+
+Identify 3-4 regions of interest.
+
+```{r}
+
+#regions_wgs <- st_transform(regions, 4326)
+land_wgs <- spTransform(land, CRS("+init=epsg:4326"))
+
+effluent_impact <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015_latlong.tif"))
+
+plot(effluent_impact)
+tmp <- zoom(effluent_impact)
+
+bang <- extent(89, 92, 21.5, 23)
+
+cambay <- extent(72, 73, 20.5, 22.5)
+
+indo <- extent(110, 114.5, -8.5, -6)
+```
+
+
+
+
+Plot impacts
+```{r}
+
+
+rgn_crop <- function(raster_data, crop_rgn, myBreaks, cols, filename){
+  png(sprintf("projects/wastewater/rgn_zooms/%s.png", filename), res=600, width=6, height=5, units="in")  
+  
+  par(mar=c(2,2,2,2)) # bottom, left, top, and right
+  par(oma=c(0,0,0,0))
+  
+  master <- raster_data
+  master_crop <- crop(master, crop_rgn)
+  
+  plot(c(crop_rgn[1], crop_rgn[2]), c(crop_rgn[3], crop_rgn[4]), 
+       type="n", xaxs="i", yaxs="i", axes=FALSE)
+  plot(master_crop, col=cols,  breaks=myBreaks, legend=FALSE, add=TRUE)
+  plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+  box("plot", col="gray")
+  
+  dev.off()
+}
+
+
+effluent_impact <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015_latlong.tif"))
+
+impact_breaks=c(-1, seq(0, 2.10, by=0.05))
+cols <- c(beyonce_palette(28, 10, type="continuous"))[(c(1:6,8))]
+impact_cols <- rev(colorRampPalette(cols)(length(impact_breaks)-2))                         
+impact_cols <- c("#eff9fc", impact_cols)
+
+rgn_crop(raster_data=effluent_impact, crop_rgn=cambay,
+                   myBreaks=impact_breaks, cols=impact_cols, filename="cambay_impact")
+
+rgn_crop(raster_data=effluent_impact, crop_rgn=bang,
+                   myBreaks=impact_breaks, cols=impact_cols, filename="bang_impact")
+
+rgn_crop(raster_data=effluent_impact, crop_rgn=indo,
+                   myBreaks=impact_breaks, cols=impact_cols, filename="indo_impact")
+
+```
+
+
+Create the master map
+```{r}
+
+chi_plot <- function(raster_data, title, title_legend=NULL, title_size = 1, 
+                       color_breaks=impact_breaks, cols=impact_cols,
+                       legend_break_labels=impact_legend_labels, 
+                     label_sequence = impact_label_sequence, 
+                     legend=TRUE, condensed=FALSE){
+  if(condensed){
+  par(mar=c(0,0,1.3,0)) # bottom, left, top, and right
+  } else{
+    par(mar=c(1,1,1,1)) # bottom, left, top, and right
+  }
+    
+  par(oma=c(0,0,0,0))
+  plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=color_breaks, legend=FALSE)
+  title(title, line=0, cex.main =title_size)
+  
+  if(legend){
+  # add axis with fields package function:
+  break_locations <- seq(0, length(color_breaks), length.out=length(color_breaks)) # breaks for colors for legend
+  legend_label_locations <- break_locations[label_sequence] # label locations (every other color labeled)
+  
+  fields::image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
+                     legend.only = TRUE, 
+                     legend.shrink=legend.shrink,
+                     legend.width=legend.width,
+                     col = cols,
+                     #legend.lab=title_legend,
+                     breaks=break_locations,
+                     axis.args=list(cex.axis=0.6, at=legend_label_locations, labels=legend_break_labels))
+  }
+  
+  plot(land_wgs, add=TRUE, border="gray80", col="gray90", lwd=0.1)
+}
+
+legend.shrink <- 0.7
+legend.width <- 0.7
+
+impact_legend_labels <- c(0, 1, 2)
+impact_label_sequence <- c(1, 22,  43)
+
+
+  png("projects/wastewater/rgn_zooms/global_impact.png", res=500, width=6, height=3, units="in")  
+  p_rast <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor_impact/global-effluent_2015_latlong.tif"))
+  chi_plot(raster_data=p_rast,  title="", 
+                cols=impact_cols, color_breaks = impact_breaks,
+                legend_break_labels = impact_legend_labels,
+           label_sequence = impact_label_sequence)
+  plot(bang, add=TRUE, col="red", lwd=3)
+  plot(cambay, add=TRUE, col="red", lwd=3)
+  plot(indo, add=TRUE, col="red", lwd=3)
+  dev.off()
+
+
+```
+
+# stressor
+
+```{r}
+effluent_stressor <- raster(file.path(dir_M, "git-annex/land-based/wastewater/output/no_log_data/stressor/global_effluent_2015_mol_rescaled_latlong.tif"))
+
+stressor_breaks=c(-1, seq(0, 1.05, by=0.05))
+cols <- c(beyonce_palette(28, 10, type="continuous"))[(c(1:6,8))]
+stressor_cols <- rev(colorRampPalette(cols)(length(stressor_breaks)-2))                         
+stressor_cols <- c("#eff9fc", stressor_cols)
+
+rgn_crop(raster_data=effluent_stressor, crop_rgn=cambay,
+                   myBreaks=stressor_breaks, cols=stressor_cols, filename="cambay_stressor")
+
+rgn_crop(raster_data=effluent_stressor, crop_rgn=bang,
+                   myBreaks=stressor_breaks, cols=stressor_cols, filename="bang_stressor")
+
+rgn_crop(raster_data=effluent_stressor, crop_rgn=indo,
+                   myBreaks=stressor_breaks, cols=stressor_cols, filename="indo_stressor")
+
+
+stressor_legend_labels <- c(0, 0.5, 1)
+stressor_label_sequence <- c(1, 12,  23)
+
+
+  png("projects/wastewater/rgn_zooms/global_stressor.png", res=500, width=6, height=3, units="in")  
+  p_rast <- effluent_stressor
+  chi_plot(raster_data=p_rast,  title="", 
+                cols=stressor_cols, color_breaks = stressor_breaks,
+                legend_break_labels = stressor_legend_labels,
+           label_sequence = stressor_label_sequence)
+  dev.off()
+
+
+
+```
