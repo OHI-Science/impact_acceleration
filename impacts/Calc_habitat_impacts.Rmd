@@ -5,7 +5,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-Caculate impact for each habitat by summing the stressor x habitat x vulnerability rasters for each habitat.
+Caculate impact on each habitat by summing the stressor x habitat x vulnerability rasters for each habitat.
 
 ## Loading packages
 

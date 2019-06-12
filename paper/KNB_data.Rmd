@@ -1,0 +1,610 @@
+---
+title: "KNB_file_paths"
+output: html_document
+---
+This script organizes the files for KNB archiving (https://knb.ecoinformatics.org/).
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(stringr)
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
+
+```
+
+The main KNB page will include the overall CHI and trend results, as well as supplementary files.  Each stressor will get its own KNB page.  This will include the raster files for the raw/unscaled data, rescaled data (0-1), and impact data.
+
+I will start by identifying the individual stressor datasets.
+
+## SST
+```{r}
+
+# raw
+sst_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/sst/int'), pattern = 'sst_diff', full.names=TRUE)
+
+sst_raw_data <- data.frame(year= NA, data_stage="raw", filepath=sst_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+sst_rescaled_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/stressors/sst/final')), full.names = TRUE)
+sst_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=sst_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+sst_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="sst")
+
+sst_impact_data <- data.frame(year= NA, data_stage="impact", filepath=sst_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+
+# trend
+sst_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/sst_trend.tif"))
+
+sst_data <- rbind(sst_raw_data, sst_rescaled_data, sst_impact_data, sst_trend_data) %>%
+  mutate(KNBpackage = "SST")
+
+```
+
+
+## OA
+```{r}
+
+# raw
+oa_raw_files <- list.files(file.path(dir_M, 'git-annex/globalprep/prs_oa/v2017/int/annual_avg_moll'), full.names=TRUE)
+
+oa_raw_data <- data.frame(year= NA, data_stage="raw", filepath=oa_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+oa_rescaled_files <- list.files(file.path(dir_M, 'git-annex/globalprep/prs_oa/v2017/int/annual_avg_moll_rescaled'), full.names=TRUE)
+oa_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=oa_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+oa_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="oa")
+
+oa_impact_data <- data.frame(year= NA, data_stage="impact", filepath=oa_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+oa_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/oa_trend.tif"))
+
+
+oa_data <- rbind(oa_raw_data, oa_rescaled_data, oa_impact_data, oa_trend_data) %>%
+  mutate(KNBpackage="OA")
+
+```
+
+
+## SLR
+```{r}
+
+# raw
+slr_raw_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/int"),
+                           pattern = 'gf_mol_mask', full.names = TRUE)
+
+slr_raw_data <- data.frame(year= NA, data_stage="raw", filepath=slr_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+slr_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/slr/final"), full.names=TRUE)
+
+slr_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=slr_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+slr_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="slr")
+
+slr_impact_data <- data.frame(year= NA, data_stage="impact", filepath=slr_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+slr_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/slr_trend.tif"))
+
+
+slr_data <- rbind(slr_raw_data, slr_rescaled_data, slr_impact_data, slr_trend_data) %>%
+  mutate(KNBpackage="SLR")
+
+```
+
+
+## Fishing: artisanal
+```{r}
+
+# raw
+art_fish_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/art_fish/int/catch_annual_npp_rasters'), full.names=TRUE)
+
+
+art_fish_raw_data <- data.frame(year= NA, data_stage="raw", filepath=art_fish_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+art_fish_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/art_fish/final"), full.names=TRUE)
+
+art_fish_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=art_fish_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+art_fish_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="art_fish")
+
+art_fish_impact_data <- data.frame(year= NA, data_stage="impact", filepath=art_fish_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+art_fish_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/art_fish_trend.tif"))
+
+
+art_fish_data <- rbind(art_fish_raw_data, art_fish_rescaled_data, art_fish_impact_data, art_fish_trend_data) %>%
+  mutate(KNBpackage="Artisanal fishing")
+
+```
+
+
+## Commercial Fishing: demersal destructive
+```{r}
+
+# raw
+dem_dest_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/dem_dest'), full.names=TRUE)
+
+
+dem_dest_raw_data <- data.frame(year= NA, data_stage="raw", filepath=dem_dest_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+dem_dest_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/dem_dest"), full.names=TRUE)
+
+dem_dest_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=dem_dest_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+dem_dest_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="dem_dest")
+
+dem_dest_impact_data <- data.frame(year= NA, data_stage="impact", filepath=dem_dest_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+dem_dest_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/dem_dest_trend.tif"))
+
+
+dem_dest_data <- rbind(dem_dest_raw_data, dem_dest_rescaled_data, dem_dest_impact_data, dem_dest_trend_data) %>%
+  mutate(KNBpackage="Commercial fishing: demersal destructive")
+
+```
+
+
+## Commercial Fishing: demersal nondestructive high bycatch
+```{r}
+
+# raw
+dem_nondest_hb_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/dem_nondest_hb'), full.names=TRUE)
+
+
+dem_nondest_hb_raw_data <- data.frame(year= NA, data_stage="raw", filepath=dem_nondest_hb_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+dem_nondest_hb_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/dem_nondest_hb"), full.names=TRUE)
+
+dem_nondest_hb_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=dem_nondest_hb_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+dem_nondest_hb_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="dem_nondest_hb")
+
+dem_nondest_hb_impact_data <- data.frame(year= NA, data_stage="impact", filepath=dem_nondest_hb_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+dem_nondest_hb_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/dem_nondest_hb_trend.tif"))
+
+
+dem_nondest_hb_data <- rbind(dem_nondest_hb_raw_data, dem_nondest_hb_rescaled_data, dem_nondest_hb_impact_data, dem_nondest_hb_trend_data) %>%
+  mutate(KNBpackage="Commercial fishing: demersal nondestructive high bycatch")
+
+```
+
+
+## Commercial Fishing: demersal nondestructive high bycatch
+```{r}
+
+# raw
+dem_nondest_lb_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/dem_nondest_lb'), full.names=TRUE)
+
+
+dem_nondest_lb_raw_data <- data.frame(year= NA, data_stage="raw", filepath=dem_nondest_lb_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+dem_nondest_lb_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/dem_nondest_lb"), full.names=TRUE)
+
+dem_nondest_lb_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=dem_nondest_lb_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+dem_nondest_lb_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="dem_nondest_lb")
+
+dem_nondest_lb_impact_data <- data.frame(year= NA, data_stage="impact", filepath=dem_nondest_lb_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+dem_nondest_lb_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/dem_nondest_lb_trend.tif"))
+
+
+dem_nondest_lb_data <- rbind(dem_nondest_lb_raw_data, dem_nondest_lb_rescaled_data, dem_nondest_lb_impact_data, dem_nondest_lb_trend_data) %>%
+  mutate(KNBpackage="Commercial fishing: demersal nondestructive low bycatch")
+
+```
+
+
+## Commercial Fishing: pelagic high bycatch
+```{r}
+
+# raw
+pel_hb_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/pel_hb'), full.names=TRUE)
+
+
+pel_hb_raw_data <- data.frame(year= NA, data_stage="raw", filepath=pel_hb_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+pel_hb_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/pel_hb"), full.names=TRUE)
+
+pel_hb_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=pel_hb_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+pel_hb_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="pel_hb")
+
+pel_hb_impact_data <- data.frame(year= NA, data_stage="impact", filepath=pel_hb_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+pel_hb_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/pel_hb_trend.tif"))
+
+
+pel_hb_data <- rbind(pel_hb_raw_data, pel_hb_rescaled_data, pel_hb_impact_data, pel_hb_trend_data) %>%
+  mutate(KNBpackage="Commercial fishing: pelagic high bycatch")
+
+```
+
+
+## Commercial Fishing: pelagic low bycatch
+```{r}
+
+# raw
+pel_lb_raw_files <- list.files(file.path(dir_M, 'git-annex/impact_acceleration/stressors/comm_fish/int/catch_annual_npp_rasters/pel_lb'), full.names=TRUE)
+
+
+pel_lb_raw_data <- data.frame(year= NA, data_stage="raw", filepath=pel_lb_raw_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+pel_lb_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/comm_fish/final/pel_lb"), full.names=TRUE)
+
+pel_lb_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=pel_lb_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+pel_lb_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="pel_lb")
+
+pel_lb_impact_data <- data.frame(year= NA, data_stage="impact", filepath=pel_lb_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+pel_lb_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/pel_lb_trend.tif"))
+
+
+pel_lb_data <- rbind(pel_lb_raw_data, pel_lb_rescaled_data, pel_lb_impact_data, pel_lb_trend_data) %>%
+  mutate(KNBpackage="Commercial fishing: pelagic low bycatch")
+
+```
+
+
+## Nutrient pollution
+```{r}
+
+# raw
+nutrient_raw_files <- list.files(file.path(dir_M, 
+        "git-annex/impact_acceleration/stressors/land_based/int"), full.names = TRUE, pattern="log")
+nutrient_raw_files <- grep("fert", nutrient_raw_files, value=TRUE)
+
+nutrient_raw_data <- data.frame(year= NA, data_stage="raw", filepath=nutrient_raw_files) %>%
+  mutate(year = str_sub(filepath, -12, -9)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+nutrient_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/land_based/final/nutrient"), full.names=TRUE)
+
+nutrient_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=nutrient_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+nutrient_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="nutrient")
+
+nutrient_impact_data <- data.frame(year= NA, data_stage="impact", filepath=nutrient_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+nutrient_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/nutrient_trend.tif"))
+
+
+nutrient_data <- rbind(nutrient_raw_data, nutrient_rescaled_data, nutrient_impact_data, nutrient_trend_data) %>%
+  mutate(KNBpackage="Nutrient pollution")
+
+```
+
+## Organic chemical pollution
+```{r}
+
+# raw
+organic_raw_files <- list.files(file.path(dir_M, 
+        "git-annex/impact_acceleration/stressors/land_based/int"), full.names = TRUE, pattern="log")
+organic_raw_files <- grep("pest", organic_raw_files, value=TRUE)
+
+organic_raw_data <- data.frame(year= NA, data_stage="raw", filepath=organic_raw_files) %>%
+  mutate(year = str_sub(filepath, -12, -9)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+organic_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/land_based/final/organic"), full.names=TRUE)
+
+organic_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=organic_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+organic_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="organic")
+
+organic_impact_data <- data.frame(year= NA, data_stage="impact", filepath=organic_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+
+# trend
+organic_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/organic_trend.tif"))
+
+organic_data <- rbind(organic_raw_data, organic_rescaled_data, organic_impact_data, organic_trend_data) %>%
+  mutate(KNBpackage="Organic chemical pollution")
+
+```
+
+## Direct human
+```{r}
+
+# raw
+direct_human_raw_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/int"), pattern="log_mask", full.name=TRUE)
+
+direct_human_raw_data <- data.frame(year= NA, data_stage="raw", filepath=direct_human_raw_files) %>%
+  mutate(year = str_sub(filepath, -17, -14)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+direct_human_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/direct_human/final"), full.names=TRUE)
+
+direct_human_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=direct_human_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+direct_human_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="direct_human")
+
+direct_human_impact_data <- data.frame(year= NA, data_stage="impact", filepath=direct_human_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+direct_human_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/direct_human_trend.tif"))
+
+
+direct_human_data <- rbind(direct_human_raw_data, direct_human_rescaled_data, direct_human_impact_data, direct_human_trend_data) %>%
+  mutate(KNBpackage="Direct human")
+
+```
+
+
+## Light
+```{r}
+
+# raw
+light_raw_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/int/calibrated_rasts"), full=TRUE)
+
+
+light_raw_data <- data.frame(year= NA, data_stage="raw", filepath=light_raw_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+light_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/light_pollution/final"), full.names=TRUE)
+
+light_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=light_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+light_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="light")
+
+light_impact_data <- data.frame(year= NA, data_stage="impact", filepath=light_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+light_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/light_trend.tif"))
+
+
+light_data <- rbind(light_raw_data, light_rescaled_data, light_impact_data, light_trend_data) %>%
+  mutate(KNBpackage="Light")
+
+```
+
+## Shipping
+```{r}
+
+# raw
+shipping_raw_files <- list.files(file.path(dir_M, 
+      "git-annex/impact_acceleration/stressors/shipping/int"), full.names = TRUE, pattern="mol_log")
+
+
+shipping_raw_data <- data.frame(year= NA, data_stage="raw", filepath=shipping_raw_files) %>%
+  mutate(year = str_sub(filepath, -16, -13)) %>%
+  filter(year %in% 2003:2013)
+
+# rescaled
+shipping_rescaled_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/final"), full.names=TRUE)
+
+shipping_rescaled_data <- data.frame(year= NA, data_stage="rescaled", filepath=shipping_rescaled_files) %>%
+  mutate(year = str_sub(filepath, -21, -18)) %>%
+  filter(year %in% 2003:2013)
+
+# impact
+shipping_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/stressor_impact')), full.names = TRUE, pattern="shipping")
+
+shipping_impact_data <- data.frame(year= NA, data_stage="impact", filepath=shipping_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+shipping_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/shipping_trend.tif"))
+
+
+shipping_data <- rbind(shipping_raw_data, shipping_rescaled_data, shipping_impact_data, shipping_trend_data) %>%
+  mutate(KNBpackage="Shipping")
+
+```
+
+## Combine stressor data
+
+Combine, check and final formatting of the data.
+
+```{r}
+
+all_stressors <- rbind(sst_data, oa_data, slr_data, 
+                       art_fish_data, dem_dest_data, dem_nondest_hb_data, dem_nondest_lb_data, pel_hb_data, pel_lb_data,
+                       nutrient_data, organic_data, direct_human_data, light_data,
+                       shipping_data)
+
+table(all_stressors$KNBpackage)
+length(table(all_stressors$KNBpackage))
+
+all_stressors_formatted <- all_stressors %>%
+  mutate(new_file_name = sprintf("%s_%s_%s.tif", gsub(" ", "_", tolower(KNBpackage)), year, data_stage)) %>%
+    mutate(new_file_name = gsub(":", "", new_file_name)) %>%
+  select(KNBpackage, year, data_stage, filepath, new_file_name)                              
+
+sum(duplicated(all_stressors_formatted$new_file_name))
+```
+
+
+## Cumulative impacts
+```{r}
+
+## cumulative impact
+# impact
+cumulative_impact_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/impact/cumulative_impact')), full.names = TRUE, pattern="chi")
+
+cumulative_impact_data <- data.frame(year= NA, data_stage="cumulative_impact", filepath=cumulative_impact_files) %>%
+  mutate(year = str_sub(filepath, -8, -5)) %>%
+  filter(year %in% 2003:2013)
+
+# trend
+cumulative_impact_trend_data <- data.frame(year = "2003-2013",
+                         data_stage = "cumulative_impact_trend",
+                         filepath = file.path(dir_M, "git-annex/impact_acceleration/impact/trend/chi_slope.tif"))
+
+
+cumulative_impacts <- rbind(cumulative_impact_data, cumulative_impact_trend_data) %>%
+  mutate(KNBpackage="Cumulative Impact") %>%
+  mutate(new_file_name = sprintf("%s_%s.tif", data_stage, year)) %>%
+  select(KNBpackage, year, data_stage, filepath, new_file_name)                              
+  
+
+
+```
+
+# Habitat data
+
+```{r}
+
+# habitat data
+habitat_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/habitats')), full.names = TRUE)
+habitat_files <- grep(".tif.", habitat_files, value=TRUE, invert=TRUE)
+
+habitat_data <- data.frame(KNBpackage = "Cumulative Impact", year = NA, data_stage = "habitat", filepath=habitat_files, habitat=basename(habitat_files)) %>%
+mutate(new_file_name = sprintf("%s_%s", data_stage, habitat)) %>%
+  select(KNBpackage, year, data_stage, filepath, new_file_name) 
+
+
+```
+
+## combine all data
+
+```{r}
+
+final_list <- rbind(all_stressors_formatted, cumulative_impacts, habitat_data) %>%
+  mutate(filepath=as.character(filepath))
+
+
+table(final_list$KNBpackage)
+length(table(final_list$KNBpackage))
+filter(final_list, KNBpackage=="Cumulative Impact")
+sum(duplicated(final_list$new_file_name))
+sum(file.exists(final_list$filepath))
+dim(final_list)
+
+
+write.csv(final_list, here::here("paper/KNB_datalist.csv"), row.names=FALSE)

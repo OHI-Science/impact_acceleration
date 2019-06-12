@@ -18,7 +18,7 @@ output:
 
 #Summary
 
-NOTES: This follows the same methods as those used to generate the OHI pressure files (https://rawgit.com/OHI-Science/ohiprep/master/globalprep/prs_oa/v2017/create_oa_layer.html).  The only difference is that a modified version of the ocean mask is used to mask the data in the final step.    
+NOTES: This follows the same methods as those used to generate the OHI pressure files (https://rawgit.com/OHI-Science/ohiprep/master/globalprep_v2018/prs_oa/v2017/create_oa_layer.html).  The only difference is that a modified version of the ocean mask is used to mask the data in the final step.    
 
 ***
 
