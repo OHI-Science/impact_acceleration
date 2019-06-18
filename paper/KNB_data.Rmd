@@ -7,6 +7,7 @@ This script organizes the files for KNB archiving (https://knb.ecoinformatics.or
 ```{r setup, include=FALSE}
 library(dplyr)
 library(stringr)
+library(here)
 source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
 
 ```
@@ -543,8 +544,9 @@ length(table(all_stressors$KNBpackage))
 
 all_stressors_formatted <- all_stressors %>%
   mutate(new_file_name = sprintf("%s_%s_%s.tif", gsub(" ", "_", tolower(KNBpackage)), year, data_stage)) %>%
-    mutate(new_file_name = gsub(":", "", new_file_name)) %>%
-  select(KNBpackage, year, data_stage, filepath, new_file_name)                              
+    mutate(new_file_name = gsub(":", "", new_file_name))%>%
+  mutate(data_name = sprintf("%s data for year %s (%s)", KNBpackage,  year, data_stage)) %>%
+  select(KNBpackage, year, data_stage, filepath, new_file_name, data_name)                              
 
 sum(duplicated(all_stressors_formatted$new_file_name))
 ```
@@ -570,8 +572,9 @@ cumulative_impact_trend_data <- data.frame(year = "2003-2013",
 cumulative_impacts <- rbind(cumulative_impact_data, cumulative_impact_trend_data) %>%
   mutate(KNBpackage="Cumulative Impact") %>%
   mutate(new_file_name = sprintf("%s_%s.tif", data_stage, year)) %>%
-  select(KNBpackage, year, data_stage, filepath, new_file_name)                              
-  
+  mutate(data_name = sprintf("%s data for year %s (%s)", KNBpackage,  year, gsub("_", " ", data_stage))) %>%
+  select(KNBpackage, year, data_stage, filepath, new_file_name, data_name)                  
+
 
 
 ```
@@ -584,18 +587,55 @@ cumulative_impacts <- rbind(cumulative_impact_data, cumulative_impact_trend_data
 habitat_files <- list.files(file.path(dir_M, sprintf('git-annex/impact_acceleration/habitats')), full.names = TRUE)
 habitat_files <- grep(".tif.", habitat_files, value=TRUE, invert=TRUE)
 
-habitat_data <- data.frame(KNBpackage = "Cumulative Impact", year = NA, data_stage = "habitat", filepath=habitat_files, habitat=basename(habitat_files)) %>%
-mutate(new_file_name = sprintf("%s_%s", data_stage, habitat)) %>%
-  select(KNBpackage, year, data_stage, filepath, new_file_name) 
+habitat_names <- read.csv(here("habitats/habitat.csv")) %>%
+  select(tif_name, habitat_name_full = plot_name, habitat_name_abb = plot_name3) %>%
+   mutate(habitat_name_abb = gsub("\\.", "", habitat_name_abb)) %>%
+     mutate(habitat_name_abb = gsub(" ", "_", habitat_name_abb)) %>%
+   mutate(habitat_name_abb = paste0(habitat_name_abb, ".tif")) %>%
+  mutate(tif_name = paste0(tif_name, ".tif")) 
+
+sum(duplicated(habitat_names$habitat_name_abb))
+
+habitat_data <- data.frame(KNBpackage = "Cumulative Impact", year = NA, data_stage = "habitat", filepath=habitat_files, tif_name = basename(habitat_files)) %>%
+  left_join(habitat_names, by = "tif_name") %>%
+mutate(new_file_name = sprintf("%s_%s", data_stage, habitat_name_abb)) %>% 
+  mutate(data_name = sprintf("habitat data describing location of: %s", habitat_name_full)) %>%
+select(KNBpackage, year, data_stage, filepath, new_file_name, data_name) 
 
 
 ```
+
+## location of GitHub file
+```{r}
+
+github_files <- file.path(dir_M, 'git-annex/impact_acceleration/impact_acceleration-1.0.zip')
+
+github_data <- data.frame(KNBpackage = "Cumulative Impact", year= NA, data_stage="cumulative_impact", filepath=github_files, new_file_name = "impact_acceleration-1.0.zip",
+    data_name = "Github repository with data prep scripts and other files")
+
+
+```
+
+
+## location of vulnerability matrix
+```{r}
+
+vulnerability_file <- file.path(dir_M, 'git-annex/impact_acceleration/vulnerability_weighting_matrix.csv')
+
+vulnerability_data <- data.frame(KNBpackage = "Cumulative Impact", year= NA, data_stage="cumulative_impact", 
+                          filepath = vulnerability_file, new_file_name = "vulnerability_weighting_matrix.csv",
+    data_name = "Vulnerability table describing impact of stressors on marine ecosystems")
+
+
+```
+
+
 
 ## combine all data
 
 ```{r}
 
-final_list <- rbind(all_stressors_formatted, cumulative_impacts, habitat_data) %>%
+final_list <- rbind(all_stressors_formatted, cumulative_impacts, habitat_data, github_data, vulnerability_data) %>%
   mutate(filepath=as.character(filepath))
 
 
