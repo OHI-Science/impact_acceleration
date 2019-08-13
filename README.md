@@ -1,6 +1,8 @@
 # The rate of change of Cumulative Human Impacts to global oceans
 
-This repository houses ths scripts used to preare the data for publication: “Recent pace of change in human impact on the world’s ocean” (Halpern et al. 2019). The goal of this project was to describe the patterns and pace of change in human impacts on ocean ecosystems due to expanding and increasing intensity of human activities. We combined high resolution, annual data on the intensity of 14 human stressors and their impact on 21 marine ecosystems over 11 years (2003-2013).  To determine average annual change in impact, we applied a linear regression model to each raster cell.
+This repository houses ths scripts used to preare the data for publication: “Recent pace of change in human impact on the world’s ocean” ([Halpern et al. 2019](https://rdcu.be/bOx31)). The goal of this project was to describe the patterns and pace of change in human impacts on ocean ecosystems due to expanding and increasing intensity of human activities. We combined high resolution, annual data on the intensity of 14 human stressors and their impact on 21 marine ecosystems over 11 years (2003-2013).  To determine average annual change in impact, we applied a linear regression model to each raster cell.
+
+Intermediate and final global raster datasets are available here: https://knb.ecoinformatics.org/view/doi:10.5063/F12B8WBS
 
 Folder/file descriptions
 
