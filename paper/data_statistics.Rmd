@@ -46,8 +46,8 @@ freq(trend)
 plot(ocean)
 
 freq(ocean)
-[1,]     1 416190801
-[2,]    NA 329175249
+# [1,]     1 416190801
+# [2,]    NA 329175249
 
 
 ## final values
@@ -303,6 +303,25 @@ compare <- left_join(chi, no_cc)
 
 plot(chi_trend_no_cc ~ value, data=compare, xlab="chi")
 abline(0,1, col="red")
+
+# No SST
+no_sst <- all %>%
+  filter(!(pressure %in% c("sst"))) %>%
+  group_by(rgn_id, rgn_name) %>%
+  summarize(chi_trend_no_cc = sum(value))
+
+dim(no_sst[no_sst$chi_trend_no_cc >=0, ])
+#N=202/220
+
+# All pressures
+all_stressors <- all %>%
+  group_by(rgn_id, rgn_name) %>%
+  summarize(chi_trend_no_cc = sum(value))
+
+dim(all_stressors[all_stressors$chi_trend_no_cc >= 0, ])
+#N=190/220
+
+
 ```
 
 

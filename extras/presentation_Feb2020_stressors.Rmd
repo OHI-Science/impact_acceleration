@@ -1,0 +1,182 @@
+---
+title: "Stressor figures"
+output: html_document
+---
+
+These figures are prepared for another project. 
+
+```{r}
+# libraries
+library(tidyr)
+library(dplyr)
+library(raster)
+library(RColorBrewer)
+library(rgdal)
+library(sf)
+library(fields)
+library(cowplot)
+library(ggplot2)
+library(here)
+
+source("https://raw.githubusercontent.com/OHI-Science/ohiprep_v2018/gh-pages/src/R/spatial_common.R")
+
+regions_shape <- as(regions, "Spatial")
+land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "land-noeez", "eez-inland"), ]
+
+legend.shrink <- 0.4
+legend.width <- 0.6
+
+```
+
+```{r}
+# functions
+
+raster_breaks <- function(raster_data, saveLoc, title, title_legend=NULL, myBreaks, cols, legend_plot = TRUE){
+#   par(mar=c(2,2,2,2))
+#   par(oma=c(0,0,0,4))
+png(file.path(path_save, saveLoc), res=500, width=7, height=7, units="in")
+plot(raster_data, col=cols, axes=FALSE, box=FALSE, breaks=myBreaks, legend=FALSE)
+# add axis with fields package function:
+def_breaks <- seq(0, length(myBreaks), length.out=length(myBreaks))
+if(legend_plot){
+image.plot(raster_data, #zlim = c(min(myBreaks), max(myBreaks)), 
+           legend.only = TRUE, 
+           legend.shrink=legend.shrink,
+           legend.width=legend.width,
+           col = cols,
+           legend.lab=title_legend,
+           breaks=def_breaks,
+           lab.breaks=round(myBreaks, 2),
+           axis.args = list(cex.axis = 0.8))
+}
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)
+
+dev.off()
+}
+
+
+
+raster_defaultLegend <- function(raster_data, saveLoc, title_legend=NA, title_plot=NA, cols){
+#   par(mar=c(2,2,2,2))
+#   par(oma=c(0,0,0,4))
+  png(file.path(path_save, saveLoc), res=500, width=7, height=7, units="in")  
+  #pdf(file.path(path_save, saveLoc))  #, width=1200, height=1000, res=150, pointsize=14)
+  plot(raster_data, col=cols, axes=FALSE, box=FALSE, legend.shrink=legend.shrink, legend.width=legend.width, 
+       axis.args=list(cex.axis=.8), 
+       legend.args=list(text=title_legend, font=2, line=1, cex=1))
+  title(main=title_plot, line=-5)
+plot(land, add=TRUE, border="gray80", col="gray90", lwd=0.5)  
+  dev.off()
+}
+
+```
+
+
+```{r}
+
+# relevant rasters
+stress_files <- list.files(file.path(dir_M, "git-annex/impact_acceleration/stressors"), recursive = TRUE, 
+                           pattern = ".tif", full="TRUE")
+stress_files <- grep("/final/", stress_files, value=TRUE)
+stress_files <- grep("_2013_", stress_files, value=TRUE)
+stress_files <- grep("/archive/", stress_files, value=TRUE, invert=TRUE) # cut archive files
+
+
+my_breaks <- c(-0.0001,0,0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1,
+               0.12, 0.14, 0.16, 0.18, 0.20,
+               0.25, 0.30, 0.35, 0.40, 0.45, 0.50,
+               0.6, 0.7, 0.8, 0.9, 1, 1.0001) 
+
+cols = (colorRampPalette(brewer.pal(9, 'YlOrRd')[2:9])(length(my_breaks)-2))
+cols = c("#F7FBFF", cols)
+
+path_save <- here("extras/stressor_figs/rescaled")
+
+#raster_breaks(raster_data=raster(stress_files[1]), saveLoc="test.png", 
+#              myBreaks=my_breaks, cols=cols)
+
+
+for(file in stress_files){
+# file= stress_files[1]
+  rast_data <- raster(file)
+  label_name <- basename(file)
+  label_name <- gsub("_2013_rescaled_mol.tif", "", label_name)
+  save_to <- sprintf("%s.png", label_name)
+
+  raster_breaks(raster_data=rast_data, saveLoc=save_to, 
+              myBreaks=my_breaks, cols=cols, legend_plot=FALSE)
+  
+}
+
+```
+
+
+## Demonstrating scaling of the data
+
+```{r}
+
+path_save <- here("extras/stressor_figs")
+
+shipping <- raster(file.path(dir_M, "git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_2013.tif"))
+
+raster_defaultLegend(shipping, saveLoc="shipping_raw.png", title_legend=NA, title_plot=NA, cols=cols)
+
+vals <- getValues(shipping)
+vals_zero_rm <- vals[vals>0 & vals<100]
+ref <- quantile(vals, 0.99, na.rm=TRUE)
+
+ 
+hist(vals_zero_rm, breaks=100, main="Shipping", xlab="Shipping density")
+
+raster::calc(shipping, fun=function(x){ifelse(x<0,0,
+                              ifelse(x>7899, 1, x/7899))},
+             filename = file.path(dir_M, 
+                    "git-annex/impact_acceleration/extras/shipping_2013_rescaled_max.tif"))
+
+
+raster::calc(shipping, fun=function(x){ifelse(x<0,0,
+                              ifelse(x>1228, 1, x/1228))},
+             filename = file.path(dir_M, 
+                    "git-annex/impact_acceleration/extras/shipping_2013_rescaled_999.tif"), progress="text")
+
+raster::calc(shipping, fun=function(x){ifelse(x<0,0,
+                              ifelse(x>206, 1, x/206))},
+             filename = file.path(dir_M, 
+                    "git-annex/impact_acceleration/extras/shipping_2013_rescaled_99.tif"),
+             progress="text")
+
+shipping_log <- raster(file.path(dir_M, 
+        sprintf("git-annex/impact_acceleration/stressors/shipping/int/adjusted_shipping_2013_log.tif")))
+
+writeRaster(shipping_log, file.path(dir_M, 
+        "git-annex/impact_acceleration/extras/shipping_2013_log.tif"))
+
+vals <- getValues(shipping_log)
+ref <- quantile(vals, 0.999, na.rm=TRUE)
+ref_zero_rm <- vals[vals>0]
+hist(ref_zero_rm, breaks=30, main="Shipping", xlab="Ln shipping density")
+
+raster::calc(shipping_log, fun=function(x){ifelse(x<0,0,
+                              ifelse(x>7.11, 1, x/7.11))},
+             filename = file.path(dir_M, 
+                    "git-annex/impact_acceleration/extras/shipping_2013_log_rescaled_999.tif"))
+
+
+
+
+ship_files <- list.files(file.path(dir_M, 
+                    "git-annex/impact_acceleration/extras"), pattern="shipping", full=TRUE)
+
+for(file in ship_files){
+# file= ship_files[2]
+  rast_data <- raster(file)
+  label_name <- basename(file)
+  label_name <- gsub(".tif", "", label_name)
+  save_to <- sprintf("%s.png", label_name)
+
+  raster_breaks(raster_data=rast_data, saveLoc=save_to, 
+              myBreaks=my_breaks, cols=cols, legend_plot=FALSE)
+  
+}
+
+```

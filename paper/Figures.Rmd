@@ -886,6 +886,10 @@ hab_imp$impact_name <- factor(hab_imp$impact_name, levels=rev(impact_name$impact
 
 hab_cols <- rev(c("#9E0142", "#B91F48", "#D53E4F", "#F46D43", "#FDAE61", "#FEE08B", "#FFFFBF", "#EFF9FF", "#3288bd"))
 
+# saving this file for a ben request: Jan 17 2021
+write_csv(hab_imp, "habitats/habitat_stressor_impact_Jan17_2021.csv")
+### done with request....
+
 # plot the data
 tmp <- ggplot(hab_imp, aes(y=impact_name, x=name)) +
   geom_tile(aes(fill=mean, 
@@ -948,7 +952,7 @@ ggplot(hab_data, aes(x=chi, y=trend)) +
   labs(x = "Cumulative human impact, 2013", y = "Trend, cumulative human impact")
 
 ggsave("paper/figures/avg_chi_vs_trend_habitat.png", width=8, height=5, units=c("in"), dpi=300)
-
+write_csv(hab_data, "paper/tables/chi_trend_2013.csv")
 ```
 
 

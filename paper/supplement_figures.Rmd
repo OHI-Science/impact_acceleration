@@ -23,64 +23,12 @@ land <- regions_shape[regions_shape$rgn_type %in% c("land", "land-disputed", "la
 ```
 
 
-## Fig S1. Annual change in cumulative human impacts
+## Fig S6. Annual change in cumulative human impacts
 Annual change in CHI estimated using a linear regression model from 2003 to 2013 for each raster cell.
 
 ![](figures/trend/chi_trend_no_overlay.png)
 
-## Fig S2. CHI from 2008 to 2013
-Cumulative human impact maps from 2003 to 2013.
-
-```{r chi_map, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
-
-## function to make plots
-
-legend.shrink <- 0.7
-legend.width <- 0.7
-
-## following variables from Figures.Rmd
-chi_breaks <-  c(-1, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100)
-chi_cols <- c("#9E0142", "#B91F48", "#D53E4F", "#F46D43", "#FDAE61", "#FEE08B", "#FFFFBF", "#EFF9FF", "#BDE4FC", "#3288BD")
-chi_cols = rev(colorRampPalette(chi_cols)(length(chi_breaks)-1)) 
-chi_legend_labels <- c(0, 0.2, 0.6, 1, 1.5, 2, 3, 4.0, ">5")
-chi_label_sequence <- c(1, 3,  5,   7, 9,  11, 13, 15, 17)
-
-source(here("paper/figures/chi_plot_function.R"))
-
-for(year in 2003:2013){ # year = 2013
-png(here(sprintf("paper/figures/chi_maps/year_labels/chi_%s.png", year)), res=500, width=6, height=3, units="in")  
-p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
-chi_plot(raster_data=p_rast,  title=year, title_size = 2, 
-              cols=chi_cols, color_breaks = chi_breaks,
-              legend_break_labels = chi_legend_labels, 
-         label_sequence = chi_label_sequence,
-         legend=FALSE, condensed=TRUE)
-dev.off()
-}
-
-chi2003 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2003.png"))
-chi2004 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2004.png"))
-chi2005 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2005.png"))
-chi2006 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2006.png"))
-chi2007 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2007.png"))
-chi2008 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2008.png"))
-chi2009 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2009.png"))
-chi2010 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2010.png"))
-chi2011 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2011.png"))
-chi2012 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2012.png"))
-chi2013 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2013.png"))
-
-plot_grid(chi2003, chi2004, chi2005,
-          chi2006, chi2007, chi2008,
-          chi2009, chi2010, chi2011,
-          chi2012, chi2013,
-          nrow=4)
-ggsave(here("paper/figures/chi_maps/year_labels/chi_all_years.png"), dpi=300, width=8, height=7, units=c("in"))
-
-```
-![](figures/chi_maps/year_labels/chi_all_years.png)
-
-## Fig S3. Categories of annual change in cumulative impacts 
+## Fig S7. Categories of annual change in cumulative impacts 
 Categories of annual change in CHI based on linear model estimates of slope from CHI values from 2003 to 2013.  Areas are identified as decreasing CHI (slope < 0), and increasing CHI when: >0, >0.1, and >0.15.
 
 ```{r, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
@@ -141,37 +89,62 @@ dev.off()
 ![](figures/trend/chi_trend_categories.png)
 
 
-## Fig S4. SST trend vs. cumulative human impact trend 
-Trend for SST vs. cumulative impact of all 14 stressors.  Trend is the slope estimate from a linear regression model of CHI from 2003 to 2013.  The same color scale is used for both plots to demonstrate that most, but not all, of the global trend in cumulative impacts is due to increasing SST.   
 
-```{r, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
+## Fig S8. CHI from 2008 to 2013
+Cumulative human impact maps from 2003 to 2013.
 
-chi <- raster(file.path(dir_M, 'git-annex/impact_acceleration/impact/trend/chi_slope.tif'))
-sst <- raster(file.path(dir_M, "git-annex/impact_acceleration/impact/trend/impacts/sst_trend.tif"))
+```{r chi_map, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
+
+## function to make plots
+
+legend.shrink <- 0.7
+legend.width <- 0.7
+
+## following variables from Figures.Rmd
+chi_breaks <-  c(-1, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4.0, 5, 100)
+chi_cols <- c("#9E0142", "#B91F48", "#D53E4F", "#F46D43", "#FDAE61", "#FEE08B", "#FFFFBF", "#EFF9FF", "#BDE4FC", "#3288BD")
+chi_cols = rev(colorRampPalette(chi_cols)(length(chi_breaks)-1)) 
+chi_legend_labels <- c(0, 0.2, 0.6, 1, 1.5, 2, 3, 4.0, ">5")
+chi_label_sequence <- c(1, 3,  5,   7, 9,  11, 13, 15, 17)
 
 source(here("paper/figures/chi_plot_function.R"))
 
-png("paper/figures/trend/sst_trend_scaled_2_chi.png", res=500, width=6, height=3, units="in")  
-trend_plot(plotRaster=sst, legend=FALSE, overlay=FALSE, scaleRaster=chi, title="SST only")
+for(year in 2003:2013){ # year = 2013
+png(here(sprintf("paper/figures/chi_maps/year_labels/chi_%s.png", year)), res=500, width=6, height=3, units="in")  
+p_rast <- raster(file.path(dir_M, sprintf("git-annex/impact_acceleration/impact/cumulative_impact/chi_%s.tif", year)))
+chi_plot(raster_data=p_rast,  title=year, title_size = 2, 
+              cols=chi_cols, color_breaks = chi_breaks,
+              legend_break_labels = chi_legend_labels, 
+         label_sequence = chi_label_sequence,
+         legend=FALSE, condensed=TRUE)
 dev.off()
+}
 
-png("paper/figures/trend/chi_trend_w_title.png", res=500, width=6, height=3, units="in")  
-trend_plot(plotRaster=chi, legend=TRUE, overlay=FALSE, scaleRaster=chi, title="All impacts")
-dev.off()
+chi2003 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2003.png"))
+chi2004 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2004.png"))
+chi2005 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2005.png"))
+chi2006 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2006.png"))
+chi2007 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2007.png"))
+chi2008 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2008.png"))
+chi2009 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2009.png"))
+chi2010 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2010.png"))
+chi2011 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2011.png"))
+chi2012 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2012.png"))
+chi2013 <- ggdraw() + draw_image(here("paper/figures/chi_maps/year_labels/chi_2013.png"))
 
-
-chi_trend <- ggdraw() + draw_image(here("paper/figures/trend/chi_trend_w_title.png"))
-sst_trend <- ggdraw() + draw_image(here("paper/figures/trend/sst_trend_scaled_2_chi.png"))
-
-plot_grid(sst_trend, chi_trend, nrow=1)
-ggsave(here("paper/figures/trend/trend_sst_chi_compare.png"), dpi=300, width=8, height=2.2, units=c("in"))
+plot_grid(chi2003, chi2004, chi2005,
+          chi2006, chi2007, chi2008,
+          chi2009, chi2010, chi2011,
+          chi2012, chi2013,
+          nrow=4)
+ggsave(here("paper/figures/chi_maps/year_labels/chi_all_years.png"), dpi=300, width=8, height=7, units=c("in"))
 
 ```
-![](figures/trend/trend_sst_chi_compare.png)
+![](figures/chi_maps/year_labels/chi_all_years.png)
 
 
 
-## Fig S5. SST influence on cumulative impact and trend 
+## Fig S9. SST influence on cumulative impact and trend 
 Sea surface temperature was, by far, the largest driver of global cumulative impacts (top; 2013 data) and annual change in cumulative impacts (middle; linear model of change in CHI from 2003-2013). However, most of the ocean is experiencing increasing impacts, even when SST is excluded (bottom, red indicates increasing CHI, blue decreasing CHI, and white no statistically significant pattern, P > 0.05). Left figures exclude SST and right figures include SST.
 
 ![](figures/SupplementFig.png)
@@ -295,7 +268,7 @@ dev.off()
 
 ```
 
-## Fig S6. Impact of SST from 2003-2017
+## Fig S10. Impact of SST from 2003-2017
 The following are the SST impacts from 2003-2017.  CHI estimates only include data up to 2013, during which time the SST impact was relaxed in some regions.  These data indicate these regions of low impact do not persist into the future. 
 
 ```{r 3nm_eez_trend_circleplot, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
@@ -372,7 +345,7 @@ ggsave(here("paper/figures/impacts/sst/sst_all_years.png"), dpi=300, width=8, he
 
 ```
 
-## Fig S7. Annual change in impacts for countries excluding SST 
+## Fig S11. Annual change in impacts for countries excluding SST 
 Annual change in impacts for 3nm offshore area for 220 countries.  Sea surface temperature is excluded to explore the influence of the remaining impacts.
 
 
@@ -585,8 +558,8 @@ ggsave("paper/figures/trend/trend_circle_no_sst_legend.png", dpi=300, width=30, 
 ![](figures/trend/trend_circle_no_sst_legend.png)
 
 
-## Fig S8. Country annual change in cumulative impacts vs. cumulative impacts without SST 
-Comparison of annual change in cumulative impacts when sea surface temperature is included vs. excluded.  Most countries have increasing cumulative impacts even when sea surface temperatureis excluded, but the magnitude of change is much smaller.  Red solid line indicates 1:1 relationship.
+## Fig S12. Country annual change in cumulative impacts vs. cumulative impacts without SST 
+Comparison of annual change in cumulative impacts when sea surface temperature is included vs. excluded.  Most countries have increasing cumulative impacts even when sea surface temperature is excluded, but the magnitude of change is much smaller.  Red solid line indicates 1:1 relationship.
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE}
 
@@ -609,7 +582,7 @@ ggsave(here("paper/figures/rgn_trend_chi_vs_no_sst.png"), height=4, width=6, uni
 
 ```
 
-## Fig S9. Individual impacts
+## Fig S13. Individual impacts
 Global maps of the 14 impacts from 2013.  Impacts are separated by major groups: climate change, shipping, land-based, and fishing (commercial and artisanal).  Color scales are independent of one another so relative spatial variation can be visualized.    
 
 ```{r, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}
@@ -726,7 +699,7 @@ plot_grid(artisanal, dd, dnd_hb, dnd_lb, pel_hb, pel_lb, nrow=3, labels=c("", ""
 ggsave(here("paper/figures/impacts/global/fishing.png"), dpi=300, width=8, height=6.6, units=c("in"))
 ```
 
-## Fig S10. Individual impact trends
+## Fig S14. Individual impact trends
 Global maps of the change in impact from 2003 to 2013 for the 14 impacts.  Impacts are separated by major groups: climate change, shipping, land-based, and fishing (commercial and artisanal).  Color scales are independent of one another so relative spatial variation can be visualized.    
 
 ```{r, eval=FALSE, echo = FALSE, message = FALSE, warning = FALSE, error=FALSE, include=FALSE}

@@ -1,0 +1,281 @@
+impact,habitat,year,mean,sd,name,impact_name
+art_fish,beach,2013,0.0219385625308052,0.0670444541722891,beach,artisanal fishing
+art_fish,coral_reef,2013,0.0581637956129373,0.136477374453475,coral reef,artisanal fishing
+art_fish,deep_waters,2013,0,0,deep water,artisanal fishing
+art_fish,d_h_bottom,2013,0,0,deep hard bottom,artisanal fishing
+art_fish,d_s_benthic,2013,2.56649961448744e-5,7.87945859280069e-4,deep soft benthic,artisanal fishing
+art_fish,hard_shelf,2013,0.0430947092677611,0.124966859996949,hard shelf,artisanal fishing
+art_fish,hard_slope,2013,0.00242833721460188,0.0104681580396233,hard slope,artisanal fishing
+art_fish,inttidalmud,2013,0.0125363214814893,0.0383111170936099,intertidal mud,artisanal fishing
+art_fish,kelp,2013,0.0199061637086991,0.0548990691895416,kelp forest,artisanal fishing
+art_fish,mangroves,2013,0.17196965090841,0.350544791357855,mangrove,artisanal fishing
+art_fish,rky_intidal,2013,0.0407430446241871,0.124511128427958,rocky intertidal,artisanal fishing
+art_fish,rocky_reef,2013,0.0946719627755863,0.21190406958959,rocky reef,artisanal fishing
+art_fish,salt_marsh,2013,0.0188044822659527,0.057466676070165,salt marsh,artisanal fishing
+art_fish,seagrass,2013,0.0303093859551647,0.0632977015268639,seagrass,artisanal fishing
+art_fish,seamounts,2013,3.33224635952947e-4,0.00359556604650931,deep seamount,artisanal fishing
+art_fish,soft_shelf,2013,0.0131375174844363,0.0506400366969635,soft shelf,artisanal fishing
+art_fish,soft_slope,2013,0,0,soft slope,artisanal fishing
+art_fish,s_t_s_bottom,2013,0,0,subtidal soft bottom,artisanal fishing
+art_fish,surface_waters,2013,0.0014446627305164,0.0166918911940906,surface water,artisanal fishing
+art_fish,suspension_reef,2013,0.0313408036623974,0.0957777922473401,susp. feeder reef,artisanal fishing
+dem_dest,beach,2013,0.00593543319208817,0.0181450457409867,beach,comm fish: dem dest
+dem_dest,coral_reef,2013,0.0199560593663071,0.079020524418837,coral reef,comm fish: dem dest
+dem_dest,deep_waters,2013,0.00102005408523744,0.011644947897983,deep water,comm fish: dem dest
+dem_dest,d_h_bottom,2013,4.76925852231196e-4,0.0127216313102655,deep hard bottom,comm fish: dem dest
+dem_dest,d_s_benthic,2013,1.28341391532069e-4,0.00418249695320299,deep soft benthic,comm fish: dem dest
+dem_dest,hard_shelf,2013,0.0536459847524615,0.141694579032421,hard shelf,comm fish: dem dest
+dem_dest,hard_slope,2013,0.0203284175949128,0.127046101458479,hard slope,comm fish: dem dest
+dem_dest,inttidalmud,2013,0.0415480322080351,0.127015318698705,intertidal mud,comm fish: dem dest
+dem_dest,kelp,2013,0.045948957073652603,0.111261957389469,kelp forest,comm fish: dem dest
+dem_dest,mangroves,2013,0,0,mangrove,comm fish: dem dest
+dem_dest,rky_intidal,2013,0.0356125992682945,0.108870275494676,rocky intertidal,comm fish: dem dest
+dem_dest,rocky_reef,2013,0.0620060032824899,0.167788585672235,rocky reef,comm fish: dem dest
+dem_dest,salt_marsh,2013,0.0296771659168509,0.0907252281961012,salt marsh,comm fish: dem dest
+dem_dest,seagrass,2013,0.00440703410390299,0.00982560708872788,seagrass,comm fish: dem dest
+dem_dest,seamounts,2013,0.00160552531428769,0.0277626377075103,deep seamount,comm fish: dem dest
+dem_dest,soft_shelf,2013,0.0457260201948851,0.13771525679613,soft shelf,comm fish: dem dest
+dem_dest,soft_slope,2013,0.010584505850121,0.0668713797715283,soft slope,comm fish: dem dest
+dem_dest,s_t_s_bottom,2013,0.0437925433002855,0.140880374918787,subtidal soft bottom,comm fish: dem dest
+dem_dest,surface_waters,2013,0.00267764196907909,0.0305679879107723,surface water,comm fish: dem dest
+dem_dest,suspension_reef,2013,0.0919992140588166,0.28124820424451,susp. feeder reef,comm fish: dem dest
+dem_nondest_hb,beach,2013,0.0206623784194712,0.0728726952410955,beach,comm fish: dem nondest hb
+dem_nondest_hb,coral_reef,2013,0.0168210435752481,0.0684683302836858,coral reef,comm fish: dem nondest hb
+dem_nondest_hb,deep_waters,2013,0,0,deep water,comm fish: dem nondest hb
+dem_nondest_hb,d_h_bottom,2013,0,0,deep hard bottom,comm fish: dem nondest hb
+dem_nondest_hb,d_s_benthic,2013,7.94742823159647e-5,0.00312632641089492,deep soft benthic,comm fish: dem nondest hb
+dem_nondest_hb,hard_shelf,2013,0.0417702440392712,0.131621443621359,hard shelf,comm fish: dem nondest hb
+dem_nondest_hb,hard_slope,2013,0.00832438426255137,0.0501391855926723,hard slope,comm fish: dem nondest hb
+dem_nondest_hb,inttidalmud,2013,0.0436205767243657,0.153842357404435,intertidal mud,comm fish: dem nondest hb
+dem_nondest_hb,kelp,2013,0.0510453009500455,0.135397047575267,kelp forest,comm fish: dem nondest hb
+dem_nondest_hb,mangroves,2013,0.0196376195075632,0.0597796255627616,mangrove,comm fish: dem nondest hb
+dem_nondest_hb,rky_intidal,2013,0.0183665586740396,0.0647757300871912,rocky intertidal,comm fish: dem nondest hb
+dem_nondest_hb,rocky_reef,2013,0.0440156115955281,0.142430141055337,rocky reef,comm fish: dem nondest hb
+dem_nondest_hb,salt_marsh,2013,0.0229581983066051,0.0809696621504286,salt marsh,comm fish: dem nondest hb
+dem_nondest_hb,seagrass,2013,0.0206681216138486,0.0672758303917775,seagrass,comm fish: dem nondest hb
+dem_nondest_hb,seamounts,2013,0,0,deep seamount,comm fish: dem nondest hb
+dem_nondest_hb,soft_shelf,2013,0.0263763601226204,0.0888425364403429,soft shelf,comm fish: dem nondest hb
+dem_nondest_hb,soft_slope,2013,0.00827076502429753,0.065115308135716,soft slope,comm fish: dem nondest hb
+dem_nondest_hb,s_t_s_bottom,2013,0.0345870800576731,0.126090264941837,subtidal soft bottom,comm fish: dem nondest hb
+dem_nondest_hb,surface_waters,2013,0.00174806581083122,0.0225623322888557,surface water,comm fish: dem nondest hb
+dem_nondest_hb,suspension_reef,2013,0.0160707387939303,0.0566787631878984,susp. feeder reef,comm fish: dem nondest hb
+dem_nondest_lb,beach,2013,0.0104600270926281,0.0515481086750485,beach,comm fish: dem nondest lb
+dem_nondest_lb,coral_reef,2013,0.00391474873586436,0.0326536062248871,coral reef,comm fish: dem nondest lb
+dem_nondest_lb,deep_waters,2013,0,0,deep water,comm fish: dem nondest lb
+dem_nondest_lb,d_h_bottom,2013,0,0,deep hard bottom,comm fish: dem nondest lb
+dem_nondest_lb,d_s_benthic,2013,2.62237990165874e-5,0.00128172405731968,deep soft benthic,comm fish: dem nondest lb
+dem_nondest_lb,hard_shelf,2013,0.0115571833288447,0.0741501926855507,hard shelf,comm fish: dem nondest lb
+dem_nondest_lb,hard_slope,2013,0.00287469797764815,0.0212692974657673,hard slope,comm fish: dem nondest lb
+dem_nondest_lb,inttidalmud,2013,0.0209200541852562,0.103096217350097,intertidal mud,comm fish: dem nondest lb
+dem_nondest_lb,kelp,2013,0.0295664634551663,0.109821682529958,kelp forest,comm fish: dem nondest lb
+dem_nondest_lb,mangroves,2013,0.00268662181026345,0.0157542700641142,mangrove,comm fish: dem nondest lb
+dem_nondest_lb,rky_intidal,2013,0.00896573761112385,0.0441840944962405,rocky intertidal,comm fish: dem nondest lb
+dem_nondest_lb,rocky_reef,2013,0.0134311970549494,0.0882669396238227,rocky reef,comm fish: dem nondest lb
+dem_nondest_lb,salt_marsh,2013,0.0119543167444692,0.0589121251099262,salt marsh,comm fish: dem nondest lb
+dem_nondest_lb,seagrass,2013,0.00494733340859043,0.0280207215890444,seagrass,comm fish: dem nondest lb
+dem_nondest_lb,seamounts,2013,0,0,deep seamount,comm fish: dem nondest lb
+dem_nondest_lb,soft_shelf,2013,0.0147084239505305,0.0810297983617345,soft shelf,comm fish: dem nondest lb
+dem_nondest_lb,soft_slope,2013,0.00489160644420202,0.0408831140167279,soft slope,comm fish: dem nondest lb
+dem_nondest_lb,s_t_s_bottom,2013,0.0125483585044001,0.0790842444935355,subtidal soft bottom,comm fish: dem nondest lb
+dem_nondest_lb,surface_waters,2013,8.51310298946849e-4,0.0162987411293142,surface water,comm fish: dem nondest lb
+dem_nondest_lb,suspension_reef,2013,0.0074714479472216,0.0368200779451094,susp. feeder reef,comm fish: dem nondest lb
+direct_human,beach,2013,0.508315776248925,0.579524176902079,beach,direct human
+direct_human,coral_reef,2013,0.166032868757092,0.359559529803816,coral reef,direct human
+direct_human,deep_waters,2013,0,0,deep water,direct human
+direct_human,d_h_bottom,2013,0,0,deep hard bottom,direct human
+direct_human,d_s_benthic,2013,3.8702123783779e-9,3.80427023821104e-5,deep soft benthic,direct human
+direct_human,hard_shelf,2013,0.00880105663701397,0.0984322770658138,hard shelf,direct human
+direct_human,hard_slope,2013,0,0,hard slope,direct human
+direct_human,inttidalmud,2013,0.414183225126972,0.472204884924235,intertidal mud,direct human
+direct_human,kelp,2013,0.0367645577474211,0.147595929345095,kelp forest,direct human
+direct_human,mangroves,2013,0.8109849810951,0.697307152388264,mangrove,direct human
+direct_human,rky_intidal,2013,0.52714228650226,0.600988035312338,rocky intertidal,direct human
+direct_human,rocky_reef,2013,0.0874836926604772,0.295572363216516,rocky reef,direct human
+direct_human,salt_marsh,2013,0.301224163716184,0.343421734466048,salt marsh,direct human
+direct_human,seagrass,2013,0.141751204474668,0.377059062027002,seagrass,direct human
+direct_human,seamounts,2013,0,0,deep seamount,direct human
+direct_human,soft_shelf,2013,4.84929991179585e-4,0.0139228169694895,soft shelf,direct human
+direct_human,soft_slope,2013,0,0,soft slope,direct human
+direct_human,s_t_s_bottom,2013,0.0260600465104973,0.148060085089133,subtidal soft bottom,direct human
+direct_human,surface_waters,2013,4.44292753032988e-5,0.00386697664653075,surface water,direct human
+direct_human,suspension_reef,2013,0.564795306984438,0.643915752125604,susp. feeder reef,direct human
+light,beach,2013,0.126238568554395,0.344612179750343,beach,light pollution
+light,coral_reef,2013,0.0183488861579312,0.0889148918332202,coral reef,light pollution
+light,deep_waters,2013,0,0,deep water,light pollution
+light,d_h_bottom,2013,0,0,deep hard bottom,light pollution
+light,d_s_benthic,2013,0,0,deep soft benthic,light pollution
+light,hard_shelf,2013,0,0,hard shelf,light pollution
+light,hard_slope,2013,0,0,hard slope,light pollution
+light,inttidalmud,2013,0.0883669979532724,0.241228526214456,intertidal mud,light pollution
+light,kelp,2013,0.00830348004038874,0.0404301497128234,kelp forest,light pollution
+light,mangroves,2013,0.0344649169161095,0.118135864829256,mangrove,light pollution
+light,rky_intidal,2013,0.0883669979532724,0.241228526214456,rocky intertidal,light pollution
+light,rocky_reef,2013,0.010894856966814,0.0547915392528625,rocky reef,light pollution
+light,salt_marsh,2013,0.113614711860232,0.310150961169846,salt marsh,light pollution
+light,seagrass,2013,0.0178250157787552,0.0616362388557354,seagrass,light pollution
+light,seamounts,2013,0,0,deep seamount,light pollution
+light,soft_shelf,2013,0,0,soft shelf,light pollution
+light,soft_slope,2013,0,0,soft slope,light pollution
+light,s_t_s_bottom,2013,0.0049418426478013,0.0317923690889187,subtidal soft bottom,light pollution
+light,surface_waters,2013,6.93691182401627e-5,0.00283191082272409,surface water,light pollution
+light,suspension_reef,2013,0.0631192842771977,0.172306089875172,susp. feeder reef,light pollution
+nutrient,beach,2013,0.0466543404207186,0.0810065361185242,beach,nutrient pollution
+nutrient,coral_reef,2013,0.0713231070468765,0.183530576844298,coral reef,nutrient pollution
+nutrient,deep_waters,2013,0,0,deep water,nutrient pollution
+nutrient,d_h_bottom,2013,0,0,deep hard bottom,nutrient pollution
+nutrient,d_s_benthic,2013,6.82193093002013e-6,8.65268061930717e-4,deep soft benthic,nutrient pollution
+nutrient,hard_shelf,2013,0.0368306647999633,0.133087319650506,hard shelf,nutrient pollution
+nutrient,hard_slope,2013,0.0019251869392712,0.0152931496334256,hard slope,nutrient pollution
+nutrient,inttidalmud,2013,0.186617361682875,0.324026144474097,intertidal mud,nutrient pollution
+nutrient,kelp,2013,0.0295690122299908,0.0624446089490573,kelp forest,nutrient pollution
+nutrient,mangroves,2013,0.470723898346521,0.511113099081349,mangrove,nutrient pollution
+nutrient,rky_intidal,2013,0.186617361682875,0.324026144474097,rocky intertidal,nutrient pollution
+nutrient,rocky_reef,2013,0.0986102635936589,0.230844475261028,rocky reef,nutrient pollution
+nutrient,salt_marsh,2013,0.221608116581128,0.384781044777985,salt marsh,nutrient pollution
+nutrient,seagrass,2013,0.239288945863094,0.374901024263992,seagrass,nutrient pollution
+nutrient,seamounts,2013,0,0,deep seamount,nutrient pollution
+nutrient,soft_shelf,2013,0.0129588429226645,0.0773561274726593,soft shelf,nutrient pollution
+nutrient,soft_slope,2013,0.00375374623710799,0.0426649670873152,soft slope,nutrient pollution
+nutrient,s_t_s_bottom,2013,0.0863548926303116,0.268060880462951,subtidal soft bottom,nutrient pollution
+nutrient,surface_waters,2013,0.00108081726717268,0.0211745920961272,surface water,nutrient pollution
+nutrient,suspension_reef,2013,0.163290191113827,0.283522874872212,susp. feeder reef,nutrient pollution
+oa,beach,2013,0,0,beach,oa
+oa,coral_reef,2013,0.197383296404718,0.0660749783242087,coral reef,oa
+oa,deep_waters,2013,0,0,deep water,oa
+oa,d_h_bottom,2013,0.71894752621237,0.38519717179969,deep hard bottom,oa
+oa,d_s_benthic,2013,0.622317167666431,0.379530216038972,deep soft benthic,oa
+oa,hard_shelf,2013,0.680349151419545,0.336931835482014,hard shelf,oa
+oa,hard_slope,2013,0.409226540055193,0.237009191306818,hard slope,oa
+oa,inttidalmud,2013,0.459413160421226,0.309927398345759,intertidal mud,oa
+oa,kelp,2013,0,0,kelp forest,oa
+oa,mangroves,2013,0.228061081994691,0.109547855697458,mangrove,oa
+oa,rky_intidal,2013,0.4134718418875,0.278934654055298,rocky intertidal,oa
+oa,rocky_reef,2013,0.255801890202345,0.116323887135788,rocky reef,oa
+oa,salt_marsh,2013,0.597237103446475,0.402905608662661,salt marsh,oa
+oa,seagrass,2013,0.269463239050804,0.175888880677384,seagrass,oa
+oa,seamounts,2013,0.684577459403944,0.348642025471515,deep seamount,oa
+oa,soft_shelf,2013,0.807567781114195,0.532375919897911,soft shelf,oa
+oa,soft_slope,2013,0.894585842842985,0.586323625213504,soft slope,oa
+oa,s_t_s_bottom,2013,0.0482506739394123,0.0346101295828249,subtidal soft bottom,oa
+oa,surface_waters,2013,0.544172548177965,0.359018385201101,surface water,oa
+oa,suspension_reef,2013,0.321589211046005,0.216949176558999,susp. feeder reef,oa
+organic,beach,2013,0.00407669387865599,0.0136885933179356,beach,organic pollution
+organic,coral_reef,2013,0.00876758622548352,0.0452697497390117,coral reef,organic pollution
+organic,deep_waters,2013,3.83191091370334e-4,0.0151399916323379,deep water,organic pollution
+organic,d_h_bottom,2013,0,0,deep hard bottom,organic pollution
+organic,d_s_benthic,2013,1.16977585258526e-6,3.14865636075683e-4,deep soft benthic,organic pollution
+organic,hard_shelf,2013,0,0,hard shelf,organic pollution
+organic,hard_slope,2013,1.20260998390984e-4,0.00237071599605208,hard slope,organic pollution
+organic,inttidalmud,2013,0.114147427881527,0.383280607840194,intertidal mud,organic pollution
+organic,kelp,2013,0.0222469912407367,0.0949393690590289,kelp forest,organic pollution
+organic,mangroves,2013,0.163677107402722,0.339846147906292,mangrove,organic pollution
+organic,rky_intidal,2013,0.0856105704311299,0.287460452480033,rocky intertidal,organic pollution
+organic,rocky_reef,2013,0.0400925968211321,0.17720836617712,rocky reef,organic pollution
+organic,salt_marsh,2013,0.0693037961239676,0.232706087704359,salt marsh,organic pollution
+organic,seagrass,2013,0.0323779571311598,0.100489494017501,seagrass,organic pollution
+organic,seamounts,2013,0,0,deep seamount,organic pollution
+organic,soft_shelf,2013,0.00327909094153202,0.0395737608179515,soft shelf,organic pollution
+organic,soft_slope,2013,7.59020398893782e-4,0.0194511709490984,soft slope,organic pollution
+organic,s_t_s_bottom,2013,0.0177763554797459,0.0998530307229986,subtidal soft bottom,organic pollution
+organic,surface_waters,2013,4.55039419524918e-4,0.01797873990817,surface water,organic pollution
+organic,suspension_reef,2013,0.114147427881527,0.383280607840194,susp. feeder reef,organic pollution
+pel_hb,beach,2013,0.00307819086618447,0.00882949400015244,beach,comm fish: pel hb
+pel_hb,coral_reef,2013,0.00801386289894839,0.0209549607668339,coral reef,comm fish: pel hb
+pel_hb,deep_waters,2013,0.00345685279617654,0.0275795372027841,deep water,comm fish: pel hb
+pel_hb,d_h_bottom,2013,0,0,deep hard bottom,comm fish: pel hb
+pel_hb,d_s_benthic,2013,2.29402585271018e-4,0.00442049827393444,deep soft benthic,comm fish: pel hb
+pel_hb,hard_shelf,2013,0.0566437163050276,0.090388433642095,hard shelf,comm fish: pel hb
+pel_hb,hard_slope,2013,0,0,hard slope,comm fish: pel hb
+pel_hb,inttidalmud,2013,0,0,intertidal mud,comm fish: pel hb
+pel_hb,kelp,2013,0,0,kelp forest,comm fish: pel hb
+pel_hb,mangroves,2013,0,0,mangrove,comm fish: pel hb
+pel_hb,rky_intidal,2013,0.0277037176740689,0.0794654447206467,rocky intertidal,comm fish: pel hb
+pel_hb,rocky_reef,2013,0.0477683679153652,0.101247541039991,rocky reef,comm fish: pel hb
+pel_hb,salt_marsh,2013,0.0153909543059022,0.0441474697554438,salt marsh,comm fish: pel hb
+pel_hb,seagrass,2013,0,0,seagrass,comm fish: pel hb
+pel_hb,seamounts,2013,0,0,deep seamount,comm fish: pel hb
+pel_hb,soft_shelf,2013,0.0182809729315744,0.0442967343015507,soft shelf,comm fish: pel hb
+pel_hb,soft_slope,2013,0.00127333919576928,0.00454079664952503,soft slope,comm fish: pel hb
+pel_hb,s_t_s_bottom,2013,0,0,subtidal soft bottom,comm fish: pel hb
+pel_hb,surface_waters,2013,0.00471389016582614,0.0376084596494781,surface water,comm fish: pel hb
+pel_hb,suspension_reef,2013,0,0,susp. feeder reef,comm fish: pel hb
+pel_lb,beach,2013,0,0,beach,comm fish: pel lb
+pel_lb,coral_reef,2013,0.00352495957136857,0.00792234282994465,coral reef,comm fish: pel lb
+pel_lb,deep_waters,2013,5.12185126688097e-4,0.00719816326887352,deep water,comm fish: pel lb
+pel_lb,d_h_bottom,2013,0,0,deep hard bottom,comm fish: pel lb
+pel_lb,d_s_benthic,2013,1.70799477661833e-4,0.00230553013587199,deep soft benthic,comm fish: pel lb
+pel_lb,hard_shelf,2013,0.0176758241912617,0.0454655814823232,hard shelf,comm fish: pel lb
+pel_lb,hard_slope,2013,0,0,hard slope,comm fish: pel lb
+pel_lb,inttidalmud,2013,0,0,intertidal mud,comm fish: pel lb
+pel_lb,kelp,2013,0,0,kelp forest,comm fish: pel lb
+pel_lb,mangroves,2013,0,0,mangrove,comm fish: pel lb
+pel_lb,rky_intidal,2013,0,0,rocky intertidal,comm fish: pel lb
+pel_lb,rocky_reef,2013,0.0150285755344479,0.0284058786319153,rocky reef,comm fish: pel lb
+pel_lb,salt_marsh,2013,0.00430991902544282,0.0210216883964635,salt marsh,comm fish: pel lb
+pel_lb,seagrass,2013,0,0,seagrass,comm fish: pel lb
+pel_lb,seamounts,2013,0,0,deep seamount,comm fish: pel lb
+pel_lb,soft_shelf,2013,0.00485676004837178,0.0331094519351382,soft shelf,comm fish: pel lb
+pel_lb,soft_slope,2013,5.77035862526873e-4,0.0051400737583899,soft slope,comm fish: pel lb
+pel_lb,s_t_s_bottom,2013,0.00322025490075138,0.0181948008624009,subtidal soft bottom,comm fish: pel lb
+pel_lb,surface_waters,2013,0.00187801213267941,0.0263932651936304,surface water,comm fish: pel lb
+pel_lb,suspension_reef,2013,0,0,susp. feeder reef,comm fish: pel lb
+shipping,beach,2013,0.283122767434879,0.422318637795809,beach,shipping
+shipping,coral_reef,2013,0.232444266717183,0.252587564929725,coral reef,shipping
+shipping,deep_waters,2013,0,0,deep water,shipping
+shipping,d_h_bottom,2013,0,0,deep hard bottom,shipping
+shipping,d_s_benthic,2013,0.114469971322957,0.131249794184283,deep soft benthic,shipping
+shipping,hard_shelf,2013,0.263249384833289,0.214419769978708,hard shelf,shipping
+shipping,hard_slope,2013,0.208639741220115,0.18525566361725,hard slope,shipping
+shipping,inttidalmud,2013,0.283122767434879,0.422318637795809,intertidal mud,shipping
+shipping,kelp,2013,0,0,kelp forest,shipping
+shipping,mangroves,2013,0.162905830014777,0.307104399684418,mangrove,shipping
+shipping,rky_intidal,2013,0.0447035949673315,0.0666818902381115,rocky intertidal,shipping
+shipping,rocky_reef,2013,0.296897807949478,0.299017295996185,rocky reef,shipping
+shipping,salt_marsh,2013,0.20861677592142,0.311182154360491,salt marsh,shipping
+shipping,seagrass,2013,0.360931829823134,0.421898636697935,seagrass,shipping
+shipping,seamounts,2013,0,0,deep seamount,shipping
+shipping,soft_shelf,2013,0.415919145084368,0.414784729109086,soft shelf,shipping
+shipping,soft_slope,2013,0.0195603461345855,0.0201144079390282,soft slope,shipping
+shipping,s_t_s_bottom,2013,0.0612316661820386,0.0759185065093525,subtidal soft bottom,shipping
+shipping,surface_waters,2013,0.263502746850638,0.306291163140917,surface water,shipping
+shipping,suspension_reef,2013,0,0,susp. feeder reef,shipping
+slr,beach,2013,0.388769542245482,0.184776868076692,beach,slr
+slr,coral_reef,2013,0.609299665784109,0.183432483710509,coral reef,slr
+slr,deep_waters,2013,0,0,deep water,slr
+slr,d_h_bottom,2013,0,0,deep hard bottom,slr
+slr,d_s_benthic,2013,0,0,deep soft benthic,slr
+slr,hard_shelf,2013,0,0,hard shelf,slr
+slr,hard_slope,2013,0,0,hard slope,slr
+slr,inttidalmud,2013,0.351743871535998,0.167179071128551,intertidal mud,slr
+slr,kelp,2013,0.30353114455925,0.123568789526197,kelp forest,slr
+slr,mangroves,2013,0.684910270550978,0.244797714114486,mangrove,slr
+slr,rky_intidal,2013,0.462820883831997,0.219972462105137,rocky intertidal,slr
+slr,rocky_reef,2013,0.348883062109486,0.112819361659106,rocky reef,slr
+slr,salt_marsh,2013,0.573897895604649,0.272765852506372,salt marsh,slr
+slr,seagrass,2013,0.598577991730996,0.190664416168777,seagrass,slr
+slr,seamounts,2013,0,0,deep seamount,slr
+slr,soft_shelf,2013,0,0,soft shelf,slr
+slr,soft_slope,2013,0,0,soft slope,slr
+slr,s_t_s_bottom,2013,0.415188879628523,0.212019621993902,subtidal soft bottom,slr
+slr,surface_waters,2013,0,0,surface water,slr
+slr,suspension_reef,2013,0.333231036364484,0.158380172640116,susp. feeder reef,slr
+sst,beach,2013,0.0889138101637222,0.088197987908304007,beach,sst
+sst,coral_reef,2013,0.615022265813059,0.377319681433036,coral reef,sst
+sst,deep_waters,2013,0.480180308911211,0.42674455488735,deep water,sst
+sst,d_h_bottom,2013,0.329262962045416,0.258788876335295,deep hard bottom,sst
+sst,d_s_benthic,2013,0.514702260954489,0.473072427593965,deep soft benthic,sst
+sst,hard_shelf,2013,0.689283805224556,0.40882232169157,hard shelf,sst
+sst,hard_slope,2013,0.223901968294154,0.14105299704409,hard slope,sst
+sst,inttidalmud,2013,0.207465557062165,0.205795304897802,intertidal mud,sst
+sst,kelp,2013,0.481701285184635,0.409104401491412,kelp forest,sst
+sst,mangroves,2013,0.26516306732232803,0.285003194048593,mangrove,sst
+sst,rky_intidal,2013,0.41493111412433,0.411590609795604,rocky intertidal,sst
+sst,rocky_reef,2013,0.450153297271361,0.271979778372775,rocky reef,sst
+sst,salt_marsh,2013,0.207465557062165,0.205795304897802,salt marsh,sst
+sst,seagrass,2013,0.483045997836216,0.349982617507035,seagrass,sst
+sst,seamounts,2013,0.377562715662212,0.314393737278298,deep seamount,sst
+sst,soft_shelf,2013,0.540016798792309,0.416760817525096,soft shelf,sst
+sst,soft_slope,2013,0.511451067248099,0.399467602455707,soft slope,sst
+sst,s_t_s_bottom,2013,0.0854018846650426,0.0773882169567797,subtidal soft bottom,sst
+sst,surface_waters,2013,0.688954355729927,0.61228566507063,surface water,sst
+sst,suspension_reef,2013,0.118551746733526,0.117597317027466,susp. feeder reef,sst
